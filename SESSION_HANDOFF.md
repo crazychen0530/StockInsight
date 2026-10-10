@@ -7,19 +7,19 @@
 ## 1. 当前版本与里程碑
 
 - 目标版本：`v0.1.0`
-- 当前完成阶段：Milestone 0（项目初始化与长期文档）
-- 当前完成任务：Milestone 1 的 M1-01（环境前置配置）
-- 下一任务：Milestone 1 的 M1-02（后端基础工程与健康检查）
-- 当前交付性质：开发环境已经验收；尚无可运行的股票业务功能
+- 当前完成阶段：Milestone 0；Milestone 1 正在实施
+- 当前完成任务：M1-01（环境前置配置）、M1-02（后端基础工程与健康检查）
+- 下一任务：M1-03（Vue 3 + TypeScript + Vite 前端基础工程）
+- 当前交付性质：API 健康接口可运行；尚无股票查询、行情采集或数据库业务功能
 
 ## 2. 当前 Git 状态
 
 - 当前分支：`main`
 - 上游分支：`origin/main`
-- 本次会话开始时最近提交：`97a83a0 docs: record GitHub initial synchronization`
-- 当前环境配置提交：`chore: configure project development environment`
+- 本次会话开始时最近提交：`7718b54 chore: configure project development environment`
+- 本次后端基础工程提交：`feat: initialize backend health API`
 - 远程仓库：`git@github.com:crazychen0530/StockInsight.git`
-- GitHub 推送：此前 `main` 已同步；本次提交尚未推送
+- GitHub 推送：`origin/main` 当前停留在 `97a83a0`；本地环境提交与本次后端提交均尚未推送
 
 新会话不得只依赖上述快照，必须执行：
 
@@ -44,49 +44,56 @@ git remote -v
 - 建立仓库内 Python 3.12.3 `.venv`，并仅在该环境安装 pip 26.2.1。
 - 新增 `scripts/check_environment.sh`，统一检测 Node、npm、Python venv、pip、Docker、Compose、daemon 和 PostgreSQL 客户端。
 - 安装 Docker Engine 29.1.3、Docker Compose 2.40.3 和 PostgreSQL 客户端 16.15；在 Ubuntu WSL 中启用 systemd，启动 Docker service，并为开发用户启用 docker 组访问。
+- 建立 `backend/pyproject.toml`，限定 Python 3.12 并配置 FastAPI、SQLAlchemy 2、Pydantic、Alembic、Uvicorn、Pytest、Ruff 与 `httpx2` 测试客户端。
+- 建立 FastAPI 应用工厂、`/api/v1` Router 和 `GET /api/v1/health`；响应只包含 API 状态与应用版本。
+- 建立 Pydantic `HealthResponse` 契约和 SQLAlchemy 2 的 Base、延迟 Engine、Session factory 与 session scope。
+- 初始化 Alembic 配置、运行环境、revision 模板和空 `versions` 目录，未创建业务 migration。
+- 新增 4 个健康接口测试，覆盖 HTTP 200、精确响应结构、状态/版本和敏感配置不泄漏。
 
-尚未实现 FastAPI、Vue、数据库表、Alembic migration、行情采集、指标计算、定时任务或页面展示。
+尚未实现 Vue、股票业务 API、数据库表、Alembic revision、行情采集、指标计算、定时任务或业务页面。
 
 ## 4. 正在开发的功能
 
-当前没有正在开发的功能。M1-01 已完成实际验收，M1-02 尚未开始。
+当前没有未提交的在开发功能。M1-02 已通过验收，下一会话从 M1-03 开始。
 
 ## 5. 未完成任务
 
 下一阶段优先任务来自 `TASKS.md`：
 
-1. M1-02：初始化 FastAPI、SQLAlchemy 2、Pydantic、Alembic、Pytest 和 Ruff 工程，实现健康检查。
-2. M1-03：初始化 Vue 3、TypeScript 和 Vite 工程。
-3. M1-04：确认 `data_sync_jobs` 的范围、计数和断点字段后，创建首个 migration。
-4. M1-05/M1-06：建立本地 Compose、配置、日志、统一错误和测试 fixture。
+1. M1-03：初始化 Vue 3、TypeScript 和 Vite 工程。
+2. M1-04：确认 `data_sync_jobs` 的范围、计数和断点字段后，创建首个 migration。
+3. M1-05/M1-06：建立本地 Compose、配置、日志、统一错误和测试 fixture。
 
 不得跳过 M1 直接实现实时行情、AI 预测、自动交易或其他后续范围。
 
 ## 6. 最近一次实际测试及结果
 
-本次环境配置实际验证结果：
+本次 M1-02 实际验证结果：
 
-- Ubuntu 24.04.3 LTS on WSL2、Python 3.12.3：通过。
-- NVM 0.40.6 与 Node.js 22.23.1 安装/项目选择：通过。
-- 系统 Node.js 保持 18.19.1，NVM `default` 别名未保留：通过隔离检查。
-- `.venv` 使用 Python 3.12.3、pip 26.2.1，`pip check`：通过，无损坏依赖。
-- `.venv` 命中 `.gitignore`：通过。
-- Docker CLI 29.1.3、Compose 2.40.3：通过。
-- systemd 与 Docker service：通过；`docker info` 返回 Server Version 29.1.3。
-- 当前用户 docker 组权限：通过；无需 sudo 访问 daemon。
-- PostgreSQL 客户端 16.15：通过。
-- `./scripts/check_environment.sh`：全部通过。
+- `./scripts/check_environment.sh`：Node.js、npm、Python `.venv`、pip、Docker CLI、Compose 和 PostgreSQL 客户端通过；Docker daemon 当前不可达或当前进程权限不足，脚本以 1 个失败项退出。
+- `.venv/bin/python --version`：Python 3.12.3。
+- `.venv/bin/python -m pip install --editable 'backend[dev]'`：安装成功，仅写入仓库 `.venv`。
+- `.venv/bin/python -m pip check`：通过，无损坏依赖。
+- `.venv/bin/ruff check backend`：通过。
+- `.venv/bin/python -m pytest backend`：4 个测试全部通过。
+- FastAPI 应用导入：通过，标题 `StockInsight API`、版本 `0.1.0`。
+- `httpx2` ASGI 请求：HTTP 200，响应 `{"status":"ok","version":"0.1.0"}`。
+- Uvicorn + loopback curl：HTTP 200，响应与契约一致；首次沙箱内请求受网络/代理限制，获批后在非沙箱回环网络复测通过。
+- Alembic 配置加载：通过；revision 数 0，SQLAlchemy metadata 表数 0。
+- `git diff --check` 与敏感信息扫描：通过。
 
-尚未运行 Pytest、前端测试或 migration 测试，因为仓库没有对应业务工程。
+未运行前端、数据库连接或 migration 升降级测试，因为这些不属于 M1-02，且当前没有前端、数据库 revision 或业务表。
 
 ## 7. 当前已知 Bug
 
-- 尚无已实现业务代码，因此没有已确认的业务 Bug。
-- 这不代表系统无缺陷；API、数据库、采集和前端均尚未实现，无法进行运行时缺陷验证。
+- 当前没有已确认的后端健康接口 Bug。
+- Docker daemon 在本次受限执行环境中不可达或权限不足；它不影响 M1-02，但必须在 M1-05 前重新诊断。
+- 这不代表系统无缺陷；股票 API、数据库、采集和前端均尚未实现。
 
 ## 8. 未解决的技术风险
 
-- 当前只验证了 Docker 工具和 daemon，尚未创建项目 Compose 文件或验证 PostgreSQL 容器及应用服务链路。
+- Docker daemon 本次复查失败；尚未创建项目 Compose 文件或验证 PostgreSQL 容器及应用服务链路。
+- 项目尚未选择和安装 PostgreSQL Python 驱动；应在 M1-04/M1-05 的实际连接设计中明确，不能由健康接口隐式引入。
 - AKShare 及其上游接口的稳定性、限流、字段变化和公开/商业使用授权仍需确认。
 - 交易日历来源及盘后数据就绪判定尚未选定。
 - 股票状态、退市证券和 SH/SZ 代码映射边界尚未形成测试矩阵。
@@ -96,15 +103,16 @@ git remote -v
 
 ## 9. 数据库 Migration 状态
 
-- Alembic 尚未初始化。
-- 当前不存在 migration 文件，也未创建数据库表。
-- 数据库结构仅为 `PROJECT_PLAN.md` 和 `docs/architecture.md` 中的设计初稿。
+- Alembic 基础环境已初始化，配置可加载。
+- 当前 revision 数为 0，`versions/` 只有占位文件；未创建 migration 或数据库表。
+- SQLAlchemy `Base.metadata` 当前包含 0 张表；数据库结构仍只是 `PROJECT_PLAN.md` 和 `docs/architecture.md` 中的设计初稿。
 - M1-04 必须先确认模型约束和同步任务字段，再创建并测试首个 migration；不得直接修改数据库。
 
 ## 10. GitHub 同步状态
 
 - 已配置私有远程仓库 `origin`：`git@github.com:crazychen0530/StockInsight.git`。
 - 本地 `main` 已首次推送并设置跟踪 `origin/main`；推送前已确认远程没有既有分支，未覆盖远程历史。
+- 本次提交完成后，本地 `main` 预计比 `origin/main` 超前 2 个提交；本次没有 push 授权，因此保持本地未同步。
 - 未执行强制推送、版本发布或远程分支删除。
 - 后续每个验收通过的功能形成逻辑提交；只有获得当次授权后才执行 push。
 
@@ -113,11 +121,11 @@ git remote -v
 可直接复制以下指令：
 
 ```text
-继续开发 /home/crazychen/myprojects/StockInsight，只执行 Milestone 1 的 M1-02：后端基础工程与健康检查。
+继续开发 /home/crazychen/myprojects/StockInsight，只执行 Milestone 1 的 M1-03：Vue 3 + TypeScript + Vite 前端基础工程。
 
 开始前依次阅读 AGENTS.md、PROJECT_PLAN.md、TASKS.md、SESSION_HANDOFF.md、docs/DECISIONS.md、docs/DEPLOYMENT.md，并检查 git status、最近提交和远程配置。
 
-先运行 ./scripts/check_environment.sh 并确认全部通过。初始化 backend 的 Python 工程配置，仅建立 FastAPI、SQLAlchemy 2、Pydantic、Alembic、Pytest 与 Ruff 基础结构，实现 GET /api/v1/health 和统一配置/测试入口；遵循 API Router -> Application Service -> Repository 分层，不创建股票业务接口或数据库业务表。运行 Ruff、Pytest 和实际健康接口测试，更新 TASKS.md、CHANGELOG.md 与 SESSION_HANDOFF.md，形成逻辑完整的本地提交；未经授权不要 push。
+先运行 ./scripts/check_environment.sh，并如实记录 Docker daemon 当前是否仍不可达；该问题不应扩大 M1-03 范围。使用 `.nvmrc` 的 Node.js 22，在 `frontend` 初始化 Vue 3 + TypeScript + Vite，只建立页面壳、路由和基础测试/类型检查配置，不实现股票搜索、K 线、后端业务 API、数据库或 Docker Compose。运行实际构建、类型检查和基础测试，更新 README.md、TASKS.md、CHANGELOG.md 与 SESSION_HANDOFF.md，形成逻辑完整的本地提交；未经授权不要 push。
 ```
 
 ## 12. 是否达到购买云服务器条件

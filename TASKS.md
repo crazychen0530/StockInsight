@@ -28,8 +28,9 @@
 - DONE M1-01 将本地 Node 升级至兼容的 22 LTS，并安装/验证 Docker Engine 与 Compose。
   - 验收：版本命令通过，记录安装方式，不提交本机专用配置。
   - 验收结果：Node.js 22.23.1 通过 NVM 与 `.nvmrc` 隔离；Python 3.12.3 `.venv`、Docker 29.1.3、Compose 2.40.3、可达的 Docker daemon 和 PostgreSQL 客户端 16.15 均通过 `scripts/check_environment.sh` 验证。
-- TODO M1-02 初始化 FastAPI、SQLAlchemy 2、Pydantic、Alembic、Pytest 与 Ruff 工程。
+- DONE M1-02 初始化 FastAPI、SQLAlchemy 2、Pydantic、Alembic、Pytest 与 Ruff 工程。
   - 验收：应用可启动，`GET /api/v1/health` 返回契约响应，lint 和测试通过。
+  - 验收结果：Python 3.12 后端以 `pyproject.toml` 管理；健康接口仅返回 API 进程状态与版本；SQLAlchemy Base/Engine/Session 基础配置和无 revision 的 Alembic 环境已建立；Ruff、4 个 Pytest 用例、应用导入、ASGI 请求及真实 Uvicorn HTTP 请求均通过。
 - TODO M1-03 初始化 Vue 3 + TypeScript + Vite 前端。
   - 验收：开发构建可启动，类型检查和基础组件测试通过。
 - TODO M1-04 定义首版 ORM 模型并创建初始 Alembic migration。

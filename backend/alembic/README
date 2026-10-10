@@ -1,0 +1,4 @@
+Alembic migration environment for StockInsight.
+
+No business migration exists yet. M1-04 will create the first revision after the
+database model and constraints are approved.

@@ -2,7 +2,7 @@
 
 > 状态：规划文档，尚未完成部署验证
 >
-> 当前阶段：Milestone 0；开发早期不购买服务器
+> 当前阶段：Milestone 1；开发早期不购买服务器
 
 ## 1. 本地开发部署方式
 
@@ -13,7 +13,7 @@ M1 计划支持两种本地方式，具体命令只能在工程实际建立并�
 
 本地配置从 `.env.example` 派生到不进入 Git 的 `.env`。数据库 migration 必须由明确的 Alembic 命令执行，不允许应用启动时隐式修改 Schema。测试数据库与开发数据库隔离。
 
-当前本地环境已完成 M1-01 验收：Python 3.12.3 在仓库内 `.venv` 隔离；Node.js 22.23.1 通过 NVM 并行安装且由 `.nvmrc` 固定，系统 Node.js 18.19.1 未替换；Docker Engine 29.1.3、Docker Compose 2.40.3 和 PostgreSQL 客户端 16.15 已安装。当前 Ubuntu WSL 发行版已启用 systemd，Docker service 正常运行，开发用户已加入 `docker` 组；`./scripts/check_environment.sh` 全部通过。
+M1-01 已验收：Python 3.12.3 在仓库内 `.venv` 隔离；Node.js 22.23.1 通过 NVM 并行安装且由 `.nvmrc` 固定，系统 Node.js 18.19.1 未替换；Docker Engine 29.1.3、Docker Compose 2.40.3 和 PostgreSQL 客户端 16.15 已安装。当时的 systemd、Docker service、用户组权限和 `./scripts/check_environment.sh` 全部通过。M1-02 会话再次执行脚本时，Docker daemon 报告不可达或当前进程无权限；开始 M1-05 前必须重新验证并定位，不能沿用旧结果。
 
 以上只证明开发工具与 daemon 可用。项目尚未创建 Compose 文件、PostgreSQL 容器或应用服务，因此不能视为本地部署链路已通过。
 

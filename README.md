@@ -1,15 +1,15 @@
 # StockInsight
 
-StockInsight 是面向个人投资研究的中国 A 股行情与风险分析 Web 平台。当前仓库只完成 **Milestone 0：项目初始化与长期文档**，尚未提供可运行的行情服务。
+StockInsight 是面向个人投资研究的中国 A 股行情与风险分析 Web 平台。当前正在实施 **Milestone 1：基础工程**；后端健康接口可运行，但尚未提供股票行情业务功能。
 
 项目不会连接券商或执行真实交易，不承诺收益，也不会把未经验证的预测作为确定的投资建议。
 
 ## 当前状态
 
 - 目标版本：v0.1.0
-- 当前阶段：Milestone 0 已完成，Milestone 1 待开始
-- 已建立：项目基线、分层架构、数据口径、数据库/API 草案、任务与安全规则
-- 未实现：后端、前端、数据库 migration、实时数据接入和部署
+- 当前阶段：Milestone 0、M1-01、M1-02 已完成；下一任务为 M1-03
+- 已建立：项目基线、开发环境、FastAPI 后端、健康接口、SQLAlchemy/Alembic 基础配置及后端测试/检查入口
+- 未实现：前端、股票业务 API、数据库业务模型与 migration、行情采集和 Compose 服务
 
 ## v0.1.0 计划范围
 
@@ -33,8 +33,10 @@ AI 涨跌预测、自动交易、券商连接、财报估值、自选股、组�
 
 ```text
 StockInsight/
+├── backend/alembic/              # migration 环境；当前没有 revision
 ├── backend/app/{api,core,models,schemas,repositories,services,collectors,analysis,jobs}/
 ├── backend/tests/
+├── backend/pyproject.toml
 ├── frontend/src/{api,components,router,stores,types,views}/
 ├── frontend/tests/
 ├── docs/architecture.md
@@ -49,7 +51,7 @@ StockInsight/
 └── CHANGELOG.md
 ```
 
-空目录目前使用 `.gitkeep` 保留。这是架构骨架，不代表对应模块已实现。
+尚未实现的空目录使用 `.gitkeep` 保留。这是架构骨架，不代表对应业务模块已完成。
 
 ## 开发前置条件
 
@@ -70,7 +72,7 @@ source .venv/bin/activate
 ./scripts/check_environment.sh
 ```
 
-Node.js 22.23.1、Python 3.12 `.venv`、Docker Engine 29.1.3、Docker Compose 2.40.3、Docker daemon 和 PostgreSQL 客户端 16.15 已通过环境检查。系统 Node.js 18.19.1 仍保留，不要用全局 Node 升级替代 NVM 项目选择。
+M1-01 曾完整验证 Node.js 22.23.1、Python 3.12 `.venv`、Docker Engine 29.1.3、Docker Compose 2.40.3、Docker daemon 和 PostgreSQL 客户端 16.15。当前 M1-02 会话再次检查时 Docker daemon 不可达或当前进程权限不足；这不影响无数据库依赖的健康接口，但开始 M1-05 前必须重新排查。系统 Node.js 18.19.1 仍保留，不要用全局 Node 升级替代 NVM 项目选择。
 
 ## 开发入口
 
@@ -84,7 +86,45 @@ Node.js 22.23.1、Python 3.12 `.venv`、Docker Engine 29.1.3、Docker Compose 2.
 6. [docs/architecture.md](docs/architecture.md)：系统边界与数据流
 7. [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)：本地、生产、备份、发布和回滚规划
 
-当前没有依赖安装或启动命令。M1 建立真实工程后再补充可复制的本地启动、migration、测试和停止步骤，避免文档先于实现。
+## 后端安装、运行和验证
+
+以下命令均从仓库根目录执行，只使用现有 `.venv`：
+
+```bash
+source .venv/bin/activate
+python -m pip install --editable 'backend[dev]'
+```
+
+启动开发服务：
+
+```bash
+uvicorn app.main:app --app-dir backend --reload --host 127.0.0.1 --port 8000
+```
+
+在另一个终端请求健康接口：
+
+```bash
+curl --noproxy '*' http://127.0.0.1:8000/api/v1/health
+```
+
+预期响应：
+
+```json
+{"status":"ok","version":"0.1.0"}
+```
+
+该响应只证明 API 进程能够处理请求，不声明 PostgreSQL、数据采集器、Docker 或外部数据源健康。
+
+运行质量检查和测试：
+
+```bash
+.venv/bin/ruff check backend
+.venv/bin/python -m pytest backend
+.venv/bin/python -c "from app.main import app; print(app.title, app.version)"
+.venv/bin/alembic -c backend/alembic.ini heads
+```
+
+最后一条命令当前应成功且不输出 revision。Alembic 环境已初始化，但 M1-04 前不得创建股票业务 migration；实际执行 migration 时还需要通过环境变量提供 `DATABASE_URL` 和安装获批的 PostgreSQL 驱动。
 
 ## 配置与安全
 
