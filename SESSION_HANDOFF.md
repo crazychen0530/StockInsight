@@ -14,10 +14,11 @@
 ## 2. 当前 Git 状态
 
 - 当前分支：`main`
-- 本次会话开始时最近提交：`e6ed8cc docs: initialize StockInsight project plan`
-- 本次文档完善提交：`docs: add long-term development handoff rules`
-- 远程仓库：尚未配置
-- GitHub 推送：尚未执行
+- 上游分支：`origin/main`
+- 最近功能提交：`7bbaa00 docs: add long-term development handoff rules`
+- 本次状态同步提交：`docs: record GitHub initial synchronization`
+- 远程仓库：`git@github.com:crazychen0530/StockInsight.git`
+- GitHub 推送：首次推送已获项目所有者明确授权并成功完成
 
 新会话不得只依赖上述快照，必须执行：
 
@@ -98,9 +99,10 @@ M0 初始化时还实际验证过 `.gitignore` 对 `.env`、虚拟环境、`node
 
 ## 10. GitHub 同步状态
 
-- 尚未获得或配置 GitHub 私有仓库地址。
-- 尚未执行任何 push、强制推送、版本发布或远程分支删除。
-- 当前存在适合本地提交的文档成果；完成本地提交后，应提醒项目所有者创建/提供私有仓库并明确授权首次 push。
+- 已配置私有远程仓库 `origin`：`git@github.com:crazychen0530/StockInsight.git`。
+- 本地 `main` 已首次推送并设置跟踪 `origin/main`；推送前已确认远程没有既有分支，未覆盖远程历史。
+- 未执行强制推送、版本发布或远程分支删除。
+- 后续每个验收通过的功能形成逻辑提交；只有获得当次授权后才执行 push。
 
 ## 11. 下一个 Codex 会话的具体任务
 

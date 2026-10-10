@@ -7,7 +7,7 @@
 - DONE M0-01 检查工作空间、工具版本和现有文件。
   - 验收：记录 Python、Node、Docker/Compose 可用性；确认未覆盖已有项目。
 - DONE M0-02 创建并初始化独立 `StockInsight` Git 仓库。
-  - 验收：仓库位于 `StockInsight/`，默认分支为 `main`，未配置猜测的远程地址。
+  - 验收：仓库位于 `StockInsight/`，默认分支为 `main`；未猜测远程地址，后续仅使用项目所有者提供的私有仓库。
 - DONE M0-03 建立长期项目文档。
   - 验收：`PROJECT_PLAN.md` 覆盖产品、技术、数据、安全、里程碑、同步和部署基线；`AGENTS.md` 可指导后续开发。
 - DONE M0-04 建立任务、变更记录和项目入口文档。
@@ -20,6 +20,8 @@
   - 验收：内部 Markdown 链接、敏感信息模式、空目录占位和 Git 状态检查通过；如实记录环境缺口。
 - DONE M0-08 建立长期会话交接、技术决策和部署管理规范。
   - 验收：`SESSION_HANDOFF.md` 反映真实项目状态；`docs/DECISIONS.md` 记录八项初始决策；`docs/DEPLOYMENT.md` 明确本地、生产、备份、发布和回滚边界；`AGENTS.md` 包含会话首尾与架构一致性检查规则；文档校验通过。
+- DONE M0-09 配置项目所有者提供的 GitHub 私有远程并完成首次同步。
+  - 验收：推送前确认远程为空；`main` 成功推送并跟踪 `origin/main`；未强制推送、未覆盖远程历史、未发布版本。
 
 ## Milestone 1：前端、后端、数据库基础工程
 
