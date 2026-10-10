@@ -18,6 +18,8 @@
   - 验收：`docs/architecture.md` 含可解析 Mermaid 图和关键调用边界；与 `PROJECT_PLAN.md` 无已知冲突。
 - DONE M0-07 完成文档与 Git 安全校验。
   - 验收：内部 Markdown 链接、敏感信息模式、空目录占位和 Git 状态检查通过；如实记录环境缺口。
+- DONE M0-08 建立长期会话交接、技术决策和部署管理规范。
+  - 验收：`SESSION_HANDOFF.md` 反映真实项目状态；`docs/DECISIONS.md` 记录八项初始决策；`docs/DEPLOYMENT.md` 明确本地、生产、备份、发布和回滚边界；`AGENTS.md` 包含会话首尾与架构一致性检查规则；文档校验通过。
 
 ## Milestone 1：前端、后端、数据库基础工程
 

@@ -38,10 +38,13 @@ StockInsight/
 ├── frontend/src/{api,components,router,stores,types,views}/
 ├── frontend/tests/
 ├── docs/architecture.md
+├── docs/DECISIONS.md
+├── docs/DEPLOYMENT.md
 ├── infrastructure/
 ├── scripts/
 ├── PROJECT_PLAN.md
 ├── AGENTS.md
+├── SESSION_HANDOFF.md
 ├── TASKS.md
 └── CHANGELOG.md
 ```
@@ -56,10 +59,13 @@ StockInsight/
 
 开始任何任务前请依次阅读：
 
-1. [PROJECT_PLAN.md](PROJECT_PLAN.md)：产品和架构基线
-2. [AGENTS.md](AGENTS.md)：强制开发规则
+1. [AGENTS.md](AGENTS.md)：强制开发和会话规则
+2. [PROJECT_PLAN.md](PROJECT_PLAN.md)：产品和架构基线
 3. [TASKS.md](TASKS.md)：里程碑、状态和验收标准
-4. [docs/architecture.md](docs/architecture.md)：系统边界与数据流
+4. [SESSION_HANDOFF.md](SESSION_HANDOFF.md)：当前可核验状态和下一任务
+5. [docs/DECISIONS.md](docs/DECISIONS.md)：长期技术决策及变更流程
+6. [docs/architecture.md](docs/architecture.md)：系统边界与数据流
+7. [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)：本地、生产、备份、发布和回滚规划
 
 当前没有依赖安装或启动命令。M1 建立真实工程后再补充可复制的本地启动、migration、测试和停止步骤，避免文档先于实现。
 
