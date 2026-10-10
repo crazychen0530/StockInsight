@@ -8,18 +8,18 @@
 
 - 目标版本：`v0.1.0`
 - 当前完成阶段：Milestone 0；Milestone 1 正在实施
-- 当前完成任务：M1-01（环境前置配置）、M1-02（后端基础工程与健康检查）
-- 下一任务：M1-03（Vue 3 + TypeScript + Vite 前端基础工程）
-- 当前交付性质：API 健康接口可运行；尚无股票查询、行情采集或数据库业务功能
+- 当前完成任务：M1-01（环境）、M1-02（后端基础）、M1-03（前端基础）
+- 下一任务：M1-04（首版 ORM 模型与初始 Alembic migration）
+- 当前交付性质：API 健康接口和前端应用壳可运行；尚无股票查询、行情采集或数据库业务功能
 
 ## 2. 当前 Git 状态
 
 - 当前分支：`main`
 - 上游分支：`origin/main`
-- 本次会话开始时最近提交：`7718b54 chore: configure project development environment`
-- 本次后端基础工程提交：`feat: initialize backend health API`
+- 本次会话开始时最近提交：`2b31254 feat: initialize backend health API`
+- 本次前端基础工程提交：`feat: initialize Vue frontend foundation`
 - 远程仓库：`git@github.com:crazychen0530/StockInsight.git`
-- GitHub 推送：`origin/main` 当前停留在 `97a83a0`；本地环境提交与本次后端提交均尚未推送
+- GitHub 推送：`origin/main` 当前停留在 `97a83a0`；本次提交后本地预计超前 3 个提交，均未获得本次 push 授权
 
 新会话不得只依赖上述快照，必须执行：
 
@@ -49,20 +49,23 @@ git remote -v
 - 建立 Pydantic `HealthResponse` 契约和 SQLAlchemy 2 的 Base、延迟 Engine、Session factory 与 session scope。
 - 初始化 Alembic 配置、运行环境、revision 模板和空 `versions` 目录，未创建业务 migration。
 - 新增 4 个健康接口测试，覆盖 HTTP 200、精确响应结构、状态/版本和敏感配置不泄漏。
+- 建立 Vue 3、TypeScript、Vite 与 Vue Router 前端基础工程，并生成锁文件。
+- 建立响应式应用壳、明确不展示行情的首页占位和 404 路由。
+- 新增 2 个组件/路由测试，覆盖首页壳、免责声明和未知路由。
+- 配置类型检查、Vitest、生产构建和 Preview 命令；尚未引入 Pinia、Element Plus、Axios 或 ECharts。
 
-尚未实现 Vue、股票业务 API、数据库表、Alembic revision、行情采集、指标计算、定时任务或业务页面。
+尚未实现股票业务 API、数据库表、Alembic revision、行情采集、指标计算、定时任务或行情业务页面。
 
 ## 4. 正在开发的功能
 
-当前没有未提交的在开发功能。M1-02 已通过验收，下一会话从 M1-03 开始。
+当前没有未提交的在开发功能。M1-03 已通过验收，下一会话从 M1-04 开始。
 
 ## 5. 未完成任务
 
 下一阶段优先任务来自 `TASKS.md`：
 
-1. M1-03：初始化 Vue 3、TypeScript 和 Vite 工程。
-2. M1-04：确认 `data_sync_jobs` 的范围、计数和断点字段后，创建首个 migration。
-3. M1-05/M1-06：建立本地 Compose、配置、日志、统一错误和测试 fixture。
+1. M1-04：确认 `data_sync_jobs` 的范围、计数和断点字段后，创建首个 ORM 模型与 migration。
+2. M1-05/M1-06：建立本地 Compose、配置、日志、统一错误和测试 fixture。
 
 不得跳过 M1 直接实现实时行情、AI 预测、自动交易或其他后续范围。
 
@@ -82,13 +85,27 @@ git remote -v
 - Alembic 配置加载：通过；revision 数 0，SQLAlchemy metadata 表数 0。
 - `git diff --check` 与敏感信息扫描：通过。
 
-未运行前端、数据库连接或 migration 升降级测试，因为这些不属于 M1-02，且当前没有前端、数据库 revision 或业务表。
+M1-02 当时未运行前端、数据库连接或 migration 升降级测试；前端基础测试已在下述 M1-03 中补充，数据库 revision 和业务表仍不存在。
+
+本次 M1-03 实际验证结果：
+
+- `./scripts/check_environment.sh`：Node.js 22.23.1、npm 10.9.8、Python、Docker CLI/Compose 和 PostgreSQL 客户端通过；Docker daemon 仍不可达或权限不足。
+- `env -u NODE_TLS_REJECT_UNAUTHORIZED npm ci --prefix frontend`：从锁文件全新安装 150 个包成功。
+- `npm run typecheck --prefix frontend`：通过。
+- `npm test --prefix frontend`：1 个测试文件、2 个测试全部通过。
+- `npm run build --prefix frontend`：通过；31 个模块转换，生产产物成功生成。
+- Vite Preview + loopback curl：HTTP 200，HTML 标题为 `StockInsight`。
+- `npm audit fix` 后复查：0 vulnerabilities，未使用 `--force`。
+- `git diff --check`、敏感信息和文档链接检查：通过。
+
+未运行股票业务、数据库连接、migration 升降级或端到端 API 数据测试，因为这些不属于 M1-03。
 
 ## 7. 当前已知 Bug
 
 - 当前没有已确认的后端健康接口 Bug。
-- Docker daemon 在本次受限执行环境中不可达或权限不足；它不影响 M1-02，但必须在 M1-05 前重新诊断。
-- 这不代表系统无缺陷；股票 API、数据库、采集和前端均尚未实现。
+- Docker daemon 在本次环境中不可达或权限不足；它不影响 M1-02/M1-03，但必须在 M1-05 前重新诊断。
+- 外部环境设置了 `NODE_TLS_REJECT_UNAUTHORIZED=0`；该配置会关闭 Node TLS 校验。本次已通过临时取消变量的 Registry ping 和 `npm ci` 验证正常 TLS 可用，后续安装不得依赖该不安全变量。
+- 这不代表系统无缺陷；股票 API、数据库、采集和前端业务功能均尚未实现。
 
 ## 8. 未解决的技术风险
 
@@ -112,7 +129,7 @@ git remote -v
 
 - 已配置私有远程仓库 `origin`：`git@github.com:crazychen0530/StockInsight.git`。
 - 本地 `main` 已首次推送并设置跟踪 `origin/main`；推送前已确认远程没有既有分支，未覆盖远程历史。
-- 本次提交完成后，本地 `main` 预计比 `origin/main` 超前 2 个提交；本次没有 push 授权，因此保持本地未同步。
+- 本次提交完成后，本地 `main` 预计比 `origin/main` 超前 3 个提交；本次没有 push 授权，因此保持本地未同步。
 - 未执行强制推送、版本发布或远程分支删除。
 - 后续每个验收通过的功能形成逻辑提交；只有获得当次授权后才执行 push。
 
@@ -121,11 +138,11 @@ git remote -v
 可直接复制以下指令：
 
 ```text
-继续开发 /home/crazychen/myprojects/StockInsight，只执行 Milestone 1 的 M1-03：Vue 3 + TypeScript + Vite 前端基础工程。
+继续开发 /home/crazychen/myprojects/StockInsight，只执行 Milestone 1 的 M1-04：首版 ORM 模型与初始 Alembic migration。
 
 开始前依次阅读 AGENTS.md、PROJECT_PLAN.md、TASKS.md、SESSION_HANDOFF.md、docs/DECISIONS.md、docs/DEPLOYMENT.md，并检查 git status、最近提交和远程配置。
 
-先运行 ./scripts/check_environment.sh，并如实记录 Docker daemon 当前是否仍不可达；该问题不应扩大 M1-03 范围。使用 `.nvmrc` 的 Node.js 22，在 `frontend` 初始化 Vue 3 + TypeScript + Vite，只建立页面壳、路由和基础测试/类型检查配置，不实现股票搜索、K 线、后端业务 API、数据库或 Docker Compose。运行实际构建、类型检查和基础测试，更新 README.md、TASKS.md、CHANGELOG.md 与 SESSION_HANDOFF.md，形成逻辑完整的本地提交；未经授权不要 push。
+先运行 ./scripts/check_environment.sh，并检查当前 Git 状态。开始编码前，对照 PROJECT_PLAN.md 第 8 节和 docs/architecture.md 明确 stocks、daily_prices、technical_indicators、data_sync_jobs 的字段、约束、索引和时间/单位语义，尤其先定稿 data_sync_jobs 的目标范围、计数和断点字段。仅实现 SQLAlchemy 2 模型、PostgreSQL 驱动配置、首个 Alembic revision 及 migration 升降级/约束测试；不要实现 Repository、股票 API、采集、前端业务页或 Docker Compose。不得用 SQLite 结果替代 PostgreSQL migration 验收；若 Docker daemon 仍不可用，先报告阻塞和可验证替代方案，不得把未执行的数据库测试写成通过。完成后更新 TASKS.md、SESSION_HANDOFF.md、CHANGELOG.md 和 README.md，形成逻辑完整的本地提交；未经授权不要 push。
 ```
 
 ## 12. 是否达到购买云服务器条件

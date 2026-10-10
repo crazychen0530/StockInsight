@@ -22,9 +22,12 @@
 - 初始化 Python 3.12 后端工程及 FastAPI 应用工厂，新增只表示 API 进程存活的 `GET /api/v1/health`。
 - 新增 Pydantic 健康响应契约、SQLAlchemy 2 延迟 Engine/Session 基础配置和空 Alembic migration 环境。
 - 配置 Pytest、Ruff 和后端开发依赖，新增健康接口状态码、响应结构、版本及敏感信息泄漏测试。
+- 初始化 Vue 3、TypeScript、Vite 和 Vue Router 前端基础工程，新增首页应用壳、404 路由及移动端基础样式。
+- 新增 Vitest 与 Vue Test Utils 组件/路由测试、类型检查、生产构建、Preview 和可复现 `npm ci` 入口。
+- 固定经审计的前端构建工具版本并生成 `package-lock.json`；当前 npm 审计为 0 个已知漏洞。
 
 ### Known limitations
 
-- Milestone 1 正在进行；后端健康接口可运行，但尚无股票业务 API、业务模型或数据库表。
+- Milestone 1 正在进行；前后端基础壳可运行，但尚无股票业务 API、业务模型、数据库表或行情页面。
 - 当前尚未创建或验证项目 Docker Compose 服务、PostgreSQL 容器和应用运行链路。
 - Alembic 已初始化但 revision 数为 0；首个业务 migration 属于 M1-04。

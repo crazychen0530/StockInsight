@@ -7,9 +7,9 @@ StockInsight 是面向个人投资研究的中国 A 股行情与风险分析 Web
 ## 当前状态
 
 - 目标版本：v0.1.0
-- 当前阶段：Milestone 0、M1-01、M1-02 已完成；下一任务为 M1-03
-- 已建立：项目基线、开发环境、FastAPI 后端、健康接口、SQLAlchemy/Alembic 基础配置及后端测试/检查入口
-- 未实现：前端、股票业务 API、数据库业务模型与 migration、行情采集和 Compose 服务
+- 当前阶段：Milestone 0、M1-01、M1-02、M1-03 已完成；下一任务为 M1-04
+- 已建立：项目基线、开发环境、FastAPI 健康接口、SQLAlchemy/Alembic 基础配置、Vue/Vite 前端壳及前后端测试入口
+- 未实现：股票业务 API、数据库业务模型与 migration、行情采集、行情页面和 Compose 服务
 
 ## v0.1.0 计划范围
 
@@ -39,6 +39,8 @@ StockInsight/
 ├── backend/pyproject.toml
 ├── frontend/src/{api,components,router,stores,types,views}/
 ├── frontend/tests/
+├── frontend/package.json
+├── frontend/package-lock.json
 ├── docs/architecture.md
 ├── docs/DECISIONS.md
 ├── docs/DEPLOYMENT.md
@@ -125,6 +127,43 @@ curl --noproxy '*' http://127.0.0.1:8000/api/v1/health
 ```
 
 最后一条命令当前应成功且不输出 revision。Alembic 环境已初始化，但 M1-04 前不得创建股票业务 migration；实际执行 migration 时还需要通过环境变量提供 `DATABASE_URL` 和安装获批的 PostgreSQL 驱动。
+
+## 前端安装、运行和验证
+
+以下命令从仓库根目录执行，并使用 `.nvmrc` 固定的 Node.js 22：
+
+```bash
+export NVM_DIR="$HOME/.nvm"
+. "$NVM_DIR/nvm.sh"
+nvm use
+
+# 如果外部环境设置了不安全值 0，应在安装依赖前为当前 shell 取消它。
+unset NODE_TLS_REJECT_UNAUTHORIZED
+npm ci --prefix frontend
+```
+
+启动开发服务器：
+
+```bash
+npm run dev --prefix frontend -- --host 127.0.0.1
+```
+
+运行类型检查、组件测试和生产构建：
+
+```bash
+npm run typecheck --prefix frontend
+npm test --prefix frontend
+npm run build --prefix frontend
+```
+
+验证生产构建：
+
+```bash
+npm run preview --prefix frontend -- --host 127.0.0.1 --port 4173
+curl --noproxy '*' http://127.0.0.1:4173/
+```
+
+当前前端只包含应用壳、首页占位和 404 路由，不调用后端、不显示真实或模拟行情。Pinia、Element Plus、Axios 和 ECharts 将在对应功能出现实际需求时再引入。
 
 ## 配置与安全
 

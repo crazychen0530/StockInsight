@@ -31,8 +31,9 @@
 - DONE M1-02 初始化 FastAPI、SQLAlchemy 2、Pydantic、Alembic、Pytest 与 Ruff 工程。
   - 验收：应用可启动，`GET /api/v1/health` 返回契约响应，lint 和测试通过。
   - 验收结果：Python 3.12 后端以 `pyproject.toml` 管理；健康接口仅返回 API 进程状态与版本；SQLAlchemy Base/Engine/Session 基础配置和无 revision 的 Alembic 环境已建立；Ruff、4 个 Pytest 用例、应用导入、ASGI 请求及真实 Uvicorn HTTP 请求均通过。
-- TODO M1-03 初始化 Vue 3 + TypeScript + Vite 前端。
+- DONE M1-03 初始化 Vue 3 + TypeScript + Vite 前端。
   - 验收：开发构建可启动，类型检查和基础组件测试通过。
+  - 验收结果：Node.js 22 下建立 Vue 3、TypeScript、Vite 与 Vue Router 基础工程；首页壳和 404 路由不展示行情；锁文件全新安装、类型检查、2 个组件/路由测试、生产构建、Preview HTTP 冒烟和 npm 0 漏洞审计通过。
 - TODO M1-04 定义首版 ORM 模型并创建初始 Alembic migration。
   - 验收：四张核心表的主外键、约束、索引和单位语义与规划一致；空库升级测试通过。
 - TODO M1-05 创建本地 Docker Compose 基础工程。
