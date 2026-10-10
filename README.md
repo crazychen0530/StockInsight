@@ -53,7 +53,24 @@ StockInsight/
 
 ## 开发前置条件
 
-目标环境为 Ubuntu 24.04、Python 3.12、Node.js 22 LTS、PostgreSQL、Docker Engine 与 Docker Compose。M0 检查显示当前 Python 3.12.3 可用，但 Node.js 仍为 18.19.1，Docker/Compose 尚未安装；开始 M1 前需处理这些前置条件。
+目标环境为 Ubuntu 24.04、Python 3.12、Node.js 22 LTS、PostgreSQL、Docker Engine 与 Docker Compose。
+
+当前已配置项目隔离环境：
+
+```bash
+# 使用 .nvmrc 中已安装的 Node.js 22，不替换系统 Node
+export NVM_DIR="$HOME/.nvm"
+. "$NVM_DIR/nvm.sh"
+nvm use
+
+# 使用仓库内 Python 3.12 虚拟环境
+source .venv/bin/activate
+
+# 检查全部前置条件
+./scripts/check_environment.sh
+```
+
+Node.js 22.23.1、Python 3.12 `.venv`、Docker Engine 29.1.3、Docker Compose 2.40.3、Docker daemon 和 PostgreSQL 客户端 16.15 已通过环境检查。系统 Node.js 18.19.1 仍保留，不要用全局 Node 升级替代 NVM 项目选择。
 
 ## 开发入口
 

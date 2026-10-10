@@ -25,8 +25,9 @@
 
 ## Milestone 1：前端、后端、数据库基础工程
 
-- TODO M1-01 将本地 Node 升级至兼容的 22 LTS，并安装/验证 Docker Engine 与 Compose。
+- DONE M1-01 将本地 Node 升级至兼容的 22 LTS，并安装/验证 Docker Engine 与 Compose。
   - 验收：版本命令通过，记录安装方式，不提交本机专用配置。
+  - 验收结果：Node.js 22.23.1 通过 NVM 与 `.nvmrc` 隔离；Python 3.12.3 `.venv`、Docker 29.1.3、Compose 2.40.3、可达的 Docker daemon 和 PostgreSQL 客户端 16.15 均通过 `scripts/check_environment.sh` 验证。
 - TODO M1-02 初始化 FastAPI、SQLAlchemy 2、Pydantic、Alembic、Pytest 与 Ruff 工程。
   - 验收：应用可启动，`GET /api/v1/health` 返回契约响应，lint 和测试通过。
 - TODO M1-03 初始化 Vue 3 + TypeScript + Vite 前端。

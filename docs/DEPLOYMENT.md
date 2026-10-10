@@ -13,7 +13,9 @@ M1 计划支持两种本地方式，具体命令只能在工程实际建立并�
 
 本地配置从 `.env.example` 派生到不进入 Git 的 `.env`。数据库 migration 必须由明确的 Alembic 命令执行，不允许应用启动时隐式修改 Schema。测试数据库与开发数据库隔离。
 
-当前环境事实：Python 3.12.3 可用，Node.js 为 18.19.1，Docker/Compose 尚未安装。因此上述方式均是计划，不是已通过验证的部署结果。
+当前本地环境已完成 M1-01 验收：Python 3.12.3 在仓库内 `.venv` 隔离；Node.js 22.23.1 通过 NVM 并行安装且由 `.nvmrc` 固定，系统 Node.js 18.19.1 未替换；Docker Engine 29.1.3、Docker Compose 2.40.3 和 PostgreSQL 客户端 16.15 已安装。当前 Ubuntu WSL 发行版已启用 systemd，Docker service 正常运行，开发用户已加入 `docker` 组；`./scripts/check_environment.sh` 全部通过。
+
+以上只证明开发工具与 daemon 可用。项目尚未创建 Compose 文件、PostgreSQL 容器或应用服务，因此不能视为本地部署链路已通过。
 
 ## 2. Docker Compose 服务说明
 
