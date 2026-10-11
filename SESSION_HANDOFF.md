@@ -14,11 +14,12 @@
 
 ## 2. 当前 Git 状态
 
-- 当前分支：`main`，跟踪 `origin/main`；完整 M1 已合并至本地 main
-- 合并前基线：本地 main 为 `3820583`，已验收功能分支为 `b0c4fe6`；本轮经用户授权执行 `git switch main`、`git merge --ff-only feature/m1-06-runtime-foundation`，快进至 `b0c4fe6`，无冲突且代码树完全一致
-- M1-06 功能提交：`08071e8`；已推送的功能分支最新提交 `b0c4fe6`。本轮交接更新提交为 `docs: record M1 integration into local main`，实际 SHA 以 `git log` 为准
+- 当前分支：`main`，跟踪 `origin/main`；完整 M1 已合并并推送至 GitHub
+- 历史集成：本地 main 从 `3820583` 快进至 `b0c4fe6`，无冲突；上一会话交接提交为 `733e63d docs: record M1 integration into local main`
+- M1-06 功能提交：`08071e8`；保留的远程功能分支最新提交 `b0c4fe6`。本轮交接提交为 `docs: record main synchronization and local branch cleanup`，实际 SHA 以 `git log` 为准
 - 远程仓库：`git@github.com:crazychen0530/StockInsight.git`
-- GitHub：完整 M1 功能分支已在上一开发会话推送；本轮只授权合并，没有执行 push。远程 main 仍为 `97a83a0`，本地 main（含本轮文档提交）比 origin/main 超前 8 个提交，待用户手动同步或另行授权
+- GitHub：本轮获明确授权，`git push origin main` 成功，将远程 main 从 `97a83a0` 更新到 `733e63d`；`git ls-remote` 核验与本地 SHA 一致后才执行本地分支清理。本轮交接记录继续同步 main，结束时再次核验本地/远程一致
+- 本地分支：仅保留 main；已删除三个已合并分支 `feature/m1-04-initial-schema`（`761a515`）、`feature/m1-05-local-compose`（`f5f0f36`）、`feature/m1-06-runtime-foundation`（`b0c4fe6`）。只删除分支引用，提交仍在 main 历史中，可通过对应 SHA 恢复分支；远程功能分支未删除
 
 新会话不得只依赖上述快照，必须执行：
 
@@ -84,7 +85,16 @@ M1 已完成；本次结束保持三服务运行。暂无正在实施的业务�
 
 ## 6. 最近一次实际测试及结果
 
-最新：M1 合并后复核（2026-10-11）：
+最新：main 同步与本地分支清理复核（2026-10-11）：
+
+- `.venv/bin/ruff check backend`：通过；`.venv/bin/python -m pytest backend -m 'not postgres' -q`：37 passed、1 deselected。本轮仅 Git 管理及文档，不重复前端/数据库测试，没有修改代码、依赖、数据库或容器。
+- `git fetch origin` 与 `git merge-base --is-ancestor origin/main main`：通过；对三个指定本地分支分别执行祖先检查：均已合并 main，无其他 worktree 占用。
+- 推送前检查 8 个待推送提交、118 个唯一 blob：未发现本地真实数据库密码、私钥或 Token 模式，未跟踪真实 `.env`。
+- `git push origin main`：成功；`git ls-remote --heads origin main feature/m1-06-runtime-foundation`：main 为 `733e63d92745e22d699b97a03604292518e585b2`，与本地相同；远程功能分支仍为 `b0c4fe641513aa4c663e4c0b7749bf1b414b7836`。
+- 确认成功后执行 `git branch -d feature/m1-04-initial-schema feature/m1-05-local-compose feature/m1-06-runtime-foundation`：三个本地分支删除成功，`git branch -a` 仅显示本地 main 和原有两个远程跟踪分支。
+- 更新本轮文档记录后再次检查 Markdown 链接/围栏、敏感信息与 `git diff --check`，提交并同步 main；实际最新 SHA 和工作区状态以最终 Git 检查为准。
+
+此前 M1 合并后复核（2026-10-11）：
 
 - `git merge --ff-only feature/m1-06-runtime-foundation`：成功，无冲突；`git diff --exit-code feature/m1-06-runtime-foundation HEAD`：通过（更新本轮文档前，合并后的代码树完全相同）。没有改业务代码、依赖、数据库或运行容器。
 - `.venv/bin/ruff check backend`、`.venv/bin/ruff format --check backend`：通过；`.venv/bin/python -m pytest backend -m 'not postgres' -q`：37 passed、1 deselected。
@@ -198,9 +208,9 @@ M1-02 当时未运行前端、数据库连接或 migration 升降级测试；后
 
 - 已配置私有远程仓库 `origin`：`git@github.com:crazychen0530/StockInsight.git`。
 - 本地 `main` 已首次推送并设置跟踪 `origin/main`；推送前已确认远程没有既有分支，未覆盖远程历史。
-- 上一 M1-06 开发会话已获 push 授权并成功推送完整 M1 功能分支，当前远程 `feature/m1-06-runtime-foundation` 为 `b0c4fe641513aa4c663e4c0b7749bf1b414b7836`（本轮只读核验）。
-- 本轮经授权将该功能分支快进合并至本地 main，保留功能分支；没有执行 push。远程 main 仍为 `97a83a0fe61f3a5d3253646234428277ec000ae1`。本地 main 含本轮文档提交共超前 8 个提交，工作区状态以收尾 Git 检查为准。
-- 若用户自己同步，工作区干净时运行 `git switch main`、`git fetch origin`，确认 `git merge-base --is-ancestor origin/main main` 成功后执行 `git push origin main`。若远程已有分叉或推送被拒绝，先检查历史，不得 force push。未创建 PR/Release 或发布公网。
+- 当前 main 已完成完整 M1 同步；本轮先推送 `733e63d` 并核验，再清理本地分支，最后把本轮交接记录提交并推送同一 main。最终远程 HEAD 与本地 HEAD 须一致，不再有待推送提交。
+- 远程 `feature/m1-06-runtime-foundation` 保持 `b0c4fe641513aa4c663e4c0b7749bf1b414b7836`，未删除或改写；m1-04/m1-05 未单独建立远程分支，其提交已随完整 M1 进入远程 main。
+- 三个本地 M1 功能分支已在确认同步成功且全部合并后，以 `git branch -d` 安全删除；没有强制删除、删除代码、重写历史、创建 PR/Release 或发布公网。
 - 未执行强制推送、版本发布或远程分支删除。
 - 后续每个验收通过的功能形成逻辑提交；只有获得当次授权后才执行 push。
 
@@ -213,7 +223,7 @@ M1-02 当时未运行前端、数据库连接或 migration 升降级测试；后
 
 开始前依次阅读 AGENTS.md、PROJECT_PLAN.md、TASKS.md、SESSION_HANDOFF.md、docs/DECISIONS.md、docs/DEPLOYMENT.md，并检查 git status、最近提交和远程配置。
 
-以已合并完整 M1 的本地 main 为基线创建 feature/m2-01-market-data-provider，先核验环境、Compose 与远程同步；本地 main 尚待推送，不能用旧的 origin/main 替代。保留开发库 stockinsight 与 stockinsight-local_postgres_data 卷。阅读 Provider 规划和 AKShare 官方接口文档，明确基础信息/不复权日线契约、代码/日期/来源/获取时间/单位边界；外部字段只留在适配层。只实现 Provider 抽象、AKShare 适配与 mock/fixture 契约测试，覆盖成功、空结果、超时和字段漂移；默认测试不依赖实时网络、不虚构行情，真实联网样本与授权另行注明。M2-02 详细 Validator、Repository 持久化、采集 CLI、调度及业务网页留给后续任务；如依赖或接口设计超出当前基线先报告。复用 M1-06 配置/错误/安全日志，不改变健康成功契约或新增数据库结构。运行相关测试；完整 migration 回归仅用新独立空 *_migration_test 库。更新任务、交接、变更和决策文档，验收后形成逻辑提交；未经本轮授权不 push、不合并 main、不删卷、不部署公网。报告下一任务和是否需服务器。
+以已合并完整 M1 且已同步 GitHub 的 main 为基线创建 feature/m2-01-market-data-provider，先核验环境、Compose 与远程同步；旧的三个本地 M1 功能分支已清理，不再依赖这些分支名。保留开发库 stockinsight 与 stockinsight-local_postgres_data 卷。阅读 Provider 规划和 AKShare 官方接口文档，明确基础信息/不复权日线契约、代码/日期/来源/获取时间/单位边界；外部字段只留在适配层。只实现 Provider 抽象、AKShare 适配与 mock/fixture 契约测试，覆盖成功、空结果、超时和字段漂移；默认测试不依赖实时网络、不虚构行情，真实联网样本与授权另行注明。M2-02 详细 Validator、Repository 持久化、采集 CLI、调度及业务网页留给后续任务；如依赖或接口设计超出当前基线先报告。复用 M1-06 配置/错误/安全日志，不改变健康成功契约或新增数据库结构。运行相关测试；完整 migration 回归仅用新独立空 *_migration_test 库。更新任务、交接、变更和决策文档，验收后形成逻辑提交；未经本轮授权不 push、不合并 main、不删卷、不部署公网。报告下一任务和是否需服务器。
 ```
 
 ## 12. 是否达到购买云服务器条件

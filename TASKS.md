@@ -46,6 +46,8 @@
 
 M1 集成记录（2026-10-11）：经用户授权，`feature/m1-06-runtime-foundation` 已通过 `git merge --ff-only` 合并至本地 `main`，无冲突且代码树不变。合并后 Ruff/格式、37 个非 PostgreSQL 后端测试、前端类型/2 个测试和文档/健康 HTTP 检查通过。本轮未重跑数据库升降级；先前完整 38 项验收保留为历史证据。本地 main 尚未推送；M2-01 改从本地 main 创建功能分支。
 
+M1 同步/清理记录（2026-10-11）：后续已获用户明确授权，main 推送 GitHub 并核验 SHA 一致后，以 `git branch -d` 删除三个已合并本地 M1 功能分支；远程功能分支保留，代码与历史不变。Ruff、37 个非 PostgreSQL 测试通过。本轮交接记录同步 main；下一任务从 main 新建 M2-01 分支。
+
 ## Milestone 2：股票基础信息与行情采集
 
 - TODO M2-01 定义 `MarketDataProvider` 契约和 `AkShareProvider`。

@@ -287,13 +287,13 @@ curl --noproxy '*' http://127.0.0.1:4173/
 
 ### 本地功能分支合并示例
 
-以下命令适用于工作区干净、任务验收通过、功能分支包含目标 main 全部历史且未分叉的情形。当前 M1 已按此方式合并到本地 main，再次执行会提示已是最新；实际同步状态见交接文档。
+以下命令适用于工作区干净、任务验收通过、功能分支包含目标 main 全部历史且未分叉的情形。M1 已合并并推送 main，三个已合并本地 M1 分支已清理、远程功能分支保留。以下以未来完成的 M2-01 分支为示例，当前还未创建该分支，不能直接执行合并；实际状态见交接文档。
 
 ```bash
 git status --short --branch
 # 有未提交修改时先停下，妥善提交或保存，不要直接覆盖。
 git switch main
-git merge --ff-only feature/m1-06-runtime-foundation
+git merge --ff-only feature/m2-01-market-data-provider
 # 按任务范围复核测试及更新 TASKS.md / SESSION_HANDOFF.md，再提交文档。
 git log -5 --oneline --decorate
 ```
