@@ -66,6 +66,8 @@ M1 同步/清理记录（2026-10-11）：后续已获用户明确授权，main �
   - 验收：任务状态、错误摘要、失败重试和断点恢复测试通过；不提供匿名公网触发入口。
   - 验收结果（2026-10-11）：本地 stocks/daily/jobs/resume CLI，复用 Provider/Validator/Service 与 DataSyncJob；每股独立任务、工作项计数与空响应标记、提交后实际 checkpoint、安全错误码、有界重试、全局协作锁/活动防重、原范围幂等恢复。新增 26 单元/10 PostgreSQL 测试，294 passed、29 deselected；全新四隔离库完整 323 passed 无 skip，包含真实 SIGTERM/SIGKILL、提交后崩溃、离线 SDK CLI、partial/failed 与 migration 升降级。Ruff/格式/pip check 通过，无新依赖/Schema/API/前端/调度器；开发库和原卷保留。详见 docs/COLLECTION_CLI.md、ADR-016。M2 五项全部完成，下一任务 M3-01。
 
+M2 集成/同步记录（2026-10-11）：经用户授权，`feature/m2-05-collection-cli` 已快进合并本地 main，M2 五个功能提交全部推送 GitHub；代码交付 `ca50c94` 已核验远程一致。合并后 Ruff/格式及 294 个非 PostgreSQL 测试通过（29 deselected），未重跑数据库/前端验收，原完整 323 项证据保留。功能分支未删除；下一任务从同步后的 main 创建 M3-01 分支。
+
 ## Milestone 3：历史行情 API 和 K 线展示
 
 - TODO M3-01 实现股票列表、详情和行情查询 API。

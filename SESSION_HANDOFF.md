@@ -14,11 +14,11 @@
 
 ## 2. 当前 Git 状态
 
-- 当前分支：`feature/m2-05-collection-cli`，从干净的 M2-04 本地提交 `1376135` 创建；M2-01 至 M2-05 尚未合并 main 或推送。
-- 本轮开始 `git ls-remote --heads origin main` 确认 GitHub main 与本地 main 基线 `19c6ba41ee7404ec89782c29b2d3aac76ebe2eb6` 一致；远程为 `git@github.com:crazychen0530/StockInsight.git`。
-- 本轮形成一个本地逻辑提交 `feat: add resumable local collection CLI`；准确 SHA 和状态以最终 `git log -3 --oneline --decorate`、`git status --short --branch` 为准。
-- 未 push、未合并 main、未删除分支或卷；M2 五个本地功能提交待 GitHub 同步，main 保持 `19c6ba4`。
-- 下一会话须检查 Git 状态、最近提交和远程配置；保留本地功能分支，在获得授权后同步 GitHub。
+- 当前分支：`main`。经用户明确授权，已执行 `git merge --ff-only feature/m2-05-collection-cli`，由 `19c6ba4` 快进至 M2 交付提交 `ca50c94`，无冲突、无额外 merge commit，合并前后业务代码树一致。
+- 已执行 `git push origin main`，GitHub main 由 `19c6ba4` 更新至 `ca50c94`，随后 `git ls-remote --heads origin main` 核验一致；M2-01 至 M2-05 五个功能提交全部进入本地和 GitHub main。
+- 本同步记录另形成 `docs: record M2 integration and main synchronization` 并随本轮授权推送 main；最终准确 SHA/状态以 `git log -3 --oneline --decorate`、`git status --short --branch` 和远程核验结果为准。
+- 保留全部本地/远程功能分支；没有强推、删分支、删卷、迁移开发库或部署公网。
+- 下一任务从干净且与远程同步的 main 创建 `feature/m3-01-stock-query-api`；后续推送仍须对应授权。
 
 ## 3. 已完成功能
 
@@ -109,6 +109,13 @@ M2 五项全部完成并本地提交；本次结束保持原有三服务运行�
 按里程碑推进，不提前实现实时行情、AI 预测、自动交易或其他未批准范围。
 
 ## 6. 最近一次实际测试及结果
+
+最新同步检查（2026-10-11）：
+
+- 工作区干净、远程 main 仍为 `19c6ba4`，快进合并 M2 五个提交至 `ca50c94`；没有冲突或代码改写。
+- 合并后 `.venv/bin/python -m pytest backend -q -m 'not postgres'`：**294 passed、29 deselected**（2.45s）；Ruff check/format 和 `git diff --check` 通过。没有重复数据库/前端验收；同一代码树的此前完整 323 项证据保留如下。
+- 推送前扫描五个提交新增/变化的 77 个唯一 blob，未发现本地真实数据库密码、私钥或 `.env` 文件；只执行正常 `git push origin main`，不强推。
+- 推送成功，远程 SHA 核验与 `ca50c94` 一致；本同步记录另提交并推送，最终 SHA 以本轮 Git 核验为准。原服务、数据库与卷未操作；本轮没有公网部署。
 
 最新：M2-05 本地采集任务验收（2026-10-11）：
 
@@ -295,7 +302,7 @@ M1-02 当时未运行前端、数据库连接或 migration 升降级测试；后
 
 - 已配置私有远程仓库 `origin`：`git@github.com:crazychen0530/StockInsight.git`。
 - 本地 `main` 已首次推送并设置跟踪 `origin/main`；推送前已确认远程没有既有分支，未覆盖远程历史。
-- 当前 main 已完成完整 M1 同步，最终基线 `19c6ba4` 已在本轮开始重新核验；此前同步/清理已结束。本轮 M2-05 从 M2-04 本地提交继续；五个功能提交均尚未同步 GitHub。
+- 当前 main 已完成完整 M1 同步，最终基线 `19c6ba4` 已在本轮开始重新核验；此前同步/清理已结束。M2 五个功能提交现已通过快进合并进入 main，并经用户授权推送 GitHub；代码交付 SHA 为 `ca50c94`，同步记录另行提交。
 - 远程 `feature/m1-06-runtime-foundation` 保持 `b0c4fe641513aa4c663e4c0b7749bf1b414b7836`，未删除或改写；m1-04/m1-05 未单独建立远程分支，其提交已随完整 M1 进入远程 main。
 - 三个本地 M1 功能分支已在确认同步成功且全部合并后，以 `git branch -d` 安全删除；没有强制删除、删除代码、重写历史、创建 PR/Release 或发布公网。
 - 未执行强制推送、版本发布或远程分支删除。
@@ -310,7 +317,7 @@ M1-02 当时未运行前端、数据库连接或 migration 升降级测试；后
 
 依次阅读 AGENTS.md、PROJECT_PLAN.md、TASKS.md、SESSION_HANDOFF.md、docs/DECISIONS.md、docs/DEPLOYMENT.md、docs/STOCK_PERSISTENCE.md、docs/DAILY_PRICE_PERSISTENCE.md、docs/COLLECTION_CLI.md；检查 Git 状态、最近提交、远程和环境。
 
-核验 feature/m2-05-collection-cli 已验收本地提交，若尚未合并 main，以该提交创建 feature/m3-01-stock-query-api，保留 main，未经授权不合并或 push。复用 Service/Repository、统一配置/日志/错误、Pydantic 和 Provider DTO/Validator 边界，实现本地数据库只读股票列表/搜索、详情、显式区间日线查询 API；明确分页/上限、代码与日期校验、空/不存在语义、单位/不复权、来源和更新时间。请求不访问 Provider、不触发采集或计算；stocks 当前无逐行来源/更新时间，不能编造或擅自新增 Schema，先审查既有设计，必要时提出 Proposed 决策等待确认。覆盖契约/分页/排序/非法参数/404/空数据/安全错误和来源元数据，固定模拟值与全新独立 PostgreSQL 测试库，完整 migration 回归另用新空 *_migration_test；保留开发库 stockinsight 和原卷。不提前实现前端、指标、调度、HTTP 采集或公网部署。完成测试、文档、逻辑提交，未经授权不 push、不合并 main、不删卷。
+核验 main 已包含 M2 交付 ca50c94 且与 origin/main 同步，从干净 main 创建 feature/m3-01-stock-query-api；保留现有功能分支，未经授权不合并或 push。复用 Service/Repository、统一配置/日志/错误、Pydantic 和 Provider DTO/Validator 边界，实现本地数据库只读股票列表/搜索、详情、显式区间日线查询 API；明确分页/上限、代码与日期校验、空/不存在语义、单位/不复权、来源和更新时间。请求不访问 Provider、不触发采集或计算；stocks 当前无逐行来源/更新时间，不能编造或擅自新增 Schema，先审查既有设计，必要时提出 Proposed 决策等待确认。覆盖契约/分页/排序/非法参数/404/空数据/安全错误和来源元数据，固定模拟值与全新独立 PostgreSQL 测试库，完整 migration 回归另用新空 *_migration_test；保留开发库 stockinsight 和原卷。不提前实现前端、指标、调度、HTTP 采集或公网部署。完成测试、文档、逻辑提交，未经授权不 push、不合并 main、不删卷。
 ```
 
 ## 12. 是否达到购买云服务器条件
