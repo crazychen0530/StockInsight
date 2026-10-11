@@ -14,11 +14,11 @@
 
 ## 2. 当前 Git 状态
 
-- 当前分支：`feature/m1-06-runtime-foundation`（基于 M1-05，包含 M1 全部实现）
+- 当前分支：`feature/m1-06-runtime-foundation`，跟踪 `origin/feature/m1-06-runtime-foundation`（基于 M1-05，包含 M1 全部实现）
 - 基线：本次会话开始时 HEAD 为 `f5f0f36 feat: add local Docker Compose development stack`；本地 `main` 仍保留原状态，未合并功能分支
-- 本次逻辑提交：`feat: establish isolated configuration and safe API runtime`；实际 SHA 以 `git log` 为准，避免自引用提交哈希
+- 本次功能提交：`08071e8 feat: establish isolated configuration and safe API runtime`；后续同步记录提交的实际 SHA 以 `git log` 为准，避免自引用提交哈希
 - 远程仓库：`git@github.com:crazychen0530/StockInsight.git`
-- GitHub 推送：用户已明确授权本次 push；提交前 `git ls-remote --heads origin` 核验远程只有 `main`（`97a83a0`），本轮计划推送当前功能分支，不合并或改写 main。实际同步结果见第 10 节
+- GitHub 推送：用户已明确授权本次 push；当前功能分支已成功推送并建立上游，包含 M1 全部实现；没有合并或改写 main。实际同步结果见第 10 节
 
 新会话不得只依赖上述快照，必须执行：
 
@@ -189,7 +189,8 @@ M1-02 当时未运行前端、数据库连接或 migration 升降级测试；后
 
 - 已配置私有远程仓库 `origin`：`git@github.com:crazychen0530/StockInsight.git`。
 - 本地 `main` 已首次推送并设置跟踪 `origin/main`；推送前已确认远程没有既有分支，未覆盖远程历史。
-- 用户本轮明确授权 push；将推送 `feature/m1-06-runtime-foundation`（包含 M1 全部代码/文档），当前记录为提交前待执行。不会合并到 main，main 仍为之前的远程状态。推送完成后补记实际结果。
+- 用户本轮明确授权 push；`git push --set-upstream origin feature/m1-06-runtime-foundation` 成功，远程分支创建并设置上游，包含 M1 全部代码/文档。已通过 `git ls-remote --heads origin feature/m1-06-runtime-foundation` 核验功能提交 `08071e81685477a6a895285d5ce9391a1cf1b9a6` 在远程。
+- 本段作为后续文档提交同步同一分支，结束时再次核验远程 HEAD 与本地一致；最新 SHA 以实际 Git 为准。没有合并 main、创建 PR/Release 或发布公网。远程 main 在本轮开始核验仍为 `97a83a0`，本地 main 为 `3820583`，未改动。
 - 未执行强制推送、版本发布或远程分支删除。
 - 后续每个验收通过的功能形成逻辑提交；只有获得当次授权后才执行 push。
 
