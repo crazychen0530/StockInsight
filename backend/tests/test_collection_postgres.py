@@ -294,6 +294,13 @@ def stock_zh_a_hist(**kwargs):
     code, output = cli("jobs", "--limit", "2")
     assert code == 0 and len(output) == 2
     assert all(item["coverage_verified"] is False for item in output)
+    # M4 manual incremental rehearsal retains prices and versioned indicators.
+    code, output = cli("daily", "--symbol", "000001.SZ", *args, "--job-type", "incremental")
+    assert code == 0 and output[-1]["status"] == "succeeded"
+    assert len(prices(jobs.engine)) == 2
+    with jobs.engine.connect() as connection:
+        assert connection.scalar(sa.select(sa.func.count()).select_from(TechnicalIndicator)) == 2
+    assert any(job.scope.job_type == "incremental" for job in jobs.list_recent())
 
 
 def test_cli_sigterm_cleanup_and_resume(jobs, tmp_path):

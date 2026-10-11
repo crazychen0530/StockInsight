@@ -8,12 +8,20 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.analysis.moving_averages import ClosePoint
-from app.models import DailyPrice, TechnicalIndicator
+from app.models import DailyPrice, Stock, TechnicalIndicator
 
 
 class IndicatorRepository:
     def __init__(self, session: Session):
         self.session = session
+
+    def lock_stock(self, symbol):
+        return (
+            self.session.scalar(
+                select(Stock.symbol).where(Stock.symbol == symbol).with_for_update()
+            )
+            is not None
+        )
 
     def closes(self, symbol: str):
         rows = self.session.execute(

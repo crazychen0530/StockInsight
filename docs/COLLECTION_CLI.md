@@ -96,3 +96,7 @@ export JOB_TEST_DATABASE_URL="postgresql+psycopg:///m2_05_${RUN_ID}_jobs_test"
 ```
 
 fixture 断言指定后缀及空库；仅清理该轮新建库内自己的测试数据。迁移升降级回归另在 migration_test，开发库 `stockinsight` 和原 Compose 卷保持。当前 323 项完整回归通过，无 skip；运行时测试创建的库名及当前环境证据见 [交接文档](../SESSION_HANDOFF.md)。
+
+## M4 增补
+
+非空日线现在同事务重算 MA5/20/60；新增 indicators 本地重算命令及独立调度入口。手工 incremental、历史 backfill、jobs/resume 与权限/退出码操作见[运维手册](OPERATIONS.md)，调度日历/就绪/防重见[调度手册](SCHEDULER.md)。原有空响应和覆盖边界不变。

@@ -1,77 +1,74 @@
 # StockInsight 会话交接
 
 > 更新时间：2026-10-12（Asia/Shanghai）
-> 以当前 Git、代码和测试为准；固定模拟行情不代表真实上游验收。
+> 以当前 Git、代码和测试为准；模拟行情不代表真实上游验收。
 
-## 1. 当前版本与里程碑
+## 1. 当前里程碑与授权
 
-- 目标版本 v0.1.0；M0、M1、M2、M3 全部完成。
-- 本会话按用户授权，从 M3-02 连续推进至 M3-04，没有进入 M4。
-- 下一任务 M4-01：MA5、MA20、MA60 纯计算模块。
-- 已有本地采集 CLI/任务/恢复、股票查询 API、概览/搜索/详情、日 K 线/成交量；尚无均线、数据状态页或自动调度，不等于完整 MVP。
+- 目标版本 v0.1.0，M0–M4 全部完成。
+- 本会话用户明确授权从 M4-01 连续完成整个 M4 后停止；已完成五项，没有进入 M5。
+- 当前支持股票搜索/详情、K 线/成交量/MA5/20/60、数据状态、本地采集/恢复/重算和独立盘后调度。
+- 下一任务 M5-01：完整核心测试与 v0.1.0 验收准备；不等于已完成 M5/M6。
 
-## 2. Git 与 GitHub
+## 2. 本轮实现和架构
 
-- M3-01 `531ceb2`、M3-02 `2342334`、M3-03 `aaba460`、M3-04 `beeafa6` 四项代码均已完成。
-- 2026-10-12 用户明确授权将 M3 快进合并 main 并推送；从干净 `feature/m3-04-market-charts` 切换 main，`git merge --ff-only feature/m3-04-market-charts` 成功，无冲突，合并后与验收分支代码树完全相同。
-- `git push origin main` 成功，`git ls-remote --heads origin main` 确认远程为 `beeafa6354898dce8c08f37d5bfe5534e82fdbd9`，与本地代码交付一致；本同步记录另行提交并推送，最终 HEAD 以 Git/交付报告核验为准。
-- 当前分支 main，origin 为用户既有私有地址 `git@github.com:crazychen0530/StockInsight.git`；功能分支保留，无强推/删分支/标签/Release/公网部署。
-- 下一任务从同步后的干净 main 创建 `feature/m4-01-moving-averages`。
-- 合并后复核：前端类型/25 项测试、后端离线 322 passed/34 deselected（2.65s）、Ruff check/format 通过；推送前扫描 M3 四项历史中 67 个新增/变化 blob，无本机私有凭据、Token、私钥模式或真实 .env。未重复浏览器/构建/完整 PostgreSQL 升降级，原 M3 验收证据保留下节。
+- M4-01：不可变 ClosePoint/MovingAverage，按股票/日期排序，Decimal 固定 Context 精度 40、HALF_UP 四位，版本 sma-close-v1；窗口不足 null，无未来记录、无日历日填充；输入严格校验。
+- M4-02：非空 DailyPriceService 单股票事务内写行情和全历史指标；股票行锁串行化并发写/重算，版本 UPSERT，值相同保留 computed_at，补采历史/修正重算后继窗口。沿用原表，没有 migration/新依赖。
+- 两个新 GET：`/api/v1/stocks/{symbol}/indicators` 和 `/api/v1/system/data-status`。只读数据库、日期闭区间/上限/has_more、版本/null/精确 Decimal 字符串和安全错误；指标来源只代表当日输入，任务计数为股票工作项。
+- M4-03：详情 ECharts LineChart MA5/20/60，日期关联、null 不连线、精确 tooltip/明细、版本/来源/计算时间；指标加载/错误独立，不阻断日线。图表在明细前。`/data-status` 提供最新任务状态/计数/范围/错误/游标、刷新/空错重试。
+- M4-04：独立 `app.jobs.scheduler`，Shanghai 可配置盘后时间、受控 JSON 日历来源/覆盖、调度锁/采集锁、成功当日游标跳过、失败/中断原 ID 重放、重叠最近本地日期增量、当日数据未就绪失败和有界重试、逐股成果保留/批次 partial。正常锁退出主动 unlock 再关闭，缩短原断连释放窗口。
+- M4-05：`cli indicators --symbol` 本地补齐，无 Provider 初始化；完整增量/补采/恢复手册与可复现六隔离库测试脚本。
+- 保持 Router -> Service -> Repository -> Database 与独立纯 Calculator；API 生命周期不导入/启动 scheduler，没有公开采集入口、Schema/核心栈/单位/部署变化。
 
-## 3. 本轮完成范围与架构检查
+## 3. 测试与实际结果
 
-- M3-02：同源 Axios `/api/v1`、15 秒超时、类型化股票/日线契约、结构/单位/日期/整数检查、统一固定中文错误及安全 request_id、Loading/Empty/Error 组件、AbortController/序号隔离、三个业务路由和 404。
-- M3-03：概览本地股票计数、URL q/page 搜索与分页/返回、详情基础信息和闭区间查询；未知来源/时间不推断，上海时区，1000 条上限和 has_more 提示。
-- M3-04：模块化 ECharts SVG K 线和成交量，升序日期、open/close/low/high、联动缩放、成交量零基线、ResizeObserver/卸载 dispose；原始 Decimal 字符串 tooltip/明细，图形坐标近似提示；逐行来源/获取时间与当前显示行汇总。
-- 按既有调用方向：页面 -> stocksApi -> Axios -> 只读 Router -> Service -> Repository -> PostgreSQL。未改后端代码、Schema、口径、CLI、采集或调度，没有新增 migration。
-- Axios/ECharts 为规划内依赖；Playwright 为可复现浏览器验收开发依赖。没有跨页面共享业务状态或复杂控件需求，暂不引入 Pinia/Element Plus，ADR-018 记录实现细化。
-- 详见 [前端专题](docs/FRONTEND_MARKET.md)、[API 专题](docs/STOCK_QUERY_API.md)、[技术决策](docs/DECISIONS.md)。
+- `.venv/bin/python scripts/test_postgres.py`：**383 passed，13.83 秒，无 skip**，新建六个随机唯一空库，保留库供排查。包含 migration 升降级/再升级、既有采集/查询回归和 M4 集成。
+- 新增纯计算 11 项：窗口/分组/乱序/无未来前缀/非法输入/大 Decimal/调用方精度与 Inexact trap 隔离。显式模拟数据。
+- 指标 PostgreSQL：同事务失败回滚行情、历史修正/插入、并发不相交追加后的全历史正确性、幂等时间、真实 API null/Decimal/版本/日期/上限/404/空和任务原始错误脱敏。
+- 调度：8 项离线固定时钟/日历测试，真实数据库双锁/重启跳过/失败原 ID/未就绪重试/partial/水位。真实独立 scheduler CLI 子进程使用离线 SDK 和测试注入时钟两次 --once，首次 partial，第二次成功股票跳过且失败任务 ID 复用；生产入口没有假时钟参数。
+- 真实采集 CLI 子进程演练 backfill、partial、failed/succeeded resume、jobs、incremental，重复后行情/指标各 2 行；本地 indicators 首次补齐 65 行，重复 changed_count=0，不创建 Provider。
+- `.venv/bin/ruff check backend scripts/test_postgres.py`、`.venv/bin/ruff format --check backend scripts/test_postgres.py`：通过，73 文件格式；`.venv/bin/python -m pip check`：无依赖冲突。
+- Node 22.23.1：`npm run typecheck --prefix frontend`、`npm test --prefix frontend`：**31 passed**；`npm run build-only --prefix frontend`：通过。均线响应/状态错误校验、组件状态和真实 ECharts SVG 对齐/null/tooltip 已覆盖。
+- `npm run test:browser --prefix frontend`：通过真实 Vite -> API 只读列表，再使用浏览器 HTTP 模拟 fixture 验证均线图例、搜索/详情/SVG/鼠标缩放/日期/截断/空/错/重试、390px、状态空页，无浏览器异常；调整图表至明细前后复跑通过。
+- `.venv/bin/python /tmp/stockinsight-m4-real-browser.py`：新库 m4_browser_052c1775_query_api_test，模拟 Provider -> 持久 CollectionRunner 任务 -> 行情/均线 -> 真实 Chromium/Vite/Axios/FastAPI/Repository/PostgreSQL/SVG/status 全链路通过。20 条明确模拟日线、MA5/20 与不足 MA60、成功任务可见。专用 8001/5174 服务 finally 停止，原服务保留；脚本/截图在 /tmp，不当作全新 Linux 或真实上游验收。
+- 本机浏览器运行环境沿用 M3：PLAYWRIGHT_BROWSERS_PATH=/tmp/stockinsight-browser/browsers、LD_LIBRARY_PATH=/tmp/stockinsight-browser/libs/usr/lib/x86_64-linux-gnu、FONTCONFIG_FILE=/tmp/stockinsight-browser/fonts.conf；未系统安装或分发字体。
+- 文档链接、围栏/Mermaid 结构、真实私有凭据/Token/私钥扫描与 git diff --check 通过，最终数量以交付工具输出为准；未以结构检查冒充 Mermaid 渲染。
+- 首轮完整测试失败原因是新增指标子表未纳入旧 fixture 清理、模拟日期包含周末、旧 OpenAPI 路由断言未更新；均修复后在新空库完整复跑通过。没有沿用失败结果计作通过。
 
-## 4. 本轮测试与实际结果
+## 4. 本地运行和数据保护
 
-- Node 22.23.1；安装时取消 `NODE_TLS_REJECT_UNAUTHORIZED`，保持 TLS；npm 安装/容器 npm ci 审计均 0 vulnerabilities，锁文件已更新。
-- M3-02：`npm run typecheck --prefix frontend`、`npm test --prefix frontend`（13 passed）、`npm run build-only --prefix frontend` 通过，形成独立提交。
-- M3-03：相同命令通过，21 passed，形成独立提交。
-- M3 最终：类型检查、25 项 Vitest（4 文件）、生产构建通过；包含正常/非法响应、原始 Decimal、null 元数据、HTTP/超时/网络错误、取消/晚到/销毁、URL 搜索与分页/返回/详情、Loading/Empty/Error/重试、404/日期/截断、真实 ECharts SVG/双轴缩放/更新/dispose。SSR 测试只替换无 canvas 环境的文字测量，图表构建与 SVG 渲染真实执行。
-- 容器：`docker compose exec -T web sh -c 'npm run typecheck && npm test && npm run build-only'` 同样通过（25 passed）。本轮只重建/更新 web 使新锁文件和依赖生效。
-- 浏览器：`npm run test:browser --prefix frontend` 通过。先真实 Vite -> API 只读列表，再模拟 HTTP fixture 验证搜索 -> 详情 -> SVG/鼠标缩放/日期/截断/空/503/request_id/重试/390px，无浏览器异常。复现脚本保留 `frontend/scripts/browser-smoke.mjs`。
-- 另用 `.venv/bin/python /tmp/stockinsight-m3-real-browser.py` 通过真实 Chromium -> Vite -> Axios -> FastAPI -> Service -> Repository -> PostgreSQL -> SVG，20 条明确模拟日线与来源/精确值可见。新库 `m3_browser_287bd0aa_query_api_test`，仅向该隔离库写 fixture；测试 API 8001/Vite 5174 已由 runner finally 停止，库保留。runner/截图在 /tmp，不是全新 Linux 部署或真实上游验收。
-- 浏览器首次因缺少 libnspr4/libnss3 无法启动，官方 Ubuntu 包仅解压 /tmp 后成功；使用现有 Windows 中文字体副本到 /tmp 供截图，不安装系统包、不分发字体。复现本机额外环境：`PLAYWRIGHT_BROWSERS_PATH=/tmp/stockinsight-browser/browsers`、`LD_LIBRARY_PATH=/tmp/stockinsight-browser/libs/usr/lib/x86_64-linux-gnu`、`FONTCONFIG_FILE=/tmp/stockinsight-browser/fonts.conf`。
-- 首轮浏览器拖拽断言失败，测试先滚动图表入视口并为滑块留出底部空间后通过；随后发现窄屏 Grid 最小宽度溢出，修复后移动布局断言通过。截图 `/tmp/stockinsight-m3-desktop.png`、`/tmp/stockinsight-m3-mobile.png` 已人工查看。
-- `.venv/bin/ruff check backend`、`.venv/bin/ruff format --check backend` 通过（58 文件）。`.venv/bin/python -m pytest backend -q -m 'not postgres'` 在正常权限下 **322 passed、34 deselected**。首次沙箱内运行停在既有子进程相关用例，96 秒后中断，为 278 passed/34 deselected；不计作通过，正常权限复跑 2.47 秒全部通过。
-- 本轮未重跑完整 PostgreSQL/migration 升降级；M3-01 历史完整验收为 356 passed 无 skip，首轮既有采集锁冲突复跑通过，风险保留下节。本轮隔离浏览器库仅执行 upgrade head；开发库只读复核。
-- `python3 /tmp/stockinsight-m3-doccheck.py`、`git diff --check`：通过：49 个本地链接、44 个围栏块、4 个 Mermaid 块结构，132 个文件私有凭据/Token/私钥模式检查及差异空白检查。
+- db/api/web 均 healthy，只绑定 loopback 5432/8000/5173，原卷 stockinsight-local_postgres_data 保留。
+- 开发库 stockinsight：0001_initial_schema，stocks/daily_prices/technical_indicators/data_sync_jobs 均 **0 行**（本轮只读复核）。页面应显示空状态，未填充模拟行情/触发真实采集。
+- 真实 HTTP API 与 Vite 代理 data-status 均 200 空列表；OpenAPI 六个 GET 路由验证通过。依赖未变化，原容器源码挂载热更新，本轮无需重建服务。
+- 默认 Compose 仍三服务，没有自动常驻 scheduler。操作者提供完整已核验日历/目标股票/起始日后，按 docs/SCHEDULER.md 启动；这避免未经配置的真实网络采集。
+- scripts/test_postgres.py 每次创建六个新隔离库并保留，不清任何现有库。测试使用 .env 本机连接信息，不输出凭据，迁移升降级只作用于随机空测试库。
 
-## 5. 当前运行与数据库状态
+## 5. Git 与 GitHub
 
-- 页面：`http://127.0.0.1:5173/`；搜索：`http://127.0.0.1:5173/stocks`。
-- API 文档：`http://127.0.0.1:8000/docs`，包含健康、股票列表/搜索、详情、日线四项 GET。
-- db/API/web healthy，仅 loopback 5432/8000/5173。原持久卷 `stockinsight-local_postgres_data` 保留。
-- 开发库 `stockinsight` 仍 `0001_initial_schema`，stocks/daily_prices/technical_indicators/data_sync_jobs 均 0 行。打开页面应显示空状态；没有自动插入模拟行情或调用真实 Provider。
-- 唯一 migration 仍 `0001_initial_schema`。测试模拟数据只存在新隔离库；不向开发库写 fixture，不清库、不删卷。
-- 重启后：`docker compose up --detach --no-build --wait --wait-timeout 120`。新增依赖需要重建 web，见 [部署说明](docs/DEPLOYMENT.md)。
+- 当前分支 feature/m4-01-moving-averages，基于干净、已同步 main 的 12a3005 创建；本轮没有修改已有用户文件或分支历史。
+- M4-01 0a99d42、M4-02 6071b81、M4-03 5c8a9c0、M4-04 7ca0085；M4-05 与最终交接形成第五个本地提交，最终 SHA 见 git log 和交付报告。
+- 本地 main 与 origin/main 仍停留 12a3005；origin 为既有 GitHub 私有仓库。没有 fetch/push/合并/删分支/标签/Release/公网部署。
+- 用户本轮授权连续完成 M4，不沿用上一会话 M3 专用推送授权。M4 已本地提交，可审阅后另行明确授权快进合并/同步；本轮不等待确认继续其他里程碑。
 
-## 6. 已知问题和未验证边界
+## 6. 已知限制和后续验收
 
-- 详情 ECharts chunk 约 572 KB（gzip 196 KB），Vite 500 KB 警告保留，按详情路由延迟加载；后续 M5 性能复核，不隐藏阈值。
-- 大于 JS 安全整数的成交量响应会明确失败，避免静默精度损失；图形价格坐标使用浮点近似，精确字符串在 tooltip/明细。
-- stocks 尚无逐行 source/fetched_at，界面为未记录；行情 has_more/空响应不证明覆盖完整或最新。获取时间只表示最后插入/业务值变化时获取时间。
-- M3-01 首轮既有采集测试出现 collection_busy，换全新库通过；物理断连释放会话锁窗口仍是待调查假设，本轮没有修改采集互斥。
-- 真实 AKShare/上游稳定性、授权、交易日历和盘后就绪尚未验收；没有真实行情展示承诺。
-- Docker daemon Registry 直拉网络与沙箱 socket 限制仍在，现有镜像可重建。浏览器宿主运行库/字体是测试环境准备，生产部署另行验收。
-- M4 指标/任务状态/调度、M5 全新 Linux、安全/备份恢复/完整 MVP、M6 生产路由回退/反向代理/访问控制未实现。
+- 真实 AKShare 稳定性/上游授权、经核验完整交易日历和盘后就绪运维仍待 M5；测试日历/fixture 不证明真实市场可用。
+- 调度当天收盘数据缺失（包括可能停牌）记录 failed；需人工核验。每 daemon/天一批、每股有界重试，耗尽后本日需明确重新运行 --once/重启。覆盖外拒绝执行，不用 weekdays 猜测；更新日历需重启。
+- 自动增量水位不证明历史完整，早期缺口/修正需显式 backfill；全历史指标重算优先正确性，长期大数据量需后续实测优化。
+- 双会话锁约束协作入口，不声称分布式 fencing 或任意直接 Service 调用互斥；崩溃锁释放仍依赖 PostgreSQL 回收。原 M3 已知物理断连窗口已改为正常退出显式 unlock，真实进程崩溃场景由既有 SIGTERM/SIGKILL 测试覆盖。
+- stocks 无逐行来源/时间列，仍 null；指标 source 指当日输入，不是整个窗口全部来源。has_more/空和获取时间不证明覆盖完整/最新。
+- 大成交量超过 JS 安全整数会明确拒绝；图形坐标浮点近似、明细字符串精确。
+- 详情 chunk 约 602 KB（gzip 207 KB）保留 Vite 500 KB 警告，M5 性能复核，不隐藏阈值。
+- Docker daemon Registry 直拉网络与沙箱 socket 限制仍在；生产 SPA 回退/反向代理/访问控制、全新 Linux、备份恢复属于 M5/M6。
 
-## 7. 文档与下一任务
+## 7. 文档与下一会话
 
-已同步 TASKS.md、CHANGELOG.md、README.md、本文件、docs/FRONTEND_MARKET.md、docs/DECISIONS.md（ADR-018）、docs/DEPLOYMENT.md；产品方向和总体架构基线不变。
-
-下次可直接执行：
+已更新 TASKS、CHANGELOG、README、交接、ADR-019、architecture、DEPLOYMENT、FRONTEND_MARKET、COLLECTION_CLI，并新增 MOVING_AVERAGES、SCHEDULER、OPERATIONS。产品方向/总体架构基线不变。
 
 ```text
-继续开发 /home/crazychen/myprojects/StockInsight，执行 M4-01：MA5、MA20、MA60 纯计算模块。先依次阅读 AGENTS.md、PROJECT_PLAN.md、TASKS.md、SESSION_HANDOFF.md、docs/DECISIONS.md 及指标相关代码和文档；检查工作区、分支、提交与远程。从已同步的干净 main 创建 feature/m4-01-moving-averages，保护现有分支。实现独立于 Web/ORM 的确定性计算，按真实交易日升序，窗口不足返回 null，不使用未来数据，精确输入/输出与版本明确；覆盖正常、窗口边界、缺失历史、乱序、重复/非法输入和无未来数据。完成对应测试/Ruff、文档、任务与交接、本地逻辑提交。保持数据库/卷/服务，未经授权不合并/push；M4-02 持久化/API 留待对应任务。
+继续开发 /home/crazychen/myprojects/StockInsight，执行 M5-01：核心后端/前端/migration/端到端验收。先依次阅读 AGENTS.md、PROJECT_PLAN.md、TASKS.md、SESSION_HANDOFF.md、docs/DECISIONS.md 和 M4 三份专题，检查工作区、分支、提交和远程。当前 M4 五项在 feature/m4-01-moving-averages 本地提交，未合并/推送；保护已有分支和开发库，不自动推送或清库。用 scripts/test_postgres.py 创建新隔离库复现完整回归，整理十类测试证据和真实上游/交易日历/性能/部署边界，完成任务文档及本地提交。M5-02 全新 Linux 与后续任务只按新的授权推进，M6 不启动。
 ```
 
 ## 8. 服务器与同步
 
-不需要购买服务器。M4/M5 尚未完成，仍本地开发，无公网部署。M3 四项功能已按本次授权快进合并并推送 GitHub；同步记录另提交并同步。后续任务的远程推送仍需相应授权。
+无需购买服务器，尚未满足 M5 MVP、安全、真实上游/授权、全新 Linux 和备份恢复条件。M4 五项本地提交完成后仍需要另行同步 GitHub；本轮没有执行公网操作。

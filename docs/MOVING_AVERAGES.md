@@ -13,3 +13,5 @@ M4-02：非空行情同步在同一单股事务内写入行情并重算该股票
 `GET /api/v1/system/data-status?limit=20` 最大 100，返回最新持久任务、股票工作项计数、原范围/实际游标/开始结束时间及安全错误码。未知原始错误显示 stored_error_redacted；coverage_verified 固定 false。没有匿名采集 HTTP 入口。
 
 验证（M4-02）：新建六个隔离 PostgreSQL 库完整后端 `370 passed`，含 migration 升降级、历史修正、幂等时间、指标写失败回滚行情、真实 API Decimal/null/版本/上限/空/不存在和状态错误脱敏。旧隔离库 fixture 清理同步加入指标子表；开发库保持原状。
+
+M4-05：`PYTHONPATH=backend .venv/bin/python -m app.jobs.cli indicators --symbol 000001.SZ` 提供受采集锁/股票行锁保护的本地补齐，无 Provider/网络调用。首次补齐与重复零变化已在隔离库演练，详见[操作手册](OPERATIONS.md)。

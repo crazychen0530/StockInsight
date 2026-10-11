@@ -1,13 +1,13 @@
 # StockInsight
 
-StockInsight 是面向个人投资研究的中国 A 股行情与风险分析 Web 平台。当前已完成 **M0–M3：基础工程、本地行情采集、股票查询 API 和历史行情页面**；支持本地股票搜索、详情、日 K 线与成交量。
+StockInsight 是面向个人投资研究的中国 A 股行情与风险分析 Web 平台。当前已完成 **M0–M4：基础工程、本地采集、历史行情与均线、任务状态和独立盘后调度**。
 
 项目不会连接券商或执行真实交易，不承诺收益，也不会把未经验证的预测作为确定的投资建议。
 
 ## 当前状态
 
 - 目标版本：v0.1.0
-- 当前阶段：Milestone 0–3 已完成；下一任务为 M4-01
+- 当前阶段：Milestone 0–4 已完成；下一任务为 M5-01
 - 已建立：项目基线、开发环境、FastAPI 健康接口、四张 ORM 模型和初始 migration、Vue/Vite 前端壳及测试入口
 - 已新增：本地三服务 Compose、隔离配置、JSON 脱敏日志、统一错误响应和请求关联 ID
 - 已新增：[Provider 契约与 AKShare 适配](docs/MARKET_DATA_PROVIDER.md)，包含固定 fixture 离线测试；未验收真实联网采集
@@ -17,7 +17,7 @@ StockInsight 是面向个人投资研究的中国 A 股行情与风险分析 Web
 - 已新增：[本地采集 CLI、任务与恢复](docs/COLLECTION_CLI.md)，含安全错误摘要、有界退避、活动任务防重和幂等原范围恢复
 - 已新增：[股票列表、详情与日线查询 API](docs/STOCK_QUERY_API.md)，含分页/上限、安全错误、来源时间与精确金额契约
 - 已新增：[前端 API/搜索/详情/K 线与成交量](docs/FRONTEND_MARKET.md)，含加载/空/错误、日期过滤、精确明细、来源与获取时间
-- 未实现：指标计算和自动调度；未验收真实联网采集稳定性
+- 已新增：[版本化 MA5/20/60](docs/MOVING_AVERAGES.md)、[独立盘后调度](docs/SCHEDULER.md)和[增量/补采/恢复手册](docs/OPERATIONS.md)；真实上游稳定性、完整日历与生产验收待 M5/M6
 
 ## v0.1.0 计划范围
 
@@ -263,7 +263,7 @@ npm run preview --prefix frontend -- --host 127.0.0.1 --port 4173
 curl --noproxy '*' http://127.0.0.1:4173/
 ```
 
-当前前端包含概览、`/stocks` 搜索、`/stocks/:symbol` 详情和 404；通过 Axios 查询本地 API，ECharts 展示日 K 线/成交量。空库显示空状态，不自动插入模拟行情。Pinia/Element Plus 在出现实际共享状态/UI 需求时引入。浏览器验证及数据口径见[前端专题](docs/FRONTEND_MARKET.md)。
+当前前端包含概览、`/stocks` 搜索、`/stocks/:symbol` 详情和 404；通过 Axios 查询本地 API，ECharts 展示日 K 线/成交量/MA5/20/60，并有 `/data-status` 任务状态页。空库显示空状态，不自动插入模拟行情。Pinia/Element Plus 在出现实际共享状态/UI 需求时引入。浏览器验证及数据口径见[前端专题](docs/FRONTEND_MARKET.md)。
 
 ## 配置与安全
 
@@ -315,4 +315,4 @@ git push origin main
 git status --short --branch
 ```
 
-下一任务为 M4-01，须基于已完成的 M3 提交创建功能分支，详见交接文档。本地合并不等于部署，也不会自动执行数据库 migration。
+下一任务为 M5-01；M4 已在功能分支本地提交，合并/同步状态见交接文档，详见交接文档。本地合并不等于部署，也不会自动执行数据库 migration。

@@ -71,6 +71,7 @@ watch(() => route.params.symbol, loadStock, { immediate: true })
               <p>不复权 · 价格/成交额：人民币元 · 成交量：股</p>
               <p v-if="prices.data.value.has_more" class="notice">当前仅显示区间最早的 1000 条，仍有后续数据。请缩小日期范围继续查询。</p>
               <p>已显示记录来源：{{ provenance.sources }} · 最新获取时间：{{ shanghaiTime(provenance.latest) }}</p>
+              <DailyPriceChart :items="prices.data.value.items" :indicators="indicators.data.value?.items" />
               <RequestState :loading="indicators.loading.value" :error="indicators.error.value" :empty="indicators.data.value?.items.length === 0"
                 empty-text="尚无已计算指标，请通过本地采集或指标重算更新。" @retry="loadPrices">
                 <template v-if="indicators.data.value">
@@ -84,7 +85,6 @@ watch(() => route.params.symbol, loadStock, { immediate: true })
                   </table></div>
                 </template>
               </RequestState>
-              <DailyPriceChart :items="prices.data.value.items" :indicators="indicators.data.value?.items" />
               <h3>行情明细</h3>
               <div class="table-scroll">
                 <table>

@@ -9,8 +9,9 @@ from uuid import UUID
 
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.analysis.moving_averages import CALCULATION_VERSION
 from app.collectors.akshare import AkShareProvider
-from app.collectors.validator import MarketDataValidationError
+from app.collectors.validator import MarketDataValidationError, normalize_symbol
 from app.core.config import ConfigurationError, load_settings
 from app.core.database import create_configured_database_engine, create_session_factory
 from app.core.errors import ApplicationError
@@ -18,6 +19,7 @@ from app.core.logging import Redactor, configure_logging
 from app.jobs.collection import CollectionRunner, RetryPolicy, validate_scope
 from app.repositories.sync_jobs import JobScope, SyncJobRepository
 from app.services.daily_prices import DailyPriceService
+from app.services.indicators import IndicatorService
 from app.services.stocks import StockService
 
 
@@ -47,6 +49,10 @@ def parser():
     daily.add_argument(
         "--job-type", choices=("full", "incremental", "backfill"), default="backfill"
     )
+    indicators = commands.add_parser(
+        "indicators", help="Rebuild local indicators without fetching market data"
+    )
+    indicators.add_argument("--symbol", required=True)
     resume = commands.add_parser("resume", help="Replay one failed or interrupted job by ID")
     resume.add_argument("job_id", type=UUID)
     jobs = commands.add_parser("jobs", help="Inspect recent jobs and find interrupted IDs")
@@ -81,6 +87,8 @@ def main(argv=None) -> int:
                 raise UsageError()
         if args.command == "jobs" and not 1 <= args.limit <= 100:
             raise UsageError()
+        if args.command == "indicators":
+            normalize_symbol(args.symbol)
         # All shared arguments are checked before engine/provider initialization or any writes.
         settings = load_settings()
         _output_redactor = configure_logging(settings)
@@ -91,6 +99,18 @@ def main(argv=None) -> int:
                 _job(job)
             return 0
         sessions = create_session_factory(engine)
+        if args.command == "indicators":
+            symbol = normalize_symbol(args.symbol)
+            with jobs.ownership():
+                changed = IndicatorService.rebuild(sessions, symbol)
+            _emit(
+                "indicator_result",
+                symbol=symbol,
+                changed_count=changed,
+                calculation_version=CALCULATION_VERSION,
+                coverage_verified=False,
+            )
+            return 0
         runner = CollectionRunner(
             jobs,
             StockService(sessions),

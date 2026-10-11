@@ -239,3 +239,7 @@ M1-06 已实现环境配置、HTTP 请求关联 ID、统一错误和 JSON 脱敏
 ## M3-01 当前实现补充
 
 [股票查询 API](STOCK_QUERY_API.md) 已实现列表/搜索、详情与显式区间日线。Router -> StockQueryService -> Repository -> PostgreSQL，列表复用 StockService.search；同步数据库操作通过同步路由线程池运行。每应用按需初始化只读 Engine/Session，关闭时释放；列表计数/条目、日线存在性/数据分别使用同一 REPEATABLE READ 快照。股票来源/获取时间因缺少持久列明确 null；日线逐行返回实际保存来源/UTC 时间，Decimal 以字符串编码。无 Provider、采集、指标计算或自动 migration；Schema、三服务部署与前端边界不变。
+
+## M4 当前实现补充
+
+M4 已落实纯 Decimal Analysis、既有 TechnicalIndicator 表、行情提交内指标重算、均线/状态只读 API、前端叠加及独立宿主机 scheduler 入口；上文 M2 阶段“尚无 Scheduler/Analysis”仅为当时历史状态。调用方向保持不变：DailyPriceService -> Repository 写行情 -> IndicatorService -> Repository 读取全历史 -> 纯 Calculator -> Repository 写指标，同一股票事务；查询不执行计算/采集。调度会话锁与采集会话锁职责分开，持久任务范围负责重启防重，显式日历和当日记录负责基本就绪检查。生产部署、真实日历授权/运维及上游稳定性仍待后续验收。详见 [MOVING_AVERAGES.md](MOVING_AVERAGES.md)、[SCHEDULER.md](SCHEDULER.md)、[OPERATIONS.md](OPERATIONS.md)。
