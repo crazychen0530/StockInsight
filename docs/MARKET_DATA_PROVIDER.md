@@ -9,7 +9,7 @@
 - `fetch_stocks() -> MarketDataBatch[StockInfo]`：沪深 A 股身份快照。
 - `fetch_daily_prices(symbol, start_date, end_date) -> MarketDataBatch[DailyBar]`：规范代码与闭区间日期的不复权日线。
 
-只返回 immutable dataclass 与 tuple；上游 DataFrame、中文字段和调用参数留在适配层。API 未接入 Provider；保持 `Data Worker -> MarketDataProvider -> Validator -> Repository -> Database`。M2-02 才实现完整 Validator，M2-03 至 M2-05 才实现持久化、幂等采集和运维 CLI。
+只返回 immutable dataclass 与 tuple；上游 DataFrame、中文字段和调用参数留在适配层。API 未接入 Provider；保持 `Data Worker -> MarketDataProvider -> Validator -> Repository -> Database`。M2-02 已实现[独立 Validator](MARKET_DATA_VALIDATOR.md)，M2-03 至 M2-05 才实现持久化、幂等采集和运维 CLI。
 
 ## 2. 字段、口径与缺失信息
 
@@ -45,7 +45,7 @@
 
 - 正常无数据返回空 tuple 与元数据，不补造行情；不表示该日期已完成采集或停牌。
 - 支持 SDK 的无列空 DataFrame；若存在列却缺少必需字段，即使没有行也报契约漂移。新增无关列允许，必需列缺失/重复、无法表示的数值或日期报 `provider_contract_error`。
-- 业务范围检查（OHLC 关系、负值、重复交易日、交易日历、异常量级、精度/数据库范围）留给 M2-02，Provider 返回不能被解释为已通过业务校验。
+- M2-02 独立 Validator 已负责 OHLC、负值、重复交易日、代码段、精度/数据库范围校验与显式交易日历接口；市场统计异常阈值和日历来源仍未选定。Provider 返回不能被解释为已通过业务校验，调用者须显式串联 Validator。
 - `MARKET_DATA_TIMEOUT_SECONDS` 默认 30，须满足 `0 < value <= 300`，由 M1-06 Settings 环境白名单加载。它限制整个 SDK 子进程调用，包含导入和多次内部请求；日线同时传递 SDK 网络 timeout。子进程启动有固定开销，M2-05 批次性能评估时再测量。
 - Python 标准库 subprocess 超时后终止并回收子进程。私有 `_akshare_worker` 只隔离一次 SDK 调用，不是采集 CLI、任务 Worker 或调度器，也不运行数据库操作。
 - `provider_timeout` 可重试；一般上游失败为 `provider_unavailable`，SDK 未安装为 `provider_dependency_missing`。契约错误/缺依赖不可盲目重试。本次单次调用不自动重试；有限次数/退避、任务状态与恢复留给 M2-05。

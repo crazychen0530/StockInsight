@@ -53,8 +53,9 @@ M1 同步/清理记录（2026-10-11）：后续已获用户明确授权，main �
 - DONE M2-01 定义 `MarketDataProvider` 契约和 `AkShareProvider`。
   - 验收：外部字段不泄漏到服务层；使用 mock 的契约测试覆盖成功、空结果、超时和字段漂移。
   - 验收结果（2026-10-11）：已实现不可变 DTO/批次元数据、SH/SZ 基础信息与不复权日线适配、手转股/Decimal/UTC 时间、配置化总超时与 SDK 子进程回收，复用日志/错误。AKShare 1.19.1 可选 extra 安装与签名核验通过；固定 fixture/mock/真实子进程离线测试和后端回归共 90 passed、1 deselected（PostgreSQL）。Ruff/格式/pip check 通过；无表或 migration 变化，未重跑数据库/前端测试，未联网采集真实行情。边界见 docs/MARKET_DATA_PROVIDER.md 与 ADR-012。
-- TODO M2-02 实现股票代码、日期、OHLCV、单位和异常值校验。
+- DONE M2-02 实现股票代码、日期、OHLCV、单位和异常值校验。
   - 验收：SH/SZ 正常及非法代码、空/异常行情和字段换算测试通过。
+  - 验收结果（2026-10-11）：新增独立纯函数 Validator，覆盖显式 SH/SZ 支持代码段、日期区间/重复/乱序、空与非有限值、OHLC、负量、Decimal/BigInt 精确存储范围、元数据/单位/UTC 与显式交易日历；不重复手转股、不舍入、不修改输入。新增 143 项固定模拟测试，完整非 PostgreSQL 后端回归 233 passed、1 deselected；Ruff/格式/pip check 与独立导入检查通过。无新依赖、模型或 migration 变化，未运行本轮数据库升降级和前端测试。未提供日历时不声明完整交易日验收；详见 docs/MARKET_DATA_VALIDATOR.md、ADR-013。
 - TODO M2-03 实现股票基础信息同步与搜索持久化。
   - 验收：重复同步幂等；名称/代码搜索和状态字段测试通过。
 - TODO M2-04 实现日线采集、日期区间补采和 UPSERT。

@@ -106,7 +106,9 @@ sequenceDiagram
 
 内部 Provider DTO 至少包含：规范股票代码、交易日期、开高低收、成交量（股）、成交额（人民币元）、来源、获取时间、复权口径。首版复权口径固定为 `none`。
 
-M2-01 已实现 Provider Protocol、不可变记录与批次契约；来源、接口、UTC 获取时间、复权及单位由批次统一携带，后续写库时须附加到每条日线。外部 DataFrame/字段留在 AKShare 适配层，SDK 使用私有单次子进程限制总超时；不改变上述 Worker/Validator/Repository 分层。当前只有离线契约验收，完整 Validator、任务与持久化链路待后续任务；详见 [Provider 专题](MARKET_DATA_PROVIDER.md)。
+M2-01 已实现 Provider Protocol、不可变记录与批次契约；来源、接口、UTC 获取时间、复权及单位由批次统一携带，后续写库时须附加到每条日线。外部 DataFrame/字段留在 AKShare 适配层，SDK 使用私有单次子进程限制总超时；不改变上述 Worker/Validator/Repository 分层。Provider 本身只完成离线契约验收，不等于业务校验与存储成功；详见 [Provider 专题](MARKET_DATA_PROVIDER.md)。
+
+M2-02 已实现[独立 Validator](MARKET_DATA_VALIDATOR.md)：复用 DTO，以纯函数校验代码、日期、OHLCV、单位/口径与存储范围，拒绝重复和非法行，通过后返回排序的新批次。交易日历显式注入；未提供时不能声明完整交易日验收。无网络/Web/ORM/SDK 依赖，不新增数据库结构；实际任务编排、持久化和缺日/部分失败处理仍待后续任务。
 
 Validator 至少检查：
 
