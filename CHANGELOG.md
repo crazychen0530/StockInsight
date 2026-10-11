@@ -6,6 +6,9 @@
 
 ### Added
 
+- M2-05：新增受控本地 stocks/daily/jobs/resume CLI、每股持久任务与安全错误摘要、Provider 有界退避、协作采集锁/活动防重、提交后 checkpoint 与原范围幂等恢复。
+- 新增 26 单元和 10 PostgreSQL 测试，覆盖全/部分失败、重复运行、真实进程中断与提交后恢复；复用已有服务、配置和模型，无 Schema、业务 API 或前端变化。详见 docs/COLLECTION_CLI.md、ADR-016。
+
 - M2-04：新增日线闭区间采集/补采服务与 PostgreSQL 幂等 UPSERT，来源/UTC 时间/不复权逐行保存，单位和精度复用 Validator；同值不重写，实际变更使用 RETURNING 计数。
 - 每股票独立事务与整股分块回滚、跨股票安全失败摘要/继续采集、手动幂等恢复；新增 19 单元与 12 真实 PostgreSQL 测试，完整 287 passed。无新依赖、Schema、CLI、API 或任务状态变化。
 

@@ -426,3 +426,25 @@ StockService 在数据库事务前完成 fetch/validate，StockRepository 只处
 - trading_dates 校验提取为纯函数并冻结，共享参数首次调用前完成检查；不新增日历来源或数据就绪判定。
 - success/empty/partial 等摘要是本地调用结果，不是持久任务状态或完整区间覆盖证明；自动重试、CLI、任务记录和断点恢复留给 M2-05。
 - 固定模拟值与真实 PostgreSQL 隔离库验证，不声明真实上游验收。具体收据、事务、限制和复现见[日线持久化专题](DAILY_PRICE_PERSISTENCE.md)。
+
+## ADR-016：M2-05 本地任务、受控重试与原范围恢复
+
+- 日期：2026-10-11
+- 状态：Accepted（已批准 M2-05 范围内的实现细化；不改核心架构、Schema、单位或部署形态）
+
+### 背景与备选
+
+既有 DataSyncJob 保存一个范围与股票工作项计数，没有冻结多股列表或尝试历史。采集、单股事务和任务终结分开提交，崩溃可发生在业务提交后；仅按最后日期跳过会丢失未证明完整的日期。跨股共用事务会回滚已有成果；自动按年龄接管无法证明旧进程停止。
+
+### 决策
+
+本地 CLI 复用 StockService/DailyPriceService：多股按每股票区间独立持久任务，CLI 汇总部分失败；基础信息仍是整批快照任务，总数未知时为 0。仅明确可重试 Provider 错误采用有界指数退避。任务保存固定错误码，checkpoint 在业务提交后推进到实际最后记录；恢复复用任务 ID 和原范围，重置本次 started_at/结束时间/计数，幂等重放；成功任务恢复为空操作。空响应只代表操作完成，保留 coverage_unverified 标记。
+
+选择专用 AUTOCOMMIT PostgreSQL 会话锁串行化同库协作采集入口，连接退出物理关闭；既有 active 唯一索引保留。pending/running 由操作者明确 resume，锁仍被占用时拒绝，无过期自动接管。
+
+### 影响与边界
+
+- 不新增依赖、migration、HTTP 入口、调度器或前端；仅给提交后 Service 收据增加最后实际记录字段。
+- 至少一次重放；不证明交易日完整或上游就绪。股票工作项计数不冒充行数/尝试数，stocks 失败且总量未知时 status=failed 且计数均为 0。
+- 持久父子批次/尝试审计、分布式 fencing、直接 Service 调用互斥、来源版本防护不在此实现；如需要另行确认设计。
+- 细节、copyable CLI 与确定性验证见[本地采集专题](COLLECTION_CLI.md)。

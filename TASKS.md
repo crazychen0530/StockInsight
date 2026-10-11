@@ -62,8 +62,9 @@ M1 同步/清理记录（2026-10-11）：后续已获用户明确授权，main �
 - DONE M2-04 实现日线采集、日期区间补采和 UPSERT。
   - 验收：重复采集不新增重复行；日期过滤、部分失败和事务边界测试通过。
   - 验收结果（2026-10-11）：DailyPriceService/Repository 复用 Provider/Validator，闭区间补采、复合主键 UPSERT、数值/来源相同不改写、每股票独立事务；整股预校验与 500 行分块写入原子回滚，跨股已知失败继续并保留成果，提交后返回安全收据/部分失败摘要。新增 19 单元/12 PostgreSQL 测试；268 passed、19 deselected，全新三隔离库完整 287 passed 无 skip，含并发幂等、502 行回滚/手动恢复及 migration 升降级。Ruff/格式/pip check 通过，无新依赖/Schema/CLI/API/任务状态；开发库和卷保留，详见 docs/DAILY_PRICE_PERSISTENCE.md、ADR-015。
-- TODO M2-05 实现受控本地采集 CLI 与同步任务记录。
+- DONE M2-05 实现受控本地采集 CLI 与同步任务记录。
   - 验收：任务状态、错误摘要、失败重试和断点恢复测试通过；不提供匿名公网触发入口。
+  - 验收结果（2026-10-11）：本地 stocks/daily/jobs/resume CLI，复用 Provider/Validator/Service 与 DataSyncJob；每股独立任务、工作项计数与空响应标记、提交后实际 checkpoint、安全错误码、有界重试、全局协作锁/活动防重、原范围幂等恢复。新增 26 单元/10 PostgreSQL 测试，294 passed、29 deselected；全新四隔离库完整 323 passed 无 skip，包含真实 SIGTERM/SIGKILL、提交后崩溃、离线 SDK CLI、partial/failed 与 migration 升降级。Ruff/格式/pip check 通过，无新依赖/Schema/API/前端/调度器；开发库和原卷保留。详见 docs/COLLECTION_CLI.md、ADR-016。M2 五项全部完成，下一任务 M3-01。
 
 ## Milestone 3：历史行情 API 和 K 线展示
 

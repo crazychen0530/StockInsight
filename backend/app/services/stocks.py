@@ -23,6 +23,7 @@ class StockSyncResult:
     source: str
     source_interface: str
     fetched_at: datetime
+    last_symbol: str | None = None
 
 
 @dataclass(frozen=True)
@@ -69,7 +70,12 @@ class StockService:
             except SQLAlchemyError:
                 raise _storage_error("sync") from None
         result = StockSyncResult(
-            len(batch.records), changed, batch.source, batch.source_interface, batch.fetched_at
+            len(batch.records),
+            changed,
+            batch.source,
+            batch.source_interface,
+            batch.fetched_at,
+            batch.records[-1].symbol if batch.records else None,
         )
         logger.info(
             "Stock synchronization finished",

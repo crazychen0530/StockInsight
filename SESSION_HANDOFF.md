@@ -7,17 +7,17 @@
 ## 1. 当前版本与里程碑
 
 - 目标版本：`v0.1.0`
-- 当前完成阶段：Milestone 0、Milestone 1（六项全部 DONE）与 M2-01 至 M2-04
-- 当前完成任务：M1-01 环境、M1-02 后端、M1-03 前端、M1-04 ORM/migration、M1-05 Compose、M1-06 配置/日志/异常/fixture，以及 M2-01 Provider 契约与 AKShare 适配、M2-02 独立 Validator、M2-03 基础信息同步与搜索持久化、M2-04 日线采集与补采持久化
-- 下一任务：M2-05（受控本地 CLI、任务记录、失败重试与断点恢复）
-- 当前交付性质：基础工程已验收，不等于 v0.1.0 MVP 完成；Provider/Validator 离线及基础信息/日线模拟来源与真实隔离库验收完成，尚无 CLI/任务编排、业务 HTTP API、K 线或均线业务
+- 当前完成阶段：Milestone 0、Milestone 1（六项全部 DONE）与 Milestone 2（五项全部 DONE）
+- 当前完成任务：M1-01 环境、M1-02 后端、M1-03 前端、M1-04 ORM/migration、M1-05 Compose、M1-06 配置/日志/异常/fixture，以及 M2-01 Provider 契约与 AKShare 适配、M2-02 独立 Validator、M2-03 基础信息同步与搜索持久化、M2-04 日线采集与补采持久化、M2-05 本地 CLI/任务/重试/恢复
+- 下一任务：M3-01（股票列表、详情和行情查询 API）
+- 当前交付性质：基础工程已验收，不等于 v0.1.0 MVP 完成；Provider/Validator 离线及基础信息/日线模拟来源与真实隔离库验收完成，已有本地 CLI/任务/重试/恢复，尚无股票业务 HTTP API、K 线或均线业务
 
 ## 2. 当前 Git 状态
 
-- 当前分支：`feature/m2-04-daily-price-persistence`，从干净的 M2-03 本地提交 `344830a` 创建；M2-01 至 M2-03 尚未合并 main 或推送。
-- 本轮 `git ls-remote --heads origin main` 确认 GitHub main 与本地 main 基线 `19c6ba41ee7404ec89782c29b2d3aac76ebe2eb6` 一致；远程为 `git@github.com:crazychen0530/StockInsight.git`。
-- 本轮代码、测试和文档形成一个本地逻辑提交 `feat: persist daily prices with isolated stock transactions`；准确 SHA 与状态以最终 `git log -3 --oneline --decorate`、`git status --short --branch` 为准。
-- 未 push、未合并 main、未删除分支或卷；M2-01 至 M2-04 四个本地功能提交待 GitHub 同步，main 仍保留 `19c6ba4`。
+- 当前分支：`feature/m2-05-collection-cli`，从干净的 M2-04 本地提交 `1376135` 创建；M2-01 至 M2-05 尚未合并 main 或推送。
+- 本轮开始 `git ls-remote --heads origin main` 确认 GitHub main 与本地 main 基线 `19c6ba41ee7404ec89782c29b2d3aac76ebe2eb6` 一致；远程为 `git@github.com:crazychen0530/StockInsight.git`。
+- 本轮形成一个本地逻辑提交 `feat: add resumable local collection CLI`；准确 SHA 和状态以最终 `git log -3 --oneline --decorate`、`git status --short --branch` 为准。
+- 未 push、未合并 main、未删除分支或卷；M2 五个本地功能提交待 GitHub 同步，main 保持 `19c6ba4`。
 - 下一会话须检查 Git 状态、最近提交和远程配置；保留本地功能分支，在获得授权后同步 GitHub。
 
 ## 3. 已完成功能
@@ -85,24 +85,44 @@ M2-04 新增：
 - 收据含范围、来源/接口/时间、处理/实际变更计数；空响应单列 empty_count，不代表数据完整或持久任务状态。手动重跑幂等补齐，CLI/自动重试/断点留给 M2-05。
 - 新增 19 服务单元与 12 PostgreSQL 集成测试，完整回归 287 passed 无 skip；详见[日线持久化专题](docs/DAILY_PRICE_PERSISTENCE.md)、ADR-015。无新依赖或 Schema 变化，单位/口径复用 M2-01/M2-02。
 
-尚未实现 CLI/持久同步任务/自动重试/断点、股票业务 HTTP API、指标计算、定时任务或行情业务页面。Provider/Validator 通过不证明真实证券存在、完整日历或真实报价；基础信息与日线模拟来源/真实隔离库验收不等于真实上游采集验收。stocks 无逐行来源/版本审计列，本次仅在同步收据保留元数据，不新增 Schema。
+M2-05 新增：
+
+- 本地 stocks/daily/jobs/resume CLI，规范化/全部参数预检、JSON 输出与安全错误退出码，复用既有服务和配置；每股独立持久任务，CLI 汇总 partial。
+- DataSyncJob 记录 pending/running/succeeded/failed、工作项计数与安全错误码；stocks 未知总量失败计数为 0，空响应带 coverage_unverified、不推进 checkpoint。
+- 仅 retryable Provider 错误有界退避；专用会话锁串行化同库协作采集及重叠范围，既有 active 索引保留；中断任务明确按 ID 原范围恢复，不按年龄自动接管。
+- checkpoint 只在业务提交后记录实际返回记录；提交后崩溃仍可幂等重放原区间，成功任务恢复为空操作。恢复重置本次 started_at/结束时间/计数，未保存逐次历史。
+- 新增 26 单元/10 PostgreSQL 测试，完整 323 passed 无 skip；包含真实 SIGTERM SDK 回收、SIGKILL 接管与提交后崩溃窗口。详见 [CLI 专题](docs/COLLECTION_CLI.md)、ADR-016。无新依赖/Schema。
+
+尚未实现股票业务 HTTP API、指标计算、定时任务或行情业务页面。Provider/Validator 通过不证明真实证券存在、完整日历或真实报价；基础信息与日线模拟来源/真实隔离库验收不等于真实上游采集验收。stocks 无逐行来源/版本审计列，本次仅在同步收据保留元数据，不新增 Schema。
 
 ## 4. 正在开发的功能
 
-M2-01 至 M2-04 已完成并本地提交；本次结束保持原有三服务运行。M2-05 待下一任务启动。
+M2 五项全部完成并本地提交；本次结束保持原有三服务运行。M3-01 待下一任务启动。
 
 ## 5. 未完成任务
 
 下一阶段优先任务来自 `TASKS.md`：
 
-1. M2-05：本地 CLI、任务记录、失败重试和断点恢复。
+1. M3-01：股票列表、详情和行情查询 API。
 2. M3：股票查询 API、搜索/详情页、K 线与成交量；M4：均线和自动更新；M5：完整 MVP 验收。
 
 按里程碑推进，不提前实现实时行情、AI 预测、自动交易或其他未批准范围。
 
 ## 6. 最近一次实际测试及结果
 
-最新：M2-04 日线持久化验收（2026-10-11）：
+最新：M2-05 本地采集任务验收（2026-10-11）：
+
+- 开始环境脚本（提升权限）全部通过，三服务 healthy；从干净的 `1376135` 创建功能分支，远程 main 与本地 `19c6ba4` 一致。
+- `.venv/bin/python -m pytest backend -q -m 'not postgres'`：**294 passed、29 deselected**；新增 26 个非 PostgreSQL 测试。
+- `.venv/bin/python /tmp/stockinsight-m2-05-tests.py`：临时 runner 仅在内存读取本地凭据，PG* 与无密码 URL 创建四个新空库，再运行 `.venv/bin/python -m pytest backend -q`：**323 passed，无 skip**；新增 10 个 PostgreSQL 测试，含真实离线 CLI/SIGTERM/SIGKILL、业务提交后崩溃、并发锁、防重、partial/failed、幂等恢复及独立 migration 升降级。
+- 最终四库：`m2_05_600a9c5b56_stocks_test`、`m2_05_600a9c5b56_migration_test`、`m2_05_600a9c5b56_prices_test`、`m2_05_600a9c5b56_jobs_test`，完整回归 8.95s；stock/price/job 库为 head，migration 库回到 base。测试库保留，不复用/删除。未访问实时行情、未写入开发库模拟数据。
+- `.venv/bin/ruff check backend`、`.venv/bin/ruff format --check backend`、`.venv/bin/python -m pip check` 通过；109 个文件敏感信息检查、41 个本地文档链接、4 个 Mermaid 块结构检查与 `git diff --check` 通过。没有前端改动，未重复前端构建/测试。
+- 收尾只读复核：开发库 `stockinsight` 为 `0001_initial_schema`，四张业务表仍均为 0；原卷保留，db/api/web 均 healthy，`curl --fail --silent http://127.0.0.1:8000/api/v1/health` 返回 `status=ok/version=0.1.0`。
+- 无新 revision，head 仍 `0001_initial_schema`；开发库与原卷保留；宿主机 CLI 验收不代表容器可选 SDK 或完整浏览器 MVP 验收。详见 [CLI 专题](docs/COLLECTION_CLI.md)。
+
+以下为历史记录：
+
+M2-04 日线持久化验收（2026-10-11）：
 
 - 开始检查 `./scripts/check_environment.sh`（提升权限）全部通过，三服务 healthy、工作区干净；远程 main 与本地 `19c6ba4` 一致，从 `344830a` 创建功能分支。
 - `.venv/bin/python -m pytest backend -m 'not postgres' -q`：**268 passed、19 deselected**，其中本轮新增 19 服务单元测试。
@@ -250,7 +270,7 @@ M1-02 当时未运行前端、数据库连接或 migration 升降级测试；后
 - 当前没有已确认的后端健康接口、Provider/Validator、基础信息或日线持久化 Bug；真实上游尚未验收。
 - Docker daemon 已启动，提升权限后可达；沙箱 socket 权限受限。daemon 直接拉取 Docker Hub 仍超时；本次通过用户态代理下载并导入官方镜像完成验收，系统 daemon 代理问题未作全局修改。
 - 外部环境设置了 `NODE_TLS_REJECT_UNAUTHORIZED=0`；该配置会关闭 Node TLS 校验。本次已通过临时取消变量的 Registry ping 和 `npm ci` 验证正常 TLS 可用，后续安装不得依赖该不安全变量。
-- 这不代表系统无缺陷；完整日历、CLI/任务编排、股票 HTTP API 和前端业务功能尚未实现。
+- 这不代表系统无缺陷；完整日历、独立调度、股票 HTTP API 和前端业务功能尚未实现。
 
 ## 8. 未解决的技术风险
 
@@ -259,7 +279,7 @@ M1-02 当时未运行前端、数据库连接或 migration 升降级测试；后
 - 交易日历来源及盘后数据就绪判定尚未选定。
 - M2-02 已形成支持代码段/市场/未知状态测试矩阵；完整证券存在性、退市状态生命周期与新代码段扩展仍需后续确认。
 - 不同来源成交量和成交额单位存在映射风险。
-- 同范围活动任务防重约束已验收；不同范围的重叠任务、过期 running 恢复、断点推进和失败重试仍需 M2/M4 实现。
+- M2-05 已实现协作 CLI 全局锁、active 防重、有界重试与 running 原范围恢复；尚无持久父子批次/逐次审计、分布式 fencing、自动调度或绕过 CLI 的互斥保证。
 - 生产负载、数据规模、备份窗口和服务器规格尚无运行数据支持。
 
 ## 9. 数据库 Migration 状态
@@ -275,7 +295,7 @@ M1-02 当时未运行前端、数据库连接或 migration 升降级测试；后
 
 - 已配置私有远程仓库 `origin`：`git@github.com:crazychen0530/StockInsight.git`。
 - 本地 `main` 已首次推送并设置跟踪 `origin/main`；推送前已确认远程没有既有分支，未覆盖远程历史。
-- 当前 main 已完成完整 M1 同步，最终基线 `19c6ba4` 已在本轮开始重新核验；此前同步/清理已结束。本轮 M2-04 从 M2-03 本地提交继续；四个功能提交均尚未同步 GitHub。
+- 当前 main 已完成完整 M1 同步，最终基线 `19c6ba4` 已在本轮开始重新核验；此前同步/清理已结束。本轮 M2-05 从 M2-04 本地提交继续；五个功能提交均尚未同步 GitHub。
 - 远程 `feature/m1-06-runtime-foundation` 保持 `b0c4fe641513aa4c663e4c0b7749bf1b414b7836`，未删除或改写；m1-04/m1-05 未单独建立远程分支，其提交已随完整 M1 进入远程 main。
 - 三个本地 M1 功能分支已在确认同步成功且全部合并后，以 `git branch -d` 安全删除；没有强制删除、删除代码、重写历史、创建 PR/Release 或发布公网。
 - 未执行强制推送、版本发布或远程分支删除。
@@ -286,16 +306,16 @@ M1-02 当时未运行前端、数据库连接或 migration 升降级测试；后
 可直接复制以下指令：
 
 ```text
-继续开发 /home/crazychen/myprojects/StockInsight，只执行 M2-05：受控本地采集 CLI、同步任务记录、失败重试和断点恢复。
+继续开发 /home/crazychen/myprojects/StockInsight，只执行 M3-01：股票列表、详情和行情查询 API。
 
-依次阅读 AGENTS.md、PROJECT_PLAN.md、TASKS.md、SESSION_HANDOFF.md、docs/DECISIONS.md、docs/DEPLOYMENT.md、docs/MARKET_DATA_PROVIDER.md、docs/MARKET_DATA_VALIDATOR.md、docs/STOCK_PERSISTENCE.md、docs/DAILY_PRICE_PERSISTENCE.md；检查 Git 状态、最近提交与远程配置。
+依次阅读 AGENTS.md、PROJECT_PLAN.md、TASKS.md、SESSION_HANDOFF.md、docs/DECISIONS.md、docs/DEPLOYMENT.md、docs/STOCK_PERSISTENCE.md、docs/DAILY_PRICE_PERSISTENCE.md、docs/COLLECTION_CLI.md；检查 Git 状态、最近提交、远程和环境。
 
-核验 feature/m2-04-daily-price-persistence 已验收本地提交，若尚未合并 main，以该提交创建 feature/m2-05-collection-cli，保留 main，不擅自合并或 push。复用 StockService/DailyPriceService、现有配置/安全日志/错误与 DataSyncJob 模型，实现有明确股票/日期范围和参数校验的本地 CLI、任务状态与安全错误摘要、受控退避重试和可恢复断点；按现有数据字典明确股票工作项计数与空响应语义，保留单股原子事务和已提交成果。覆盖正常、部分失败、全失败、重复运行/活动任务防重、重试耗尽、进程中断/恢复与非法参数，确定性 fixture/mock 不访问实时行情；真实 PostgreSQL 仅用全新独立空测试库，完整 migration 回归另用新空 *_migration_test，保留开发库 stockinsight 和原卷。交易日历/盘后就绪来源仍未选定，不将空结果或调用成功当成区间完整；不提前实现 HTTP 采集入口、前端、API 内嵌调度或公网部署。需要 Schema/重大架构或口径变化时先提出 Proposed 决策待确认；完成测试、文档、逻辑提交，未经授权不 push、不合并 main、不删卷。
+核验 feature/m2-05-collection-cli 已验收本地提交，若尚未合并 main，以该提交创建 feature/m3-01-stock-query-api，保留 main，未经授权不合并或 push。复用 Service/Repository、统一配置/日志/错误、Pydantic 和 Provider DTO/Validator 边界，实现本地数据库只读股票列表/搜索、详情、显式区间日线查询 API；明确分页/上限、代码与日期校验、空/不存在语义、单位/不复权、来源和更新时间。请求不访问 Provider、不触发采集或计算；stocks 当前无逐行来源/更新时间，不能编造或擅自新增 Schema，先审查既有设计，必要时提出 Proposed 决策等待确认。覆盖契约/分页/排序/非法参数/404/空数据/安全错误和来源元数据，固定模拟值与全新独立 PostgreSQL 测试库，完整 migration 回归另用新空 *_migration_test；保留开发库 stockinsight 和原卷。不提前实现前端、指标、调度、HTTP 采集或公网部署。完成测试、文档、逻辑提交，未经授权不 push、不合并 main、不删卷。
 ```
 
 ## 12. 是否达到购买云服务器条件
 
-未达到。M1 本地基础工程和容器验证、M2-01/M2-02 离线契约与 M2-03/M2-04 模拟来源/真实隔离库验收已完成，但 M2 其余任务及 M3-M5 尚未完成；没有可验收的完整 MVP、采集稳定性证据、访问控制、数据授权确认或备份恢复演练，也未决定需要公网访问。当前继续本地开发，不购买服务器、不部署公网。
+未达到。M1 本地基础工程和容器验证、M2 五项离线契约/模拟来源/真实隔离库验收已完成，但 M3-M5 尚未完成；没有可验收的完整 MVP、采集稳定性证据、访问控制、数据授权确认或备份恢复演练，也未决定需要公网访问。当前继续本地开发，不购买服务器、不部署公网。
 
 ## 13. 当前可见的本地页面
 

@@ -1,20 +1,21 @@
 # StockInsight
 
-StockInsight 是面向个人投资研究的中国 A 股行情与风险分析 Web 平台。当前已完成 **Milestone 1：基础工程**；后端健康接口可运行，但尚未提供股票行情业务功能。
+StockInsight 是面向个人投资研究的中国 A 股行情与风险分析 Web 平台。当前已完成 **Milestone 1：基础工程与 Milestone 2：本地行情采集**；后端健康接口可运行，但尚未提供股票行情业务功能。
 
 项目不会连接券商或执行真实交易，不承诺收益，也不会把未经验证的预测作为确定的投资建议。
 
 ## 当前状态
 
 - 目标版本：v0.1.0
-- 当前阶段：Milestone 0、M1-01 至 M1-06、M2-01 至 M2-04 已完成；下一任务为 M2-05
+- 当前阶段：Milestone 0、Milestone 1、Milestone 2 已完成；下一任务为 M3-01
 - 已建立：项目基线、开发环境、FastAPI 健康接口、四张 ORM 模型和初始 migration、Vue/Vite 前端壳及测试入口
 - 已新增：本地三服务 Compose、隔离配置、JSON 脱敏日志、统一错误响应和请求关联 ID
 - 已新增：[Provider 契约与 AKShare 适配](docs/MARKET_DATA_PROVIDER.md)，包含固定 fixture 离线测试；未验收真实联网采集
 - 已新增：[独立行情 Validator](docs/MARKET_DATA_VALIDATOR.md)，校验代码、日期、OHLCV、元数据、单位与存储精度；交易日历通过显式参数注入
 - 已新增：[股票基础信息同步与搜索持久化](docs/STOCK_PERSISTENCE.md)，含幂等 UPSERT、未知信息保护及真实 PostgreSQL 隔离库验收
 - 已新增：[日线采集与区间补采持久化](docs/DAILY_PRICE_PERSISTENCE.md)，含幂等 UPSERT、单股事务和跨股部分失败；模拟来源/真实隔离库验收通过
-- 未实现：采集 CLI、同步任务记录/自动重试/断点、股票业务 API 和行情页面
+- 已新增：[本地采集 CLI、任务与恢复](docs/COLLECTION_CLI.md)，含安全错误摘要、有界退避、活动任务防重和幂等原范围恢复
+- 未实现：股票业务 API、行情页面、指标计算和自动调度；未验收真实联网采集稳定性
 
 ## v0.1.0 计划范围
 

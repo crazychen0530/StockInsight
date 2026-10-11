@@ -35,6 +35,7 @@ class DailyPriceSyncResult:
     source: str
     source_interface: str
     fetched_at: datetime
+    last_trade_date: date | None = None
 
 
 @dataclass(frozen=True)
@@ -137,6 +138,7 @@ class DailyPriceService:
             batch.source,
             batch.source_interface,
             batch.fetched_at,
+            batch.records[-1].trade_date if batch.records else None,
         )
         # Commit has completed before a successful result or log can escape.
         logger.info(

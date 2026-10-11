@@ -230,3 +230,8 @@ M1-06 已实现环境配置、HTTP 请求关联 ID、统一错误和 JSON 脱敏
 ## 10. 架构决策边界
 
 首版坚持模块化单体、PostgreSQL 和独立轻量调度进程。Redis、Celery、Kafka、Kubernetes、微服务和 AI 预测均没有当前需求依据。引入它们或改变数据源/复权/主键语义，必须先通过 `PROJECT_PLAN.md` 定义的架构变更流程。
+
+
+## M2-05 当前实现补充
+
+`app.jobs.cli -> CollectionRunner -> StockService/DailyPriceService -> Provider/Validator/Repository` 已实现本地采集。SyncJobRepository 用短事务更新现有 DataSyncJob，以专用 AUTOCOMMIT 会话锁串行化协作采集入口；网络和退避不占业务事务。每股独立任务、提交后 checkpoint、恢复按原范围重放，详见 [COLLECTION_CLI.md](COLLECTION_CLI.md)。基础信息仍整批原子写入；无新 Schema/依赖、HTTP 采集、前端或独立调度进程。上方未来架构图仍不代表 Scheduler/Analysis/公网部署已实现。
