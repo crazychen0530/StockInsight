@@ -192,7 +192,7 @@ Analysis Service -> Repository -> Indicator Calculator -> Database
 | `GET /api/v1/stocks/{symbol}/indicators` | 均线指标 | 日期范围、计算版本 |
 | `GET /api/v1/system/data-status` | 最近同步及错误摘要 | 限制返回记录数 |
 
-统一错误响应建议包含 `code`、`message`、`request_id` 和可选 `details`，校验错误不回显内部堆栈。正常查询只访问本地数据库。批量采集优先提供本地 CLI；若以后增加管理 API，必须先实现身份认证、授权、审计和防滥用，不能匿名暴露公网。
+M1-06 已建立统一错误响应，包含 `code`、`message`、`request_id` 和可选 `details`，校验错误不回显输入值、内部消息或堆栈；请求关联 ID 由服务端生成。正常查询只访问本地数据库。批量采集优先提供本地 CLI；若以后增加管理 API，必须先实现身份认证、授权、审计和防滥用，不能匿名暴露公网。
 
 ## 10. 股票指标计算规范
 

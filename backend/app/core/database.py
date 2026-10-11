@@ -6,6 +6,8 @@ from contextlib import contextmanager
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
+from app.core.config import Settings, load_settings
+
 
 class Base(DeclarativeBase):
     """Declarative base for Alembic-managed persistence models."""
@@ -19,6 +21,12 @@ def create_database_engine(database_url: str) -> Engine:
 def create_session_factory(engine: Engine) -> sessionmaker[Session]:
     """Create the configured SQLAlchemy 2 session factory."""
     return sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+
+
+def create_configured_database_engine(settings: Settings | None = None) -> Engine:
+    """Use the selected environment without opening a connection or creating tables."""
+    configuration = settings if settings is not None else load_settings()
+    return create_database_engine(configuration.database_url_value())
 
 
 @contextmanager

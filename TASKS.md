@@ -40,8 +40,9 @@
 - DONE M1-05 创建本地 Docker Compose 基础工程。
   - 验收：API、前端开发入口和 PostgreSQL 可在本地互通；数据库不对非本机公开。
   - 验收结果（2026-10-11）：三服务构建和 healthy 检查通过；实际端口仅绑定 127.0.0.1；API 容器 SQLAlchemy 连接 PostgreSQL 16.15、显式 Alembic upgrade/current/check、API 直连/Vite 代理/前端 HTTP 均通过；独立空库后端 9 passed 无跳过，容器前端类型检查/2 个测试/构建通过；停止后恢复验证 revision 和表保留，未删除数据卷。本机 daemon 直连 Registry 超时，经用户态代理下载官方镜像并导入完成验收。
-- TODO M1-06 建立统一配置、日志、异常和测试 fixture。
+- DONE M1-06 建立统一配置、日志、异常和测试 fixture。
   - 验收：开发/测试配置隔离，日志脱敏，错误模型有测试。
+  - 验收结果（2026-10-11）：环境白名单与独立测试 URL、JSON 脱敏日志、统一错误模型、服务端请求 ID 和共享 fixture 已实现，无新增依赖/数据库结构。宿主机 37 个非 PostgreSQL 测试通过；Compose 独立新空库完整后端 38 passed 无跳过，包含 Alembic 升降级后日志仍可用；Ruff/格式/pip check、前端类型/2 个测试/构建、真实首页/API 文档/健康/404/代理/日志检查通过。M1 六项全部完成；后续进入 M2。
 
 ## Milestone 2：股票基础信息与行情采集
 

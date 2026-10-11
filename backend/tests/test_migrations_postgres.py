@@ -1,6 +1,5 @@
 """PostgreSQL acceptance checks for the initial Alembic migration."""
 
-import os
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -8,7 +7,6 @@ from pathlib import Path
 import pytest
 import sqlalchemy as sa
 from alembic.config import Config
-from sqlalchemy.engine import make_url
 from sqlalchemy.exc import IntegrityError
 
 from alembic import command
@@ -24,19 +22,7 @@ EXPECTED_TABLES = {
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 
-def _test_database_url() -> str:
-    value = os.getenv("TEST_DATABASE_URL")
-    if not value:
-        pytest.skip("TEST_DATABASE_URL is required for PostgreSQL migration tests")
-    url = make_url(value)
-    if url.drivername != "postgresql+psycopg" or not (url.database or "").endswith(
-        "_migration_test"
-    ):
-        pytest.fail("Use postgresql+psycopg and a disposable database ending in _migration_test")
-    return value
-
-
-def _alembic_config(database_url: str) -> Config:
+def _alembic_config() -> Config:
     config = Config(str(REPOSITORY_ROOT / "backend" / "alembic.ini"))
     config.set_main_option("script_location", str(REPOSITORY_ROOT / "backend" / "alembic"))
     return config
@@ -44,11 +30,10 @@ def _alembic_config(database_url: str) -> Config:
 
 @pytest.mark.postgres
 def test_initial_migration_upgrade_constraints_and_downgrade(
-    monkeypatch: pytest.MonkeyPatch,
+    migration_database_url: str,
 ) -> None:
-    database_url = _test_database_url()
-    config = _alembic_config(database_url)
-    monkeypatch.setenv("DATABASE_URL", database_url)
+    database_url = migration_database_url
+    config = _alembic_config()
     engine = sa.create_engine(database_url)
     # Never reset a database supplied by the caller. Acceptance starts on an empty database.
     assert sa.inspect(engine).get_table_names() == [], "Migration test requires an empty database"

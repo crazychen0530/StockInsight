@@ -1,27 +1,23 @@
 """Alembic runtime environment without import-time database access."""
 
-import os
 from logging.config import fileConfig
 
 from alembic import context
 from app import models  # noqa: F401  # Register all model tables with Base.metadata.
+from app.core.config import load_settings
 from app.core.database import Base
 
 config = context.config
 
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 target_metadata = Base.metadata
 
 
 def get_database_url() -> str:
     """Read the migration URL only when an Alembic command needs it."""
-    database_url = os.getenv("DATABASE_URL")
-    if not database_url:
-        message = "DATABASE_URL is required to execute database migrations"
-        raise RuntimeError(message)
-    return database_url
+    return load_settings().database_url_value()
 
 
 def run_migrations_offline() -> None:

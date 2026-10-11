@@ -24,6 +24,9 @@ services:
       context: ./backend
     environment:
       # Credentials are passed via libpq variables, never interpolated into the URL.
+      APP_ENV: ${APP_ENV:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Shanghai}
       DATABASE_URL: postgresql+psycopg:///${POSTGRES_DB:-stockinsight}
       PGHOST: db
       PGPORT: "5432"

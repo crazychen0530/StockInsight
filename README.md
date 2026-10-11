@@ -1,15 +1,15 @@
 # StockInsight
 
-StockInsight 是面向个人投资研究的中国 A 股行情与风险分析 Web 平台。当前正在实施 **Milestone 1：基础工程**；后端健康接口可运行，但尚未提供股票行情业务功能。
+StockInsight 是面向个人投资研究的中国 A 股行情与风险分析 Web 平台。当前已完成 **Milestone 1：基础工程**；后端健康接口可运行，但尚未提供股票行情业务功能。
 
 项目不会连接券商或执行真实交易，不承诺收益，也不会把未经验证的预测作为确定的投资建议。
 
 ## 当前状态
 
 - 目标版本：v0.1.0
-- 当前阶段：Milestone 0、M1-01 至 M1-05 已完成；下一任务为 M1-06
+- 当前阶段：Milestone 0、M1-01 至 M1-06 已完成；下一任务为 M2-01
 - 已建立：项目基线、开发环境、FastAPI 健康接口、四张 ORM 模型和初始 migration、Vue/Vite 前端壳及测试入口
-- 已新增：本地 `db`、`api`、`web` Compose 配置及开发镜像
+- 已新增：本地三服务 Compose、隔离配置、JSON 脱敏日志、统一错误响应和请求关联 ID
 - 未实现：股票业务 API、行情采集和行情页面
 
 ## v0.1.0 计划范围
@@ -135,7 +135,7 @@ docker compose exec -T web npm run typecheck
 docker compose exec -T web npm test
 ```
 
-预期后端 9 passed、无 skip，前端 2 个测试通过。migration 测试会删除其专用测试库内的业务表，不能改用开发库名称。
+预期后端 38 passed、无 skip，前端 2 个测试通过。migration 测试会删除其专用测试库内的业务表，不能改用开发库名称。
 
 停止和恢复（保留数据库卷）：
 
@@ -160,7 +160,7 @@ python -m pip install --editable 'backend[dev]'
 启动开发服务：
 
 ```bash
-uvicorn app.main:app --app-dir backend --reload --host 127.0.0.1 --port 8000
+uvicorn app.main:app --app-dir backend --reload --no-access-log --host 127.0.0.1 --port 8000
 ```
 
 在另一个终端请求健康接口：
@@ -186,7 +186,7 @@ curl --noproxy '*' http://127.0.0.1:8000/api/v1/health
 .venv/bin/alembic -c backend/alembic.ini heads
 ```
 
-最后一条命令应输出 `0001_initial_schema (head)`。上述 Pytest 命令只运行 8 个健康接口和 metadata 测试；真实 PostgreSQL migration 测试需要按下节单独配置，不能以 metadata 测试代替。
+最后一条命令应输出 `0001_initial_schema (head)`。上述 Pytest 命令运行 37 个非 PostgreSQL 测试；真实 PostgreSQL migration 测试需要按下节单独配置，不能以 metadata 测试代替。
 
 ## 数据库迁移与隔离验收
 
@@ -217,7 +217,7 @@ export TEST_DATABASE_URL='postgresql+psycopg://stockinsight@127.0.0.1:5432/stock
 unset TEST_DATABASE_URL DATABASE_URL PGPASSWORD
 ```
 
-预期为 9 passed、无跳过；覆盖空库升级、约束、防重、降级/再升级及模型差异。测试拒绝包含既有表的数据库；运行后留下空 `alembic_version` 表，再次验收需要另建一个空的 `*_migration_test` 库。未配置 `TEST_DATABASE_URL` 时 PostgreSQL 用例会明确 skip，不能视为完整验收通过。`downgrade base` 会删除业务表及全部数据，只能用于一次性验收库。
+预期为 38 passed、无跳过；覆盖配置、日志、错误、关联 ID，以及空库升级、约束、防重、降级/再升级和模型差异。测试拒绝包含既有表的数据库；运行后留下空 `alembic_version` 表，再次验收需要另建一个空的 `*_migration_test` 库。未配置 `TEST_DATABASE_URL` 时 PostgreSQL 用例会明确 skip，不能视为完整验收通过。`downgrade base` 会删除业务表及全部数据，只能用于一次性验收库。
 
 ## 前端安装、运行和验证
 
@@ -258,7 +258,22 @@ curl --noproxy '*' http://127.0.0.1:4173/
 
 ## 配置与安全
 
-复制 `.env.example` 形成仅用于本地的 `.env`，但不要提交 `.env`。示例值不能用于生产。生产环境不得公开 PostgreSQL 5432，任何 Token、密码、私钥和证书都不得进入仓库。
+优先使用 `scripts/init_local_env.py` 初始化私有 `.env`，不要提交该文件；示例值不能用于生产。Compose 读取 `.env` 并注入容器，Python 配置不自动加载 `.env`，原生运行需显式导出变量。
+
+- `APP_ENV`：`development`（默认）、`test`、`production`；后者只是配置模式，不表示生产安全措施已完成。
+- `LOG_LEVEL`：DEBUG/INFO/WARNING/ERROR/CRITICAL；`APP_TIMEZONE` 默认 Asia/Shanghai，JSON 日志时间戳使用 UTC。
+- 开发数据库：`DATABASE_URL` 或 `PGHOST`/`PGUSER`/`PGDATABASE`（可选 `PGPORT`/`PGPASSWORD`）；兼容 Compose 无密码 URL 和 libpq 凭据。配置、应用导入及健康接口不隐式连接或迁移数据库。
+- 测试数据库：`APP_ENV=test` 下只解析 `TEST_DATABASE_URL`，库名须以 `_test` 结尾，绝不回退开发 URL；破坏性 migration fixture 进一步要求空的 `*_migration_test` 库。共享 fixture 自动切换 test 并移除开发 URL。
+
+所有 API 响应增加服务端生成的 `X-Request-ID`，不回显调用者提交的 ID。错误统一为以下模型；校验错误的可选 `details` 仅包含字段位置和错误类型，不包含输入值和内部异常消息：
+
+```json
+{"code":"not_found","message":"Not Found","request_id":"<32 位十六进制 ID>"}
+```
+
+应用 JSON 日志包含时间、级别、事件、关联 ID、路由模板、状态和耗时；未知路径仅记 `<unmatched>`，不记录请求体、原始路径、查询串或请求头。内部异常只记录类型和代码位置，绝不记录原始异常消息、源码行或局部变量；凭据和连接串进一步脱敏。禁用 Uvicorn 原始 access log，避免绕过脱敏。日志输出失败时仅向 stderr 输出固定安全提示。后续业务日志必须继续遵守这些限制；第三方库日志需单独审查。
+
+生产环境不得公开 PostgreSQL 5432，任何 Token、密码、私钥和证书都不得进入仓库。访问控制、日志轮转、备份恢复和生产部署仍待后续里程碑。
 
 ## 数据来源与免责声明
 
