@@ -45,10 +45,13 @@
 
 ## 5. Git 与 GitHub
 
-- 当前分支 feature/m4-01-moving-averages，基于干净、已同步 main 的 12a3005 创建；本轮没有修改已有用户文件或分支历史。
-- M4-01 0a99d42、M4-02 6071b81、M4-03 5c8a9c0、M4-04 7ca0085；M4-05 与最终交接形成第五个本地提交，最终 SHA 见 git log 和交付报告。
-- 本地 main 与 origin/main 仍停留 12a3005；origin 为既有 GitHub 私有仓库。没有 fetch/push/合并/删分支/标签/Release/公网部署。
-- 用户本轮授权连续完成 M4，不沿用上一会话 M3 专用推送授权。M4 已本地提交，可审阅后另行明确授权快进合并/同步；本轮不等待确认继续其他里程碑。
+- 2026-10-12 用户明确授权 M4 完成后本地合并并推送；先 fetch origin main，确认远程仍为 12a3005、工作区干净且为 M4 祖先。
+- 已将 feature/m4-01-moving-averages 快进合并本地 main，无冲突，合并后与验收功能分支代码树完全一致。
+- M4-01 0a99d42、M4-02 6071b81、M4-03 5c8a9c0、M4-04 7ca0085、M4-05 30730a3 五项全部完成并正常推送 origin/main。
+- git ls-remote 核验远程代码交付 SHA 为 30730a31b231ab7ec224d9896c170e9916c9bd76，与本地一致；本同步记录另行提交并同步，最终 HEAD 见 Git 和交付报告。
+- 当前分支 main，工作区在提交后应干净，功能分支保留；origin 为既有私有仓库。未强推、删除分支、创建标签/Release 或部署公网。
+- 合并后复核：后端离线 341 passed、42 deselected（PostgreSQL），前端类型/31 项测试、Ruff/格式通过。未重跑完整 PostgreSQL/migration/浏览器/构建，代码树未变，原完整 383 项及浏览器证据保留。
+- 推送前扫描五项提交覆盖的 188 个 blob，真实本机私有凭据、Token/私钥模式、真实 .env 和超大文件检查通过。
 
 ## 6. 已知限制和后续验收
 
@@ -66,9 +69,9 @@
 已更新 TASKS、CHANGELOG、README、交接、ADR-019、architecture、DEPLOYMENT、FRONTEND_MARKET、COLLECTION_CLI，并新增 MOVING_AVERAGES、SCHEDULER、OPERATIONS。产品方向/总体架构基线不变。
 
 ```text
-继续开发 /home/crazychen/myprojects/StockInsight，执行 M5-01：核心后端/前端/migration/端到端验收。先依次阅读 AGENTS.md、PROJECT_PLAN.md、TASKS.md、SESSION_HANDOFF.md、docs/DECISIONS.md 和 M4 三份专题，检查工作区、分支、提交和远程。当前 M4 五项在 feature/m4-01-moving-averages 本地提交，未合并/推送；保护已有分支和开发库，不自动推送或清库。用 scripts/test_postgres.py 创建新隔离库复现完整回归，整理十类测试证据和真实上游/交易日历/性能/部署边界，完成任务文档及本地提交。M5-02 全新 Linux 与后续任务只按新的授权推进，M6 不启动。
+继续开发 /home/crazychen/myprojects/StockInsight，执行 M5-01：核心后端/前端/migration/端到端验收。先依次阅读 AGENTS.md、PROJECT_PLAN.md、TASKS.md、SESSION_HANDOFF.md、docs/DECISIONS.md 和 M4 三份专题，检查工作区、分支、提交和远程。当前 M4 五项已快进合并 main 并同步 GitHub；从已同步的干净 main 创建 M5 功能分支，保护已有分支和开发库，不自动推送或清库。用 scripts/test_postgres.py 创建新隔离库复现完整回归，整理十类测试证据和真实上游/交易日历/性能/部署边界，完成任务文档及本地提交。M5-02 全新 Linux 与后续任务只按新的授权推进，M6 不启动。
 ```
 
 ## 8. 服务器与同步
 
-无需购买服务器，尚未满足 M5 MVP、安全、真实上游/授权、全新 Linux 和备份恢复条件。M4 五项本地提交完成后仍需要另行同步 GitHub；本轮没有执行公网操作。
+无需购买服务器，尚未满足 M5 MVP、安全、真实上游/授权、全新 Linux 和备份恢复条件。M4 五项已按用户授权合并并同步 GitHub，本同步记录随后的文档提交一并同步；没有公网部署。真实股票/日线/指标/任务库仍为空，常驻调度未启动。M4 完成指 TASKS.md 规定的代码、隔离测试和文档标准，不能表述为页面已有真实行情或自动更新已实际运行。

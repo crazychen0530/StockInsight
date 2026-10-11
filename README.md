@@ -315,4 +315,4 @@ git push origin main
 git status --short --branch
 ```
 
-下一任务为 M5-01；M4 已在功能分支本地提交，合并/同步状态见交接文档，详见交接文档。本地合并不等于部署，也不会自动执行数据库 migration。
+下一任务为 M5-01；M4 已合并本地 main 并同步 GitHub，详情见交接文档，详见交接文档。本地合并不等于部署，也不会自动执行数据库 migration。
