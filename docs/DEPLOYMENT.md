@@ -2,7 +2,7 @@
 
 > 状态：M1 基础工程与本地 Compose 已验收；生产部分仍为规划
 >
-> 当前阶段：Milestone 2 与 M3-01 查询 API 已完成；开发早期不购买服务器
+> 当前阶段：Milestone 2 与 Milestone 3 已完成；开发早期不购买服务器
 
 ## 1. 本地开发部署方式
 
@@ -26,7 +26,7 @@ M1-05 复核确认 daemon 在提升权限后可达；官方 Registry 经现有 s
 - `scripts/init_local_env.py` 只在 `.env` 不存在时创建随机本地密码和 0600 文件，现有文件不会覆盖。
 - Alembic 必须由运维显式执行 `docker compose exec -T api alembic upgrade head`；账户密码经环境变量传入，不写进 URL。
 - API 与 web 使用非 root 应用用户；开发镜像包含测试工具，源码只读挂载支持热更新。
-- Vite `/api` 代理只提供本地前后端联通入口，尚未增加页面业务调用。
+- Vite `/api` 代理提供页面统一客户端到本地只读查询 API 的入口。
 - `stop`、`start`、`down` 都保留数据卷；没有自动清库逻辑。不得未经授权执行 `down -v`。
 
 实现参考 Docker 官方文档：[依赖启动与健康检查](https://docs.docker.com/compose/how-tos/startup-order/)、[Compose 网络与服务发现](https://docs.docker.com/compose/how-tos/networking/)。
@@ -162,3 +162,7 @@ M5 后必须用实际股票数量、历史区间、数据库体积、采集耗�
 ## M3-01 查询进程
 
 现有 API 新增[三个股票只读入口](STOCK_QUERY_API.md)，按需初始化查询连接并在应用关闭时 dispose；健康检查保持独立。复用现有配置、开发库和 Compose 三服务，无新端口、migration、数据填充或公网部署。数据库 read-only 事务不替代后续生产账号最小权限配置。
+
+## M3 前端本地入口
+
+本地 web 已使用 Axios `/api/v1` 查询并通过既有 `/api` 代理转发；概览、搜索/详情、K 线和成交量见[前端专题](FRONTEND_MARKET.md)。新增前端依赖后需 `docker compose build web` 再 `docker compose up --detach --no-deps --no-build --wait --wait-timeout 120 web`，只更新 web，保留 db/API/卷。本轮已完成此操作，仍仅本机 5173 可访问。生产静态托管必须配置 Vue history 路由回退和同源 `/api` 反向代理，留待 M5/M6；Vite Preview 不替代生产部署。

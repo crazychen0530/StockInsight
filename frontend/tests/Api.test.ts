@@ -72,3 +72,21 @@ it('discards stale successes and failures and cancels on scope disposal', async 
   await pending
   expect(request.data.value).toBeNull()
 })
+
+it('preserves daily decimals, sorts dates, and rejects unsafe volumes or mismatched rows', async () => {
+  const { prices, bar } = await import('./fixtures')
+  let body = { ...prices, items: [{ ...bar, trade_date: '2026-09-02' }, bar] }
+  http.defaults.adapter = async config => ({ data: body, status: 200, statusText: 'OK', headers: {}, config })
+  const result = await stocksApi.prices('000001.SZ', { start_date: '2026-09-01', end_date: '2026-09-30' })
+  expect(result.items.map(item => item.trade_date)).toEqual(['2026-09-01', '2026-09-02'])
+  expect(result.items[0].amount_cny).toBe('12345678901234567890.12')
+  for (const invalid of [
+    { ...bar, volume_shares: Number.MAX_SAFE_INTEGER + 1 },
+    { ...bar, open: 'NaN' }, { ...bar, symbol: '600519.SH' }, { ...bar, trade_date: '2025-01-01' },
+  ]) {
+    body = { ...prices, items: [invalid] }
+    await expect(stocksApi.prices('000001.SZ', prices)).rejects.toMatchObject({ code: 'invalid_response' })
+  }
+  body = { ...prices, items: [bar, bar] }
+  await expect(stocksApi.prices('000001.SZ', prices)).rejects.toMatchObject({ code: 'invalid_response' })
+})

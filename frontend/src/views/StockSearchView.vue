@@ -17,8 +17,8 @@ watch(() => [route.query.q, route.query.page], () => {
   page.value = Number.isSafeInteger(value) && value > 0 ? value : 1
   void load()
 }, { immediate: true })
-async function navigate(next = 1) {
-  const target = { q: next === 1 ? query.value.trim() : (typeof route.query.q === 'string' ? route.query.q : ''), page: String(next) }
+async function navigate(next = 1, search = false) {
+  const target = { q: search ? query.value.trim() : (typeof route.query.q === 'string' ? route.query.q : ''), page: String(next) }
   if (route.query.q === target.q && route.query.page === target.page) await load()
   else await router.push({ name: 'stock-search', query: target })
 }
@@ -29,7 +29,7 @@ async function navigate(next = 1) {
     <p class="eyebrow">STOCK DIRECTORY</p>
     <h1 id="search-title">股票搜索</h1>
     <p>输入代码或名称，查询本地股票目录。</p>
-    <form class="query-form" @submit.prevent="navigate(1)">
+    <form class="query-form" @submit.prevent="navigate(1, true)">
       <label for="stock-query">代码或名称</label>
       <input id="stock-query" v-model="query" maxlength="128" placeholder="例如 000001 或股票名称" type="search" />
       <button type="submit">搜索</button>

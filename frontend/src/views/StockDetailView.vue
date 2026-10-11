@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { stocksApi } from '@/api/stocks'
 import type { Stock, PriceList } from '@/api/types'
 import RequestState from '@/components/RequestState.vue'
+import DailyPriceChart from '@/components/DailyPriceChart.vue'
 import { useRequest } from '@/composables/useRequest'
 import { defaultRange, isDate, shanghaiTime } from '@/utils/display'
 const route = useRoute()
@@ -11,6 +12,11 @@ const stock = useRequest<Stock>()
 const prices = useRequest<PriceList>()
 const range = ref(defaultRange())
 const validation = ref('')
+const provenance = computed(() => {
+  const rows = prices.data.value?.items || []
+  const times = rows.map(row => row.fetched_at).sort((a, b) => Date.parse(a) - Date.parse(b))
+  return { sources: [...new Set(rows.map(row => row.source))].join('、'), latest: times.at(-1) || null }
+})
 async function loadPrices() {
   const { start_date, end_date } = range.value
   if (!isDate(start_date) || !isDate(end_date) || start_date > end_date) {
@@ -60,12 +66,15 @@ watch(() => route.params.symbol, loadStock, { immediate: true })
               <p>{{ prices.data.value.start_date }} — {{ prices.data.value.end_date }} · {{ prices.data.value.items.length }} 条</p>
               <p>不复权 · 价格/成交额：人民币元 · 成交量：股</p>
               <p v-if="prices.data.value.has_more" class="notice">当前仅显示区间最早的 1000 条，仍有后续数据。请缩小日期范围继续查询。</p>
+              <p>已显示记录来源：{{ provenance.sources }} · 最新获取时间：{{ shanghaiTime(provenance.latest) }}</p>
+              <DailyPriceChart :items="prices.data.value.items" />
+              <h3>行情明细</h3>
               <div class="table-scroll">
                 <table>
-                  <thead><tr><th>日期</th><th>开盘</th><th>收盘</th><th>最高</th><th>最低</th><th>成交量（股）</th><th>来源</th><th>获取时间</th></tr></thead>
+                  <thead><tr><th>日期</th><th>开盘</th><th>收盘</th><th>最高</th><th>最低</th><th>成交量（股）</th><th>成交额（元）</th><th>来源</th><th>获取时间</th></tr></thead>
                   <tbody><tr v-for="bar in prices.data.value.items" :key="bar.trade_date">
                     <td>{{ bar.trade_date }}</td><td>{{ bar.open }}</td><td>{{ bar.close }}</td><td>{{ bar.high }}</td><td>{{ bar.low }}</td>
-                    <td>{{ bar.volume_shares }}</td><td>{{ bar.source }}</td><td>{{ shanghaiTime(bar.fetched_at) }}</td>
+                    <td>{{ bar.volume_shares }}</td><td>{{ bar.amount_cny }}</td><td>{{ bar.source }}</td><td>{{ shanghaiTime(bar.fetched_at) }}</td>
                   </tr></tbody>
                 </table>
               </div>

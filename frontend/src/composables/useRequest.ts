@@ -12,15 +12,16 @@ export function useRequest<T>() {
   async function run(fetcher: (signal: AbortSignal) => Promise<T>) {
     controller?.abort()
     controller = new AbortController()
+    const signal = controller.signal
     const current = ++generation
     loading.value = true
     data.value = null
     error.value = null
     try {
-      const result = await fetcher(controller.signal)
+      const result = await fetcher(signal)
       if (current === generation) data.value = result
     } catch (caught) {
-      if (current === generation && !controller.signal.aborted) error.value = normalizeError(caught)
+      if (current === generation && !signal.aborted) error.value = normalizeError(caught)
     } finally {
       if (current === generation) loading.value = false
     }

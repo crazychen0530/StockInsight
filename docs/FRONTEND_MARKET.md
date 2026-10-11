@@ -28,3 +28,25 @@ npm run build --prefix frontend
 详情显示基础元数据和显式日期区间，缺失项为“未记录”/“未知”。默认近一年，今天按上海时区计算。每次最多 1000 条最早日线，has_more 明确提示缩小范围，不声称完整；日期不合法或倒置时阻止请求。保留精确行情字符串，逐行来源/时间按 Asia/Shanghai 展示。不加入后台采集按钮。
 
 M3-03 验证：类型检查、21 项组件/API 测试和生产构建通过。模拟固定 fixture 覆盖概览、搜索提交/分页/返回/详情、Loading/Empty/Error/重试、404、空行情、日期与截断提示。测试通过真实 Vue Router 驱动视图，但不等同于真实上游或浏览器端到端验收。
+
+## K 线与成交量（M3-04）
+
+ECharts 模块化导入、SVG 渲染、双 grid，共享日期轴并联动 inside/slider dataZoom。K 线顺序为 open/close/low/high；成交量为股，红涨绿跌。日期副本升序，API 层拒绝重复日、越界/错股、无效日期/时间和不安全成交量；不自行计算指标。组件在尺寸变化时 resize，卸载 dispose。
+
+图形坐标为浮点近似，tooltip/表格使用原始 Decimal 字符串和精确金额。表格逐行展示 OHLCV、成交额、来源和上海时间，图表上方展示已显示记录的来源集合与最大获取时间；这不证明最新采集或交易日完整性。图表加载失败仍可查看明细。
+
+实现参考 [ECharts 模块导入与 SVG Renderer 官方说明](https://echarts.apache.org/handbook/en/basics/import/)。详情按路由延迟加载；当前生产详情 chunk 约 572 KB、gzip 196 KB，有 500 KB 体积警告，保留为 M5 性能复核项。无 Pinia/Element Plus、数据库、API 或采集变更。
+
+## 浏览器复现
+
+保留 `scripts/browser-smoke.mjs`，Playwright 为开发依赖；测试要求已运行本地 web/API，不自行启动、迁移或清理数据库：
+
+```bash
+cd frontend
+npx playwright install chromium
+npm run test:browser
+```
+
+可用 `STOCKINSIGHT_WEB_URL` 指定另一本机 Vite 入口。测试先验证真实 Vite -> API 的只读列表响应，再通过明确模拟的 HTTP fixture 验证搜索 -> 详情 -> SVG/鼠标缩放/日期/截断/空/错误/重试/390px 布局。截图默认写 `/tmp/stockinsight-m3-desktop.png`、`/tmp/stockinsight-m3-mobile.png`，不进入 Git；模拟数据不写数据库。真实市场数据和完整 Linux 端到端验收仍待后续任务。
+
+本轮验收结果（2026-10-12）：25 项前端测试、宿主/容器类型检查与构建、Chromium 桌面/390px 交互通过；新隔离 PostgreSQL 的 20 条模拟日线经真实 API/Vite 到浏览器 SVG 通过。后端非 PostgreSQL 回归 322 passed、34 deselected，Ruff/格式通过；没有重跑完整数据库升降级。原开发库四表仍空、原卷与三服务健康。详细首次失败、修复、运行库与命令记录见[交接](../SESSION_HANDOFF.md)。

@@ -1,13 +1,13 @@
 # StockInsight
 
-StockInsight 是面向个人投资研究的中国 A 股行情与风险分析 Web 平台。当前已完成 **Milestone 1：基础工程与 Milestone 2：本地行情采集**；已提供本地数据库股票查询 API，行情页面尚未实现。
+StockInsight 是面向个人投资研究的中国 A 股行情与风险分析 Web 平台。当前已完成 **M0–M3：基础工程、本地行情采集、股票查询 API 和历史行情页面**；支持本地股票搜索、详情、日 K 线与成交量。
 
 项目不会连接券商或执行真实交易，不承诺收益，也不会把未经验证的预测作为确定的投资建议。
 
 ## 当前状态
 
 - 目标版本：v0.1.0
-- 当前阶段：Milestone 0、Milestone 1、Milestone 2 已完成；M3-01 已完成，下一任务为 M3-02
+- 当前阶段：Milestone 0–3 已完成；下一任务为 M4-01
 - 已建立：项目基线、开发环境、FastAPI 健康接口、四张 ORM 模型和初始 migration、Vue/Vite 前端壳及测试入口
 - 已新增：本地三服务 Compose、隔离配置、JSON 脱敏日志、统一错误响应和请求关联 ID
 - 已新增：[Provider 契约与 AKShare 适配](docs/MARKET_DATA_PROVIDER.md)，包含固定 fixture 离线测试；未验收真实联网采集
@@ -16,7 +16,8 @@ StockInsight 是面向个人投资研究的中国 A 股行情与风险分析 Web
 - 已新增：[日线采集与区间补采持久化](docs/DAILY_PRICE_PERSISTENCE.md)，含幂等 UPSERT、单股事务和跨股部分失败；模拟来源/真实隔离库验收通过
 - 已新增：[本地采集 CLI、任务与恢复](docs/COLLECTION_CLI.md)，含安全错误摘要、有界退避、活动任务防重和幂等原范围恢复
 - 已新增：[股票列表、详情与日线查询 API](docs/STOCK_QUERY_API.md)，含分页/上限、安全错误、来源时间与精确金额契约
-- 未实现：行情页面、指标计算和自动调度；未验收真实联网采集稳定性
+- 已新增：[前端 API/搜索/详情/K 线与成交量](docs/FRONTEND_MARKET.md)，含加载/空/错误、日期过滤、精确明细、来源与获取时间
+- 未实现：指标计算和自动调度；未验收真实联网采集稳定性
 
 ## v0.1.0 计划范围
 
@@ -128,7 +129,7 @@ docker compose exec -T api python -c 'import os; from sqlalchemy import text; fr
 
 所有宿主机端口仅绑定 `127.0.0.1`，默认 db/API/web 为 5432/8000/5173；如已被占用，在 `.env` 修改 `POSTGRES_PORT`、`APP_PORT`、`WEB_PORT` 并调整上述 URL。容器内部端口保持 5432/8000/5173。默认项目名为 `stockinsight-local`，数据库卷为 `stockinsight-local_postgres_data`；使用 `docker compose -p <独立项目名>` 时会创建独立网络、容器和卷，相关命令必须保持同一项目名。
 
-后端源码和前端 `src/`、`tests/`、入口及 Vite 配置以只读挂载支持热更新；依赖变更后重新 build。容器采用非 root 应用用户，开发镜像包含测试依赖，不应直接当作生产镜像。Vite 将 `/api` 转发至 `http://api:8000`；宿主机原生 Vite 默认转发至 `http://127.0.0.1:8000`，可用 `API_PROXY_TARGET` 覆盖。页面壳尚不调用 API，代理验证只证明 HTTP 转发链路。
+后端源码和前端 `src/`、`tests/`、入口及 Vite 配置以只读挂载支持热更新；依赖变更后重新 build。容器采用非 root 应用用户，开发镜像包含测试依赖，不应直接当作生产镜像。Vite 将 `/api` 转发至 `http://api:8000`；宿主机原生 Vite 默认转发至 `http://127.0.0.1:8000`，可用 `API_PROXY_TARGET` 覆盖。页面通过统一同源客户端查询股票/日线 API，前端查询不触发数据采集。
 
 隔离 migration 回归（每次使用新的空库名；不会操作开发库）：
 
@@ -141,7 +142,7 @@ docker compose exec -T web npm run typecheck
 docker compose exec -T web npm test
 ```
 
-上述只提供 migration URL 的容器命令还会跳过股票/日线 PostgreSQL 集成；完整 287 项验收需按[日线持久化专题](docs/DAILY_PRICE_PERSISTENCE.md#5-验证与复现)配置三个独立新空库 URL。前端预期 2 个测试通过。migration 测试会删除其专用测试库内的业务表，不能改用开发库名称。
+上述只提供 migration URL 的容器命令还会跳过股票/日线 PostgreSQL 集成；完整 287 项验收需按[日线持久化专题](docs/DAILY_PRICE_PERSISTENCE.md#5-验证与复现)配置三个独立新空库 URL。前端当前预期 25 个测试通过，浏览器复现另见前端专题。migration 测试会删除其专用测试库内的业务表，不能改用开发库名称。
 
 停止和恢复（保留数据库卷）：
 
@@ -262,7 +263,7 @@ npm run preview --prefix frontend -- --host 127.0.0.1 --port 4173
 curl --noproxy '*' http://127.0.0.1:4173/
 ```
 
-当前前端只包含应用壳、首页占位和 404 路由，不调用后端、不显示真实或模拟行情。Pinia、Element Plus、Axios 和 ECharts 将在对应功能出现实际需求时再引入。
+当前前端包含概览、`/stocks` 搜索、`/stocks/:symbol` 详情和 404；通过 Axios 查询本地 API，ECharts 展示日 K 线/成交量。空库显示空状态，不自动插入模拟行情。Pinia/Element Plus 在出现实际共享状态/UI 需求时引入。浏览器验证及数据口径见[前端专题](docs/FRONTEND_MARKET.md)。
 
 ## 配置与安全
 
@@ -314,4 +315,4 @@ git push origin main
 git status --short --branch
 ```
 
-下一任务为 M3-02，须基于已完成的 M3-01 提交创建功能分支，详见交接文档。本地合并不等于部署，也不会自动执行数据库 migration。
+下一任务为 M4-01，须基于已完成的 M3 提交创建功能分支，详见交接文档。本地合并不等于部署，也不会自动执行数据库 migration。
