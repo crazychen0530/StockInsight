@@ -18,7 +18,7 @@ from app.collectors.provider import StockInfo
 from app.collectors.validator import MarketDataValidationError
 from app.core.database import create_session_factory
 from app.core.errors import ApplicationError
-from app.models import DailyPrice, Stock
+from app.models import DailyPrice, Stock, TechnicalIndicator
 from app.services.daily_prices import DailyPriceService
 from app.services.stocks import StockService
 from tests.test_daily_price_service import END, FETCHED, START, FixtureDailyProvider, bar
@@ -64,6 +64,7 @@ def price_service(price_engine):
     yield DailyPriceService(factory)
     # Only this module's suffix-guarded fresh test database is cleaned.
     with price_engine.begin() as connection:
+        connection.execute(sa.delete(TechnicalIndicator))
         connection.execute(sa.delete(DailyPrice))
         connection.execute(sa.delete(Stock))
 

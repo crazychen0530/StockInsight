@@ -5,7 +5,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 
+from app.analysis.moving_averages import CALCULATION_VERSION
 from app.api.dependencies import get_stock_query_service
+from app.schemas.indicators import IndicatorListResponse
 from app.schemas.stocks import DailyPriceListResponse, StockListResponse, StockResponse
 from app.services.stock_queries import StockQueryService
 
@@ -37,3 +39,17 @@ def daily_prices(
     limit: Annotated[int, Query(ge=1, le=1000)] = 250,
 ) -> DailyPriceListResponse:
     return service.prices(symbol, start_date, end_date, limit=limit)
+
+
+@router.get("/{symbol}/indicators", response_model=IndicatorListResponse)
+def indicators(
+    symbol: str,
+    service: Service,
+    start_date: Annotated[date, Query()],
+    end_date: Annotated[date, Query()],
+    limit: Annotated[int, Query(ge=1, le=1000)] = 250,
+    calculation_version: Annotated[str, Query(max_length=32)] = CALCULATION_VERSION,
+):
+    return service.indicators(
+        symbol, start_date, end_date, limit=limit, calculation_version=calculation_version
+    )

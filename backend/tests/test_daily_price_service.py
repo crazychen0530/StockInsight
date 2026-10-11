@@ -50,6 +50,7 @@ class FixtureDailyProvider:
 
 @pytest.fixture
 def mocked_storage(monkeypatch):
+    monkeypatch.setattr("app.services.daily_prices.IndicatorService.recalculate", MagicMock())
     factory = MagicMock()
     repository = MagicMock()
     repository.upsert.return_value = 1

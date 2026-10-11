@@ -203,6 +203,8 @@ async def test_openapi_read_only_routes_required_dates_and_decimal_contract(clie
         "/api/v1/stocks",
         "/api/v1/stocks/{symbol}",
         "/api/v1/stocks/{symbol}/prices",
+        "/api/v1/stocks/{symbol}/indicators",
+        "/api/v1/system/data-status",
     }
     assert all(set(item) == {"get"} for item in document["paths"].values())
     params = document["paths"]["/api/v1/stocks/{symbol}/prices"]["get"]["parameters"]

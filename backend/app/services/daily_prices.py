@@ -21,6 +21,7 @@ from app.collectors.validator import (
 from app.core.errors import ApplicationError
 from app.repositories.daily_prices import DailyPriceRepository
 from app.repositories.stocks import StockRepository
+from app.services.indicators import IndicatorService
 
 logger = logging.getLogger("stockinsight.services.daily_prices")
 
@@ -124,6 +125,7 @@ class DailyPriceService:
                             404,
                         )
                     changed = DailyPriceRepository(session).upsert(batch)
+                    IndicatorService.recalculate(session, symbol)
             except SQLAlchemyError:
                 _log_failure(symbol, "daily_price_storage_error")
                 raise ApplicationError(

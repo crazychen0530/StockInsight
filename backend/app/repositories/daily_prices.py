@@ -9,7 +9,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.collectors.provider import DailyBar, MarketDataBatch
-from app.models import DailyPrice
+from app.models import DailyPrice, Stock
 
 
 class DailyPriceRepository:
@@ -33,6 +33,9 @@ class DailyPriceRepository:
 
     def upsert(self, batch: MarketDataBatch[DailyBar]) -> int:
         """Count inserted/changed rows; identical values preserve their original receipt time."""
+        self.session.scalar(
+            select(Stock.symbol).where(Stock.symbol == batch.records[0].symbol).with_for_update()
+        )
         table = DailyPrice.__table__
         changed = 0
         for offset in range(0, len(batch.records), 500):

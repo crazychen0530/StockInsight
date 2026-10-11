@@ -7,6 +7,7 @@ from datetime import date
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.analysis.moving_averages import CALCULATION_VERSION
 from app.collectors.validator import (
     MarketDataValidationError,
     normalize_symbol,
@@ -14,7 +15,9 @@ from app.collectors.validator import (
 )
 from app.core.errors import ApplicationError
 from app.repositories.daily_prices import DailyPriceRepository
+from app.repositories.indicators import IndicatorRepository
 from app.repositories.stocks import StockRepository
+from app.schemas.indicators import IndicatorListResponse, IndicatorResponse
 from app.schemas.stocks import (
     DailyPriceListResponse,
     DailyPriceResponse,
@@ -93,6 +96,48 @@ class StockQueryService:
                     limit=limit,
                     has_more=len(rows) > limit,
                     items=[DailyPriceResponse.model_validate(row) for row in rows[:limit]],
+                )
+        except SQLAlchemyError:
+            raise _unavailable() from None
+
+    def indicators(
+        self,
+        symbol: str,
+        start_date: date,
+        end_date: date,
+        *,
+        limit: int = 250,
+        calculation_version: str = CALCULATION_VERSION,
+    ):
+        canonical = _symbol(symbol)
+        try:
+            validate_date_range(start_date, end_date)
+        except MarketDataValidationError:
+            raise ApplicationError(
+                "invalid_date_range", "Invalid indicator date range", 422
+            ) from None
+        if type(limit) is not int or not 1 <= limit <= 1000:
+            raise ApplicationError("invalid_indicator_limit", "Invalid indicator limit", 422)
+        if calculation_version != CALCULATION_VERSION:
+            raise ApplicationError(
+                "unsupported_calculation_version", "Unsupported calculation version", 422
+            )
+        try:
+            with self.session_factory() as session, session.begin():
+                session.connection(execution_options={"isolation_level": "REPEATABLE READ"})
+                if not StockRepository(session).exists(canonical):
+                    raise _missing()
+                rows = IndicatorRepository(session).query(
+                    canonical, start_date, end_date, calculation_version, limit + 1
+                )
+                return IndicatorListResponse(
+                    symbol=canonical,
+                    start_date=start_date,
+                    end_date=end_date,
+                    limit=limit,
+                    has_more=len(rows) > limit,
+                    calculation_version=calculation_version,
+                    items=[IndicatorResponse.model_validate(row) for row in rows[:limit]],
                 )
         except SQLAlchemyError:
             raise _unavailable() from None

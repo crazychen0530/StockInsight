@@ -20,7 +20,7 @@ from app.collectors.provider import StockInfo
 from app.core.database import create_session_factory
 from app.core.errors import ApplicationError
 from app.jobs.collection import CollectionRunner, RetryPolicy
-from app.models import DailyPrice, DataSyncJob, Stock
+from app.models import DailyPrice, DataSyncJob, Stock, TechnicalIndicator
 from app.repositories.sync_jobs import JobScope, SyncJobRepository
 from app.services.daily_prices import DailyPriceService
 from app.services.stocks import StockService
@@ -64,7 +64,7 @@ def jobs(job_engine):
     yield SyncJobRepository(job_engine)
     # Only this module's suffix-guarded newly created database is cleaned.
     with job_engine.begin() as connection:
-        for model in (DataSyncJob, DailyPrice, Stock):
+        for model in (DataSyncJob, TechnicalIndicator, DailyPrice, Stock):
             connection.execute(sa.delete(model))
 
 
