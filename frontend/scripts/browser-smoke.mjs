@@ -23,7 +23,14 @@ try {
   await page.route('**/api/v1/**', async route => {
     const url = new URL(route.request().url())
     let data
-    if (url.pathname.endsWith('/prices')) data = { symbol: stock.symbol, items: mode === 'empty' ? [] : items,
+    if (url.pathname.endsWith('/indicators')) data = { symbol: stock.symbol,
+      items: mode === 'empty' ? [] : items.map((bar, index) => ({ symbol: bar.symbol, trade_date: bar.trade_date,
+        calculation_version: 'sma-close-v1', ma5: index >= 4 ? '10.1234' : null, ma20: index >= 19 ? '10.5000' : null, ma60: null,
+        computed_at: '2026-09-20T10:00:00Z', source: bar.source, fetched_at: bar.fetched_at, adjustment: 'none' })),
+      start_date: url.searchParams.get('start_date'), end_date: url.searchParams.get('end_date'), limit: 1000,
+      has_more: mode === 'truncated', calculation_version: 'sma-close-v1', source_scope: 'current_day_input', adjustment: 'none', price_unit: 'CNY' }
+    else if (url.pathname.endsWith('/data-status')) data = { items: [], limit: 20, coverage_verified: false }
+    else if (url.pathname.endsWith('/prices')) data = { symbol: stock.symbol, items: mode === 'empty' ? [] : items,
       start_date: url.searchParams.get('start_date'), end_date: url.searchParams.get('end_date'), limit: 1000,
       has_more: mode === 'truncated', adjustment: 'none', price_unit: 'CNY', amount_unit: 'CNY', volume_unit: 'share' }
     else if (url.pathname.endsWith(stock.symbol)) data = stock
@@ -39,8 +46,10 @@ try {
   await page.waitForURL('**/stocks/000001.SZ')
   await page.locator('.chart-canvas svg').waitFor()
   assert.equal(await page.getByRole('heading', { level: 1 }).textContent(), stock.name)
-  assert((await page.locator('tbody').textContent()).includes('12345678901234567890.12'))
+  assert((await page.locator('tbody').last().textContent()).includes('12345678901234567890.12'))
   assert((await page.locator('main').textContent()).includes('18:00:00'))
+  await page.getByText('均线版本：sma-close-v1', { exact: false }).waitFor()
+  assert((await page.locator('.chart-canvas').textContent()).includes('MA60'))
   const chart = page.locator('.chart-canvas')
   // Mouse drag on the actual ECharts slider, then inspect changed SVG geometry.
   await chart.scrollIntoViewIfNeeded()
@@ -52,7 +61,7 @@ try {
   await page.mouse.up()
   await page.waitForTimeout(200)
   assert((await chart.innerHTML()) !== before, 'Dragging slider must change rendered chart')
-  await page.screenshot({ path: process.env.STOCKINSIGHT_SCREENSHOT || '/tmp/stockinsight-m3-desktop.png', fullPage: true })
+  await page.screenshot({ path: process.env.STOCKINSIGHT_SCREENSHOT || '/tmp/stockinsight-m4-desktop.png', fullPage: true })
   mode = 'truncated'
   await page.getByLabel('开始日期').fill('2026-09-01')
   await page.getByLabel('结束日期').fill('2026-09-30')
@@ -74,7 +83,9 @@ try {
   assert(await page.getByRole('navigation').isVisible())
   const overflow = await page.evaluate(() => [...document.querySelectorAll('body *')].filter(el => el.getBoundingClientRect().right > window.innerWidth + 1 && getComputedStyle(el.parentElement).overflowX !== 'auto').map(el => ({ tag: el.tagName, cls: el.className, right: el.getBoundingClientRect().right })))
   assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), JSON.stringify(overflow.slice(0, 10)))
-  await page.screenshot({ path: '/tmp/stockinsight-m3-mobile.png', fullPage: true })
+  await page.screenshot({ path: '/tmp/stockinsight-m4-mobile.png', fullPage: true })
+  await page.getByRole('link', { name: '数据状态', exact: true }).click()
+  await page.getByText('暂无同步任务。请通过受控本地 CLI 采集。', { exact: true }).waitFor()
   assert.deepEqual(errors, [])
   console.log('PASS simulated search -> detail -> SVG/zoom/date/truncation/empty/error/retry/mobile; no browser exceptions')
 } finally { await browser.close() }

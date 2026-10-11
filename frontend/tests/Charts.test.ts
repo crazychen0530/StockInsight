@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { init, use, setPlatformAPI } from 'echarts/core'
-import { CandlestickChart, BarChart } from 'echarts/charts'
+import { CandlestickChart, BarChart, LineChart } from 'echarts/charts'
 import { DataZoomComponent, GridComponent, LegendComponent, TooltipComponent, AriaComponent } from 'echarts/components'
 import { SVGRenderer } from 'echarts/renderers'
 import { dailyPriceOption } from '@/charts/dailyPrices'
-import { bar } from './fixtures'
+import { bar, indicators } from './fixtures'
 
 // SSR has no canvas: deterministic text metrics only; chart geometry/rendering remains real.
 setPlatformAPI({ measureText: text => ({ width: String(text).length * 7 }) })
 
-use([CandlestickChart, BarChart, GridComponent, LegendComponent, TooltipComponent, DataZoomComponent, AriaComponent, SVGRenderer])
+use([CandlestickChart, BarChart, LineChart, GridComponent, LegendComponent, TooltipComponent, DataZoomComponent, AriaComponent, SVGRenderer])
 
 describe('real ECharts SVG rendering', () => {
   it('sorts without mutation, maps OHLC and volume, preserves exact tooltip values', () => {
@@ -46,4 +46,19 @@ describe('real ECharts SVG rendering', () => {
     chart.dispose()
     expect(chart.isDisposed()).toBe(true)
   })
+})
+
+
+it('aligns SMA by date and keeps null gaps with exact tooltip values', () => {
+  const option = dailyPriceOption([bar, { ...bar, trade_date: '2026-09-02' }], indicators.items)
+  const series = option.series as Array<{ data: unknown[]; connectNulls?: boolean }>
+  expect(series[2].data).toEqual([10.1234, null])
+  expect(series[3].data).toEqual([null, null])
+  expect(series[4].connectNulls).toBe(false)
+  const tooltip = option.tooltip as { formatter: (params: unknown) => string }
+  expect(tooltip.formatter([{ dataIndex: 0 }])).toContain('MA5 10.1234')
+  const chart = init(null, undefined, { renderer: 'svg', ssr: true, width: 900, height: 480 })
+  chart.setOption(option)
+  expect(chart.renderToSVGString()).toContain('MA60')
+  chart.dispose()
 })

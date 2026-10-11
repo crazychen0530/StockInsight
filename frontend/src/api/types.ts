@@ -55,3 +55,42 @@ export interface ApiErrorResponse {
   request_id: string
   details?: unknown
 }
+
+export interface Indicator {
+  symbol: string
+  trade_date: string
+  calculation_version: string
+  ma5: string | null
+  ma20: string | null
+  ma60: string | null
+  computed_at: string
+  source: string
+  fetched_at: string
+  adjustment: 'none'
+}
+export interface IndicatorList {
+  symbol: string
+  start_date: string
+  end_date: string
+  items: Indicator[]
+  limit: number
+  has_more: boolean
+  calculation_version: string
+  source_scope: 'current_day_input'
+  price_unit: 'CNY'
+  adjustment: 'none'
+}
+export interface SyncJob {
+  id: string
+  scope: { source: string; job_type: string; symbol: string | null; start_date: string | null; end_date: string | null }
+  status: 'pending' | 'running' | 'succeeded' | 'partial' | 'failed'
+  total_count: number
+  success_count: number
+  failure_count: number
+  checkpoint_symbol: string | null
+  checkpoint_date: string | null
+  error_code: string | null
+  started_at: string
+  finished_at: string | null
+}
+export interface DataStatus { items: SyncJob[]; limit: number; coverage_verified: false }

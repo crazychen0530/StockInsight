@@ -50,3 +50,9 @@ npm run test:browser
 可用 `STOCKINSIGHT_WEB_URL` 指定另一本机 Vite 入口。测试先验证真实 Vite -> API 的只读列表响应，再通过明确模拟的 HTTP fixture 验证搜索 -> 详情 -> SVG/鼠标缩放/日期/截断/空/错误/重试/390px 布局。截图默认写 `/tmp/stockinsight-m3-desktop.png`、`/tmp/stockinsight-m3-mobile.png`，不进入 Git；模拟数据不写数据库。真实市场数据和完整 Linux 端到端验收仍待后续任务。
 
 本轮验收结果（2026-10-12）：25 项前端测试、宿主/容器类型检查与构建、Chromium 桌面/390px 交互通过；新隔离 PostgreSQL 的 20 条模拟日线经真实 API/Vite 到浏览器 SVG 通过。后端非 PostgreSQL 回归 322 passed、34 deselected，Ruff/格式通过；没有重跑完整数据库升降级。原开发库四表仍空、原卷与三服务健康。详细首次失败、修复、运行库与命令记录见[交接](../SESSION_HANDOFF.md)。
+
+## M4-03 均线与数据状态
+
+详情页与日线并行读取本地指标 API（独立取消/错误状态）。ECharts 注册 LineChart，MA5/20/60 按日期关联，缺失值为 null、不连空值、不在浏览器重算。图例可切换，tooltip/指标明细保留 Decimal 原字符串；来源为当日输入，明确版本、计算时间、不复权/人民币元和历史不足。指标失败时保留日线展示。DataStatus `/data-status` 只读最近 20 项任务，展示股票工作项计数、范围、上海时间、游标和安全错误码；空/错误/重试/刷新可见，不提供匿名采集入口。
+
+验证：前端类型、31 项测试、生产构建通过；真实 ECharts SVG 覆盖均线对齐和 null 断线。Chromium 验证均线图例、搜索/详情、滑块、日期/截断/空/错/重试、390px 和状态空页面通过，fixture 仅 HTTP 拦截。详情 chunk 约 602 KB（gzip 207 KB），原 Vite 大包提示仍存在，留 M5 性能复核。

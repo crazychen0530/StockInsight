@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { stocksApi } from '@/api/stocks'
-import type { Stock, PriceList } from '@/api/types'
+import type { Stock, PriceList, IndicatorList } from '@/api/types'
 import RequestState from '@/components/RequestState.vue'
 import DailyPriceChart from '@/components/DailyPriceChart.vue'
 import { useRequest } from '@/composables/useRequest'
@@ -10,6 +10,7 @@ import { defaultRange, isDate, shanghaiTime } from '@/utils/display'
 const route = useRoute()
 const stock = useRequest<Stock>()
 const prices = useRequest<PriceList>()
+const indicators = useRequest<IndicatorList>()
 const range = ref(defaultRange())
 const validation = ref('')
 const provenance = computed(() => {
@@ -25,7 +26,10 @@ async function loadPrices() {
   }
   validation.value = ''
   const symbol = stock.data.value?.symbol
-  if (symbol) await prices.run(signal => stocksApi.prices(symbol, { start_date, end_date, limit: 1000 }, signal))
+  if (symbol) await Promise.all([
+    prices.run(signal => stocksApi.prices(symbol, { start_date, end_date, limit: 1000 }, signal)),
+    indicators.run(signal => stocksApi.indicators(symbol, { start_date, end_date, limit: 1000 }, signal)),
+  ])
 }
 async function loadStock() {
   const symbol = String(route.params.symbol)
@@ -67,7 +71,20 @@ watch(() => route.params.symbol, loadStock, { immediate: true })
               <p>不复权 · 价格/成交额：人民币元 · 成交量：股</p>
               <p v-if="prices.data.value.has_more" class="notice">当前仅显示区间最早的 1000 条，仍有后续数据。请缩小日期范围继续查询。</p>
               <p>已显示记录来源：{{ provenance.sources }} · 最新获取时间：{{ shanghaiTime(provenance.latest) }}</p>
-              <DailyPriceChart :items="prices.data.value.items" />
+              <RequestState :loading="indicators.loading.value" :error="indicators.error.value" :empty="indicators.data.value?.items.length === 0"
+                empty-text="尚无已计算指标，请通过本地采集或指标重算更新。" @retry="loadPrices">
+                <template v-if="indicators.data.value">
+                  <p>均线版本：{{ indicators.data.value.calculation_version }} · 元 · 不复权；— 表示历史不足。来源为当日输入，不能代表整个窗口。</p>
+                  <p v-if="indicators.data.value.has_more">均线已截断，请缩小日期范围。</p>
+                  <div class="table-scroll"><table>
+                    <thead><tr><th>日期</th><th>MA5</th><th>MA20</th><th>MA60</th><th>输入来源</th><th>计算时间</th></tr></thead>
+                    <tbody><tr v-for="row in indicators.data.value.items" :key="row.trade_date"><td>{{ row.trade_date }}</td>
+                      <td>{{ row.ma5 ?? '—' }}</td><td>{{ row.ma20 ?? '—' }}</td><td>{{ row.ma60 ?? '—' }}</td>
+                      <td>{{ row.source }}</td><td>{{ shanghaiTime(row.computed_at) }}</td></tr></tbody>
+                  </table></div>
+                </template>
+              </RequestState>
+              <DailyPriceChart :items="prices.data.value.items" :indicators="indicators.data.value?.items" />
               <h3>行情明细</h3>
               <div class="table-scroll">
                 <table>

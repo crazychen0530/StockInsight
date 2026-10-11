@@ -1,5 +1,5 @@
 import { ApiError, get } from './client'
-import type { DailyPrice, PriceList, PriceQuery, Stock, StockList } from './types'
+import type { DailyPrice, PriceList, PriceQuery, Stock, StockList, Indicator, IndicatorList, DataStatus } from './types'
 import { isDate } from '@/utils/display'
 
 function assert(condition: unknown): asserts condition {
@@ -47,7 +47,46 @@ function parsePrices(value: unknown): PriceList {
   return { ...value, items } as PriceList
 }
 
+function parseIndicators(value: unknown): IndicatorList {
+  assert(record(value) && text(value.symbol) && date(value.start_date) && date(value.end_date)
+    && String(value.start_date) <= String(value.end_date) && Array.isArray(value.items)
+    && integer(value.limit) && Number(value.limit) >= 1 && Number(value.limit) <= 1000
+    && typeof value.has_more === 'boolean' && value.calculation_version === 'sma-close-v1'
+    && value.source_scope === 'current_day_input' && value.adjustment === 'none' && value.price_unit === 'CNY')
+  const items = value.items.map(row => {
+    assert(record(row) && row.symbol === value.symbol && date(row.trade_date)
+      && row.calculation_version === value.calculation_version
+      && ['ma5', 'ma20', 'ma60'].every(key => row[key] === null || decimal(row[key]))
+      && timestamp(row.computed_at) && timestamp(row.fetched_at) && text(row.source) && row.adjustment === 'none')
+    return row as unknown as Indicator
+  }).sort((a, b) => a.trade_date.localeCompare(b.trade_date))
+  assert(items.length <= Number(value.limit) && new Set(items.map(row => row.trade_date)).size === items.length
+    && items.every(row => row.trade_date >= String(value.start_date) && row.trade_date <= String(value.end_date)))
+  return { ...value, items } as IndicatorList
+}
+
+function parseStatus(value: unknown): DataStatus {
+  assert(record(value) && Array.isArray(value.items) && integer(value.limit) && Number(value.limit) >= 1
+    && Number(value.limit) <= 100 && value.items.length <= Number(value.limit) && value.coverage_verified === false)
+  value.items.forEach(row => {
+    assert(record(row) && text(row.id) && record(row.scope) && text(row.scope.source)
+      && ['full', 'incremental', 'backfill'].includes(String(row.scope.job_type))
+      && nullableText(row.scope.symbol) && (row.scope.start_date === null || date(row.scope.start_date))
+      && (row.scope.end_date === null || date(row.scope.end_date))
+      && ['pending', 'running', 'succeeded', 'partial', 'failed'].includes(String(row.status))
+      && integer(row.total_count) && integer(row.success_count) && integer(row.failure_count)
+      && Number(row.success_count) + Number(row.failure_count) <= Number(row.total_count)
+      && nullableText(row.checkpoint_symbol) && (row.checkpoint_date === null || date(row.checkpoint_date))
+      && (row.error_code === null || (text(row.error_code) && /^[a-z][a-z0-9_]{0,63}$/.test(row.error_code)))
+      && timestamp(row.started_at) && (row.finished_at === null || timestamp(row.finished_at)))
+  })
+  return value as unknown as DataStatus
+}
+
 export const stocksApi = {
+  indicators: (symbol: string, query: PriceQuery, signal?: AbortSignal) =>
+    get(`/stocks/${encodeURIComponent(symbol)}/indicators`, query, signal, parseIndicators),
+  status: (signal?: AbortSignal) => get('/system/data-status', { limit: 20 }, signal, parseStatus),
   list: (query = '', page = 1, signal?: AbortSignal) =>
     get('/stocks', { query, page, page_size: 20 }, signal, parseStocks),
   detail: (symbol: string, signal?: AbortSignal) =>

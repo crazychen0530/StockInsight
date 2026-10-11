@@ -16,6 +16,7 @@ import { RouterLink, RouterView } from 'vue-router'
       <nav aria-label="主导航">
         <RouterLink to="/">概览</RouterLink>
         <RouterLink to="/stocks">股票搜索</RouterLink>
+        <RouterLink to="/data-status">数据状态</RouterLink>
       </nav>
     </header>
 

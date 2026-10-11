@@ -1,21 +1,21 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { init, use, type EChartsType } from 'echarts/core'
-import { BarChart, CandlestickChart } from 'echarts/charts'
+import { BarChart, CandlestickChart, LineChart } from 'echarts/charts'
 import { AriaComponent, DataZoomComponent, GridComponent, LegendComponent, TooltipComponent } from 'echarts/components'
 import { SVGRenderer } from 'echarts/renderers'
-import type { DailyPrice } from '@/api/types'
+import type { DailyPrice, Indicator } from '@/api/types'
 import { dailyPriceOption } from '@/charts/dailyPrices'
 
-use([BarChart, CandlestickChart, GridComponent, LegendComponent, TooltipComponent, DataZoomComponent, AriaComponent, SVGRenderer])
-const props = defineProps<{ items: DailyPrice[] }>()
+use([BarChart, CandlestickChart, LineChart, GridComponent, LegendComponent, TooltipComponent, DataZoomComponent, AriaComponent, SVGRenderer])
+const props = defineProps<{ items: DailyPrice[]; indicators?: Indicator[] }>()
 const container = ref<HTMLDivElement>()
 const failed = ref(false)
 let chart: EChartsType | undefined
 let observer: ResizeObserver | undefined
 function draw() {
   try {
-    chart?.setOption(dailyPriceOption(props.items), { notMerge: true })
+    chart?.setOption(dailyPriceOption(props.items, props.indicators), { notMerge: true })
     failed.value = false
   } catch {
     failed.value = true
@@ -32,7 +32,7 @@ onMounted(() => {
     } else window.addEventListener('resize', resize)
   } catch { failed.value = true }
 })
-watch(() => props.items, draw)
+watch(() => [props.items, props.indicators], draw)
 onBeforeUnmount(() => {
   observer?.disconnect()
   window.removeEventListener('resize', resize)

@@ -90,3 +90,29 @@ it('preserves daily decimals, sorts dates, and rejects unsafe volumes or mismatc
   body = { ...prices, items: [bar, bar] }
   await expect(stocksApi.prices('000001.SZ', prices)).rejects.toMatchObject({ code: 'invalid_response' })
 })
+
+it('validates versioned indicators and rejects duplicate dates, floats and unsupported versions', async () => {
+  const { indicators } = await import('./fixtures')
+  let body: unknown = indicators
+  http.defaults.adapter = async config => ({ data: body, status: 200, statusText: 'OK', headers: {}, config })
+  expect((await stocksApi.indicators('000001.SZ', indicators)).items[0].ma20).toBeNull()
+  for (const invalid of [
+    { ...indicators, calculation_version: 'unknown' },
+    { ...indicators, items: [indicators.items[0], indicators.items[0]] },
+    { ...indicators, items: [{ ...indicators.items[0], ma5: 10.1234 }] },
+    { ...indicators, items: [{ ...indicators.items[0], computed_at: 'invalid' }] },
+  ]) {
+    body = invalid
+    await expect(stocksApi.indicators('000001.SZ', indicators)).rejects.toMatchObject({ code: 'invalid_response' })
+  }
+})
+it('validates status boundaries and refuses raw error strings', async () => {
+  let body: unknown = { items: [], limit: 20, coverage_verified: false }
+  http.defaults.adapter = async config => ({ data: body, status: 200, statusText: 'OK', headers: {}, config })
+  expect((await stocksApi.status()).items).toEqual([])
+  for (const invalid of [{ items: [], limit: 101, coverage_verified: false },
+    { items: [{ error_code: 'password=secret' }], limit: 20, coverage_verified: false }]) {
+    body = invalid
+    await expect(stocksApi.status()).rejects.toMatchObject({ code: 'invalid_response' })
+  }
+})

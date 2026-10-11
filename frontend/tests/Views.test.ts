@@ -7,7 +7,7 @@ import { stocksApi } from '@/api/stocks'
 import { ApiError } from '@/api/client'
 import type { StockList } from '@/api/types'
 
-import { stock, prices } from './fixtures'
+import { stock, prices, indicators } from './fixtures'
 const list: StockList = { items: [stock], total: 21, page: 1, page_size: 20 }
 let wrapper: VueWrapper | undefined
 async function open(path: string) {
@@ -22,6 +22,8 @@ beforeEach(() => {
   vi.spyOn(stocksApi, 'list').mockResolvedValue(list)
   vi.spyOn(stocksApi, 'detail').mockResolvedValue(stock)
   vi.spyOn(stocksApi, 'prices').mockResolvedValue(prices)
+  vi.spyOn(stocksApi, 'indicators').mockResolvedValue(indicators)
+  vi.spyOn(stocksApi, 'status').mockResolvedValue({ items: [], limit: 20, coverage_verified: false })
 })
 afterEach(() => { wrapper?.unmount(); vi.restoreAllMocks() })
 
@@ -115,4 +117,39 @@ it('keeps a typed draft out of pagination and retry until search is submitted', 
   await flushPromises()
   expect(router.currentRoute.value.query.q).toBe('committed')
   expect(stocksApi.list).toHaveBeenLastCalledWith('committed', 1, expect.any(AbortSignal))
+})
+
+
+it('shows exact moving averages, null history, version and provenance', async () => {
+  const { wrapper } = await open('/stocks/000001.SZ')
+  expect(wrapper.text()).toContain('sma-close-v1')
+  expect(wrapper.text()).toContain('历史不足')
+  expect(wrapper.text()).toContain('整个窗口')
+  expect(wrapper.text()).toContain('MA60')
+  expect(wrapper.text()).toContain('10.1234')
+  expect(stocksApi.indicators).toHaveBeenCalledWith('000001.SZ', expect.any(Object), expect.any(AbortSignal))
+})
+it('keeps candles when indicators fail and retries', async () => {
+  vi.mocked(stocksApi.indicators).mockRejectedValueOnce(new ApiError('service_unavailable', '指标服务暂不可用'))
+  const { wrapper } = await open('/stocks/000001.SZ')
+  expect(wrapper.text()).toContain('指标服务暂不可用')
+  expect(wrapper.text()).toContain('行情明细')
+  await wrapper.findAll('button').find(button => button.text() === '重试')!.trigger('click')
+  await flushPromises()
+  expect(wrapper.text()).toContain('sma-close-v1')
+})
+it('shows data status empty, safe errors, partial counts and refresh', async () => {
+  const { wrapper } = await open('/data-status')
+  expect(wrapper.text()).toContain('暂无同步任务')
+  vi.mocked(stocksApi.status).mockResolvedValue({ limit: 20, coverage_verified: false, items: [{
+    id: 'fixture-job', scope: { source: 'fixture_simulated', job_type: 'incremental', symbol: '000001.SZ', start_date: '2026-09-01', end_date: '2026-09-30' },
+    status: 'partial', total_count: 2, success_count: 1, failure_count: 1, checkpoint_symbol: '000001.SZ', checkpoint_date: '2026-09-01',
+    error_code: 'provider_timeout', started_at: '2026-09-30T09:30:00Z', finished_at: '2026-09-30T09:31:00Z',
+  }] })
+  await wrapper.findAll('button').find(button => button.text() === '刷新')!.trigger('click')
+  await flushPromises()
+  expect(wrapper.text()).toContain('部分成功')
+  expect(wrapper.text()).toContain('provider_timeout')
+  expect(wrapper.text()).toContain('1 / 1 / 2')
+  expect(wrapper.text()).toContain('17:30:00')
 })
