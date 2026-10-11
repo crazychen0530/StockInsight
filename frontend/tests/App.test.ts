@@ -1,6 +1,8 @@
 import { mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { stocksApi } from '@/api/stocks'
+afterEach(() => vi.restoreAllMocks())
 
 import App from '@/App.vue'
 import { routes } from '@/router'
@@ -22,6 +24,7 @@ async function mountApplication(path = '/') {
 
 describe('App', () => {
   it('renders the application shell and current milestone message', async () => {
+    vi.spyOn(stocksApi, 'list').mockResolvedValue({ items: [], total: 0, page: 1, page_size: 20 })
     const wrapper = await mountApplication()
 
     expect(wrapper.get('header').text()).toContain('StockInsight')

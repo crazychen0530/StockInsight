@@ -176,3 +176,41 @@ h1 {
     padding: 18px;
   }
 }
+
+.app-main { display: block; max-width: 1280px; width: 100%; margin: auto; padding-top: 40px; }
+.app-main section { width: 100%; }
+h1 { font-size: clamp(2rem, 4vw, 3.3rem); line-height: 1.2; }
+h2 { font-size: 1.15rem; }
+.panel { margin-top: 28px; padding: 24px; border: 1px solid #d5e0d8; border-radius: 16px; background: #fff; }
+.query-form { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 24px 0; }
+input, button, .button-link { font: inherit; padding: 10px 14px; border: 1px solid #b8cbbb; border-radius: 8px; }
+input { min-width: 0; max-width: 100%; }
+button, .button-link { cursor: pointer; color: #fff; background: #24633c; text-decoration: none; }
+button:disabled { cursor: default; opacity: .45; }
+:focus-visible { outline: 3px solid #b58a10; outline-offset: 3px; }
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; white-space: nowrap; font-size: .9rem; }
+th, td { padding: 14px 12px; border-bottom: 1px solid #e3ebe5; text-align: left; }
+th { color: #526057; font-weight: 600; }
+td a { color: #24633c; font-weight: 700; }
+.pagination { display: flex; align-items: center; gap: 16px; margin-top: 24px; }
+.notice { padding: 16px; border-radius: 8px; background: #f1f5f1; line-height: 1.7; }
+.error { background: #fff0ed; }
+.error button { display: block; margin-top: 12px; }
+.metadata { display: flex; flex-wrap: wrap; gap: 24px; }
+.metadata dt, .muted { color: #68746c; font-size: .85rem; line-height: 1.7; }
+.metadata dd { margin: 8px 0 0; }
+.metric { font-size: 2.4rem; font-weight: 700; }
+.metric small { font-size: 1rem; font-weight: 400; }
+.button-link { display: inline-block; margin-top: 12px; }
+.app-header nav { display: flex; flex-wrap: wrap; }
+.app-header nav a.router-link-active { background: none; }
+.app-header nav a.router-link-exact-active { background: rgb(255 255 255 / 12%); }
+@media (max-width: 640px) {
+  .app-header { flex-wrap: wrap; gap: 12px; padding-top: 12px; padding-bottom: 12px; }
+  .app-header nav { display: flex; }
+  .app-main { padding: 28px 16px; }
+  .panel { padding: 16px; }
+  .query-form { align-items: stretch; }
+  .query-form label { width: 100%; }
+}
