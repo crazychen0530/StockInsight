@@ -73,8 +73,9 @@ M2 集成/同步记录（2026-10-11）：经用户授权，`feature/m2-05-collec
 - DONE M3-01 实现股票列表、详情和行情查询 API。
   - 验收：Pydantic 契约、分页/上限、代码和日期校验、来源与更新时间均有 API 测试。
   - 验收结果（2026-10-11）：三项 GET 只读 API，复用 Service/Repository/Validator，稳定分页、闭区间升序/limit/has_more、精确 Decimal 字符串、CNY/股/不复权、逐行来源/UTC 时间；股票无元数据列，明确 null。新增 28 单元与 5 PostgreSQL API 集成测试，全新五隔离库完整 356 passed 无 skip，含既有 migration 升降级；Ruff/格式/pip check 与真实 HTTP/代理通过。无新依赖/Schema/前端/采集/调度变化，开发库与原卷保留。首轮既有采集锁冲突 1 failed/355 passed，未改采集代码，独立新库复跑全部通过；潜在竞态记录在交接文档。详见 docs/STOCK_QUERY_API.md、ADR-017。
-- TODO M3-02 实现统一前端 API 客户端、路由和页面框架。
+- DONE M3-02 实现统一前端 API 客户端、路由和页面框架。
   - 验收：请求错误统一处理，不含密钥，类型检查通过。
+  - 验收结果（2026-10-12）：同源 Axios/类型契约/响应结构校验、统一安全错误与 request_id、请求取消和晚到隔离、搜索/详情路由及共享状态组件；前端类型、13 项测试和生产构建通过，安装审计 0 漏洞。无后端/Schema 变化；详见 docs/FRONTEND_MARKET.md。
 - TODO M3-03 实现 Dashboard、StockSearch 和 StockDetail 基础视图。
   - 验收：搜索到详情主路径可用，Loading/Empty/Error 状态均可复现。
 - TODO M3-04 实现 K 线和成交量图。

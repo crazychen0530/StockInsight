@@ -7,6 +7,16 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/HomeView.vue'),
   },
   {
+    path: '/stocks',
+    name: 'stock-search',
+    component: () => import('@/views/StockSearchView.vue'),
+  },
+  {
+    path: '/stocks/:symbol',
+    name: 'stock-detail',
+    component: () => import('@/views/StockDetailView.vue'),
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'not-found',
     component: () => import('@/views/NotFoundView.vue'),
