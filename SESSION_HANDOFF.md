@@ -12,13 +12,12 @@
 
 ## 2. Git 与 GitHub
 
-- 开始为干净 `feature/m3-01-stock-query-api`，提交 `531ceb2`。
-- M3-02：`2342334 feat: unify frontend API client and page framework`。
-- M3-03：`aaba460 feat: add dashboard and stock query views`。
-- 当前 `feature/m3-04-market-charts`，从 M3-03 创建，M3-04 形成独立 `feat: add daily candlestick and volume charts` 提交；准确 SHA 以 `git log -1 --oneline` 为准。
-- 本轮没有合并 main、push、删除分支、创建标签/Release。本轮 `git ls-remote --heads origin main` 已只读核验 GitHub main 为 `68589318270c713fe0a7d59318407c5ee94197ec`，与本地 main/origin/main 一致；M3 四项尚未进入 main。
-- origin 为用户既有私有地址 `git@github.com:crazychen0530/StockInsight.git`。M3-01 至 M3-04 代码待授权合并/同步，依 AGENTS.md 未获授权不 push。
-- 下轮基于已完成 M3 的功能分支 HEAD，不能从旧 main 直接开始 M4。
+- M3-01 `531ceb2`、M3-02 `2342334`、M3-03 `aaba460`、M3-04 `beeafa6` 四项代码均已完成。
+- 2026-10-12 用户明确授权将 M3 快进合并 main 并推送；从干净 `feature/m3-04-market-charts` 切换 main，`git merge --ff-only feature/m3-04-market-charts` 成功，无冲突，合并后与验收分支代码树完全相同。
+- `git push origin main` 成功，`git ls-remote --heads origin main` 确认远程为 `beeafa6354898dce8c08f37d5bfe5534e82fdbd9`，与本地代码交付一致；本同步记录另行提交并推送，最终 HEAD 以 Git/交付报告核验为准。
+- 当前分支 main，origin 为用户既有私有地址 `git@github.com:crazychen0530/StockInsight.git`；功能分支保留，无强推/删分支/标签/Release/公网部署。
+- 下一任务从同步后的干净 main 创建 `feature/m4-01-moving-averages`。
+- 合并后复核：前端类型/25 项测试、后端离线 322 passed/34 deselected（2.65s）、Ruff check/format 通过；推送前扫描 M3 四项历史中 67 个新增/变化 blob，无本机私有凭据、Token、私钥模式或真实 .env。未重复浏览器/构建/完整 PostgreSQL 升降级，原 M3 验收证据保留下节。
 
 ## 3. 本轮完成范围与架构检查
 
@@ -70,9 +69,9 @@
 下次可直接执行：
 
 ```text
-继续开发 /home/crazychen/myprojects/StockInsight，执行 M4-01：MA5、MA20、MA60 纯计算模块。先依次阅读 AGENTS.md、PROJECT_PLAN.md、TASKS.md、SESSION_HANDOFF.md、docs/DECISIONS.md 及指标相关代码和文档；检查工作区、分支、提交与远程。基于已验收 M3 HEAD 创建 feature/m4-01-moving-averages，保护旧 main 和现有分支。实现独立于 Web/ORM 的确定性计算，按真实交易日升序，窗口不足返回 null，不使用未来数据，精确输入/输出与版本明确；覆盖正常、窗口边界、缺失历史、乱序、重复/非法输入和无未来数据。完成对应测试/Ruff、文档、任务与交接、本地逻辑提交。保持数据库/卷/服务，未经授权不合并/push；M4-02 持久化/API 留待对应任务。
+继续开发 /home/crazychen/myprojects/StockInsight，执行 M4-01：MA5、MA20、MA60 纯计算模块。先依次阅读 AGENTS.md、PROJECT_PLAN.md、TASKS.md、SESSION_HANDOFF.md、docs/DECISIONS.md 及指标相关代码和文档；检查工作区、分支、提交与远程。从已同步的干净 main 创建 feature/m4-01-moving-averages，保护现有分支。实现独立于 Web/ORM 的确定性计算，按真实交易日升序，窗口不足返回 null，不使用未来数据，精确输入/输出与版本明确；覆盖正常、窗口边界、缺失历史、乱序、重复/非法输入和无未来数据。完成对应测试/Ruff、文档、任务与交接、本地逻辑提交。保持数据库/卷/服务，未经授权不合并/push；M4-02 持久化/API 留待对应任务。
 ```
 
 ## 8. 服务器与同步
 
-不需要购买服务器。M4/M5 尚未完成，仍本地开发，无公网部署。本轮全部功能形成独立本地提交；里程碑结束需要项目所有者决定合并与 GitHub 同步，未经授权不推送。
+不需要购买服务器。M4/M5 尚未完成，仍本地开发，无公网部署。M3 四项功能已按本次授权快进合并并推送 GitHub；同步记录另提交并同步。后续任务的远程推送仍需相应授权。
