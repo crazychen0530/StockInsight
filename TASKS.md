@@ -59,8 +59,9 @@ M1 同步/清理记录（2026-10-11）：后续已获用户明确授权，main �
 - DONE M2-03 实现股票基础信息同步与搜索持久化。
   - 验收：重复同步幂等；名称/代码搜索和状态字段测试通过。
   - 验收结果（2026-10-11）：StockService -> StockRepository -> PostgreSQL 已实现，复用 Provider/Validator；UPSERT 保护 unknown/None，缺席不删，重复不改写，RETURNING 精确统计变更。搜索字面匹配代码/名称，稳定分页及 REPEATABLE READ 一致快照。新增 16 单元/6 PostgreSQL 集成测试；非 PostgreSQL 249 passed、7 deselected，新空隔离双库完整回归 256 passed 无 skip，含 migration 升降级。Ruff/格式/pip check 通过；无 Schema、业务 API、CLI 或前端变更。开发库与卷保留，详见 docs/STOCK_PERSISTENCE.md。
-- TODO M2-04 实现日线采集、日期区间补采和 UPSERT。
+- DONE M2-04 实现日线采集、日期区间补采和 UPSERT。
   - 验收：重复采集不新增重复行；日期过滤、部分失败和事务边界测试通过。
+  - 验收结果（2026-10-11）：DailyPriceService/Repository 复用 Provider/Validator，闭区间补采、复合主键 UPSERT、数值/来源相同不改写、每股票独立事务；整股预校验与 500 行分块写入原子回滚，跨股已知失败继续并保留成果，提交后返回安全收据/部分失败摘要。新增 19 单元/12 PostgreSQL 测试；268 passed、19 deselected，全新三隔离库完整 287 passed 无 skip，含并发幂等、502 行回滚/手动恢复及 migration 升降级。Ruff/格式/pip check 通过，无新依赖/Schema/CLI/API/任务状态；开发库和卷保留，详见 docs/DAILY_PRICE_PERSISTENCE.md、ADR-015。
 - TODO M2-05 实现受控本地采集 CLI 与同步任务记录。
   - 验收：任务状态、错误摘要、失败重试和断点恢复测试通过；不提供匿名公网触发入口。
 

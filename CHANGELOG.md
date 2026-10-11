@@ -6,6 +6,9 @@
 
 ### Added
 
+- M2-04：新增日线闭区间采集/补采服务与 PostgreSQL 幂等 UPSERT，来源/UTC 时间/不复权逐行保存，单位和精度复用 Validator；同值不重写，实际变更使用 RETURNING 计数。
+- 每股票独立事务与整股分块回滚、跨股票安全失败摘要/继续采集、手动幂等恢复；新增 19 单元与 12 真实 PostgreSQL 测试，完整 287 passed。无新依赖、Schema、CLI、API 或任务状态变化。
+
 - M2-03：新增股票基础信息同步服务和 PostgreSQL Repository，复用 Provider/Validator；幂等 UPSERT 保留已知状态/上市日期，快照缺席不删，提交后返回来源/时间与处理/实际变更计数。
 - 新增代码/名称字面搜索、稳定分页及同快照 total/items；固定模拟 Provider 与真实隔离数据库覆盖事务回滚、并发幂等和搜索一致性，无业务 API/CLI 或 Schema 变化。
 
@@ -49,7 +52,7 @@
 
 ### Known limitations
 
-- Milestone 1 与 M2-01 至 M2-03 已完成；基础信息持久化经模拟来源/真实隔离数据库验收，真实上游、日线持久化、业务 API 与行情页面尚未验收或实现。
+- Milestone 1 与 M2-01 至 M2-04 已完成；基础信息与日线持久化经模拟来源/真实隔离数据库验收，真实上游稳定性尚未验收；CLI/任务状态/重试断点、业务 API 与行情页面尚未实现。
 - 本地 Compose 已验收；生产部署、全新 Linux 环境验证和备份恢复仍待完成。
 - 当前唯一 Alembic head 为 `0001_initial_schema`，本地持久开发库已升级；不包含真实或模拟行情数据。
 - 当前 daemon 直接拉取 Docker Hub 超时；已通过用户态工具经既有代理下载官方镜像并导入，未变更系统 daemon 配置。后端依赖和基础镜像 digest 尚未完全锁定。

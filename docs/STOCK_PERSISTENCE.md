@@ -16,7 +16,7 @@
 
 Service 接收现有 `sessionmaker[Session]`，Provider 作为 sync 参数显式注入。网络与整个批次的 Validator 校验在数据库 Session/事务打开前完成；查询不依赖 Provider，也不会因无结果发起采集。Repository 接受已校验的内部 DTO，只负责 SQL 和 DTO 映射，不调用网络、迁移或 commit。
 
-同步通过 SQLAlchemy `session.begin()` 包围整批 UPSERT（每条 SQL 最多 500 行）；正常退出提交，写入或提交失败回滚，不返回成功收据。基础信息快照采用整批原子事务；M2-04 日线跨股票部分失败和 M2-05 重试/断点/任务状态另行实现。实现参考 [SQLAlchemy PostgreSQL UPSERT](https://docs.sqlalchemy.org/en/20/dialects/postgresql.html#insert-on-conflict-upsert) 与 [事务上下文](https://docs.sqlalchemy.org/en/20/orm/session_basics.html#framing-out-a-begin-commit-rollback-block)。
+同步通过 SQLAlchemy `session.begin()` 包围整批 UPSERT（每条 SQL 最多 500 行）；正常退出提交，写入或提交失败回滚，不返回成功收据。基础信息快照采用整批原子事务；M2-04 已另行实现[日线单股事务及跨股部分失败](DAILY_PRICE_PERSISTENCE.md)，通过只读 StockRepository.exists 检查基础信息；M2-05 重试/断点/任务状态仍待实现。实现参考 [SQLAlchemy PostgreSQL UPSERT](https://docs.sqlalchemy.org/en/20/dialects/postgresql.html#insert-on-conflict-upsert) 与 [事务上下文](https://docs.sqlalchemy.org/en/20/orm/session_basics.html#framing-out-a-begin-commit-rollback-block)。
 
 ## 2. 新建、更新与幂等规则
 
@@ -72,4 +72,4 @@ TEST_DATABASE_URL=postgresql+psycopg:///new_m2_03_migration_test \
 
 实际完整回归 256 passed、无 skip；非 PostgreSQL 回归 249 passed、7 deselected。覆盖真实提交后独立连接读取、重复同步不改写、未知信息保护、缺席/空结果、字面匹配/分页、跨 SQL 分块失败回滚与恢复、并发 UPSERT、查询一致快照；未修改前端，不重复前端测试。
 
-初次完整回归发现 `rowcount=-1`，改为 RETURNING 后用另一对全新数据库复测通过。具体库名与验证记录见 SESSION_HANDOFF.md；开发库 stockinsight 和原持久卷保留，三服务继续运行。下一任务为 M2-04 日线幂等采集/补采，不需要购买服务器。
+初次完整回归发现 `rowcount=-1`，改为 RETURNING 后用另一对全新数据库复测通过。具体库名与验证记录见 SESSION_HANDOFF.md；开发库 stockinsight 和原持久卷保留，三服务继续运行。以上为 M2-03 验收记录；M2-04 日线已完成，最新回归与下一任务 M2-05 见会话交接，不需要购买服务器。

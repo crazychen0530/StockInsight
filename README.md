@@ -7,13 +7,14 @@ StockInsight 是面向个人投资研究的中国 A 股行情与风险分析 Web
 ## 当前状态
 
 - 目标版本：v0.1.0
-- 当前阶段：Milestone 0、M1-01 至 M1-06、M2-01 至 M2-03 已完成；下一任务为 M2-04
+- 当前阶段：Milestone 0、M1-01 至 M1-06、M2-01 至 M2-04 已完成；下一任务为 M2-05
 - 已建立：项目基线、开发环境、FastAPI 健康接口、四张 ORM 模型和初始 migration、Vue/Vite 前端壳及测试入口
 - 已新增：本地三服务 Compose、隔离配置、JSON 脱敏日志、统一错误响应和请求关联 ID
 - 已新增：[Provider 契约与 AKShare 适配](docs/MARKET_DATA_PROVIDER.md)，包含固定 fixture 离线测试；未验收真实联网采集
 - 已新增：[独立行情 Validator](docs/MARKET_DATA_VALIDATOR.md)，校验代码、日期、OHLCV、元数据、单位与存储精度；交易日历通过显式参数注入
 - 已新增：[股票基础信息同步与搜索持久化](docs/STOCK_PERSISTENCE.md)，含幂等 UPSERT、未知信息保护及真实 PostgreSQL 隔离库验收
-- 未实现：股票业务 API、行情采集和行情页面
+- 已新增：[日线采集与区间补采持久化](docs/DAILY_PRICE_PERSISTENCE.md)，含幂等 UPSERT、单股事务和跨股部分失败；模拟来源/真实隔离库验收通过
+- 未实现：采集 CLI、同步任务记录/自动重试/断点、股票业务 API 和行情页面
 
 ## v0.1.0 计划范围
 
@@ -138,7 +139,7 @@ docker compose exec -T web npm run typecheck
 docker compose exec -T web npm test
 ```
 
-预期后端 38 passed、无 skip，前端 2 个测试通过。migration 测试会删除其专用测试库内的业务表，不能改用开发库名称。
+上述只提供 migration URL 的容器命令还会跳过股票/日线 PostgreSQL 集成；完整 287 项验收需按[日线持久化专题](docs/DAILY_PRICE_PERSISTENCE.md#5-验证与复现)配置三个独立新空库 URL。前端预期 2 个测试通过。migration 测试会删除其专用测试库内的业务表，不能改用开发库名称。
 
 停止和恢复（保留数据库卷）：
 
@@ -191,7 +192,7 @@ curl --noproxy '*' http://127.0.0.1:8000/api/v1/health
 .venv/bin/alembic -c backend/alembic.ini heads
 ```
 
-最后一条命令应输出 `0001_initial_schema (head)`。上述 Pytest 命令运行 37 个非 PostgreSQL 测试；真实 PostgreSQL migration 测试需要按下节单独配置，不能以 metadata 测试代替。
+最后一条命令应输出 `0001_initial_schema (head)`。上述 Pytest 命令运行 268 个非 PostgreSQL 测试；真实 PostgreSQL migration 测试需要按下节单独配置，不能以 metadata 测试代替。
 
 ## 数据库迁移与隔离验收
 
@@ -213,7 +214,7 @@ export DATABASE_URL='postgresql+psycopg://stockinsight@127.0.0.1:5432/stockinsig
 
 预期：revision 为 `0001_initial_schema`，`check` 报告无新增升级操作；创建 `stocks`、`daily_prices`、`technical_indicators`、`data_sync_jobs` 四张表。价格/成交额采用定点人民币元，成交量为股，时间戳带时区；字段语义见 [数据字典](PROJECT_PLAN.md#8-数据库设计与数据字典)。活动同步任务索引使用 PostgreSQL 15+ 的 `NULLS NOT DISTINCT`，测试基线为 16。
 
-完整后端验收必须使用独立空库，名称以 `_migration_test` 结尾。以下测试会插入明确标记的 fixture，并执行删除四张表的降级，绝不能指向开发/生产数据：
+migration 验收必须使用独立空库，名称以 `_migration_test` 结尾；股票/日线集成完整验收另需两个独立空库，见[日线持久化专题](docs/DAILY_PRICE_PERSISTENCE.md#5-验证与复现)。以下测试会插入明确标记的 fixture，并执行删除四张表的降级，绝不能指向开发/生产数据：
 
 ```bash
 createdb stockinsight_migration_test
@@ -222,7 +223,7 @@ export TEST_DATABASE_URL='postgresql+psycopg://stockinsight@127.0.0.1:5432/stock
 unset TEST_DATABASE_URL DATABASE_URL PGPASSWORD
 ```
 
-预期为 38 passed、无跳过；覆盖配置、日志、错误、关联 ID，以及空库升级、约束、防重、降级/再升级和模型差异。测试拒绝包含既有表的数据库；运行后留下空 `alembic_version` 表，再次验收需要另建一个空的 `*_migration_test` 库。未配置 `TEST_DATABASE_URL` 时 PostgreSQL 用例会明确 skip，不能视为完整验收通过。`downgrade base` 会删除业务表及全部数据，只能用于一次性验收库。
+仅提供 migration URL 时预期 269 passed、18 skipped；覆盖配置、日志、错误、关联 ID，以及空库升级、约束、防重、降级/再升级和模型差异。测试拒绝包含既有表的数据库；运行后留下空 `alembic_version` 表，再次验收需要另建一个空的 `*_migration_test` 库。未配置 `TEST_DATABASE_URL` 时 PostgreSQL 用例会明确 skip，不能视为完整验收通过。`downgrade base` 会删除业务表及全部数据，只能用于一次性验收库。
 
 ## 前端安装、运行和验证
 

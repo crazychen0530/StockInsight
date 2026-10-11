@@ -57,6 +57,15 @@ def validate_date_range(start_date: date, end_date: date) -> tuple[date, date]:
     return start, end
 
 
+def validate_trading_dates(trading_dates: Set[date] | None) -> frozenset[date] | None:
+    """Validate and freeze an explicit calendar before any collection side effects."""
+    if trading_dates is None:
+        return None
+    if not isinstance(trading_dates, Set) or any(type(day) is not date for day in trading_dates):
+        raise MarketDataValidationError("invalid_calendar", "trading_dates")
+    return frozenset(trading_dates)
+
+
 def _text(value: object, field: str, maximum: int, index: int | None = None) -> str:
     if not isinstance(value, str) or not value.strip() or "\x00" in value:
         raise MarketDataValidationError("invalid_text", field, index)
@@ -149,11 +158,7 @@ def validate_daily_prices(
     expected_symbol = normalize_symbol(symbol)
     start, end = validate_date_range(start_date, end_date)
     normalized = _metadata(batch)
-    if trading_dates is not None:
-        if not isinstance(trading_dates, Set) or any(
-            type(day) is not date for day in trading_dates
-        ):
-            raise MarketDataValidationError("invalid_calendar", "trading_dates")
+    trading_dates = validate_trading_dates(trading_dates)
     business_date = normalized.fetched_at.astimezone(SHANGHAI).date()
     records = []
     seen = set()
