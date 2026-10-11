@@ -25,8 +25,8 @@ print("password=fixture-sdk-secret")
 logging.warning("token=fixture-sdk-secret")
 class Frame:
     columns = []
-    def to_json(self, **kwargs):
-        return '{"columns":["code","name"],"data":[["000001","模拟证券"]]}'
+    def to_dict(self, **kwargs):
+        return {"columns":["code","name"],"data":[["000001","模拟证券"]]}
 def stock_info_a_code_name():
     print("password=fixture-sdk-secret")
     return Frame()
@@ -115,7 +115,7 @@ def test_worker_preserves_native_date_and_decimal_mapping(monkeypatch, capsys):
                 "日期": date(2026, 9, 28),
                 "股票代码": "000001",
                 "开盘": 10.1,
-                "最高": 10.5,
+                "最高": 1399.47,
                 "最低": 9.8,
                 "收盘": 10.25,
                 "成交量": 12,
@@ -148,4 +148,9 @@ def test_worker_preserves_native_date_and_decimal_mapping(monkeypatch, capsys):
         logging.disable(previous_disable)
     payload = json.loads(capsys.readouterr().out)
     assert payload["data"][0][0] == "2026-09-28"
+    from decimal import Decimal
+
+    exact = json.loads(json.dumps(payload), parse_float=Decimal)
+    assert exact["data"][0][3] == Decimal("1399.47")
+    assert exact["data"][0][7] == Decimal("12345.67")
     assert received == [{"symbol": "000001", "adjust": ""}]

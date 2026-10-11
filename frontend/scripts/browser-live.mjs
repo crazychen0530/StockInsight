@@ -1,0 +1,36 @@
+// Read-only acceptance against real local stored data; no interception or fixtures.
+import assert from 'node:assert/strict'
+import { chromium } from 'playwright'
+const baseURL = process.env.STOCKINSIGHT_WEB_URL || 'http://127.0.0.1:5173'
+assert(['127.0.0.1', 'localhost'].includes(new URL(baseURL).hostname))
+const browser = await chromium.launch({ headless: true })
+try {
+ const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
+ const timeout = Number(process.env.STOCKINSIGHT_BROWSER_TIMEOUT_MS || 30000)
+ page.setDefaultTimeout(timeout)
+ page.setDefaultNavigationTimeout(timeout)
+ const errors = []
+ page.on('pageerror', e => errors.push(e.message))
+ await page.goto(`${baseURL}/stocks`)
+ await page.getByLabel('代码或名称').fill('600519')
+ await page.getByRole('button', { name: '搜索', exact: true }).click()
+ await page.getByRole('link', { name: '贵州茅台', exact: true }).click()
+ await page.locator('.chart-canvas svg').waitFor()
+ await page.getByText('均线版本：sma-close-v1', { exact: false }).waitFor()
+ assert((await page.locator('main').textContent()).includes('akshare_tx'))
+ const prices = await (await page.request.get(`${baseURL}/api/v1/stocks/600519.SH/prices?start_date=2026-01-05&end_date=2026-10-09&limit=1000`)).json()
+ const indicators = await (await page.request.get(`${baseURL}/api/v1/stocks/600519.SH/indicators?start_date=2026-01-05&end_date=2026-10-09&limit=1000`)).json()
+ assert(prices.items.length >= 60)
+ assert.equal(prices.items.length, indicators.items.length)
+ assert(indicators.items.at(-1).ma60 !== null)
+ assert(prices.items.every(row => row.source === 'akshare_tx'))
+ await page.screenshot({ path: '/tmp/stockinsight-m5-live-desktop.png', fullPage: false })
+ await page.setViewportSize({ width: 390, height: 844 })
+ assert(await page.locator('.chart-canvas svg').isVisible())
+ await page.screenshot({ path: '/tmp/stockinsight-m5-live-mobile.png', fullPage: false })
+ await page.goto(`${baseURL}/data-status`)
+ await page.getByRole('cell', { name: '成功', exact: true }).first().waitFor()
+ assert((await page.locator('tbody').textContent()).includes('2026-10-09'))
+ assert.deepEqual(errors, [])
+ console.log(JSON.stringify({ status: 'passed', data: 'real_upstream', rows: prices.items.length, last_date: prices.items.at(-1).trade_date, ma60: indicators.items.at(-1).ma60, desktop: true, mobile: true, status_page: true }))
+} finally { await browser.close() }

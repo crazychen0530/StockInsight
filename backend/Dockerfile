@@ -7,8 +7,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /workspace/backend
 COPY pyproject.toml ./
+COPY constraints.txt ./
 COPY app ./app
-RUN python -m pip install --no-cache-dir '.[dev]' \
+ARG INSTALL_EXTRAS=dev
+RUN --mount=type=secret,id=build_proxy \
+    if [ -f /run/secrets/build_proxy ]; then export HTTPS_PROXY="$(cat /run/secrets/build_proxy)"; fi; \
+    python -m pip install --no-cache-dir -c constraints.txt ".[${INSTALL_EXTRAS}]" \
     && useradd --uid 10001 --create-home app
 COPY alembic.ini ./
 COPY alembic ./alembic

@@ -24,7 +24,7 @@ read -r -s -p '本地 PostgreSQL 密码: ' PGPASSWORD
 export PGPASSWORD
 ```
 
-先核对所选数据库和当前任务；持久任务保存固定安全错误码，不记录原始上游错误。本文后续采集命令会访问真实上游并写入所选库，验收演练使用隔离库+离线 SDK，未对开发库执行这些采集命令。
+先核对所选数据库和当前任务；持久任务保存固定安全错误码，不记录原始上游错误。本文后续采集命令会访问真实上游并写入所选库，M4 演练使用隔离库+离线 SDK；M5 已在用户授权下对开发库执行真实采集，见 [M5 验收](M5_ACCEPTANCE.md)。
 
 ## 2. 基础信息、历史补采和手工增量
 
@@ -85,4 +85,30 @@ npm run build-only --prefix frontend
 
 `test_postgres.py` 只连接 loopback 的 postgres 管理库并创建随机唯一的六个隔离空库；通过后保留库用于排查，不重置任何已有库，不输出凭据。完整测试包含 migration 升降级，因此绝不能用业务数据库替代测试 URL。新环境需按 README 准备 Node 22 和依赖；浏览器脚本 `npm run test:browser --prefix frontend` 需要本地 web/API、Playwright Chromium 与运行库。
 
-M4 演练结果：真实 CLI 子进程离线 SDK 执行 backfill、两股 partial、失败/成功 resume、jobs 和 incremental，行情/指标保持 2 行；本地 indicators 第一次补齐 65 行、再次 changed_count=0；独立 scheduler --once 两次验证首次 partial、重启成功跳过/失败 ID 保留、原始错误不泄漏。全部在新隔离库运行。另有真实浏览器 -> Vite -> API -> PostgreSQL 验收 20 条明确模拟日线、MA5/20 与不足 MA60、任务状态；开发库原四表和卷保留。真实上游/交易日历及全新 Linux 验收留 M5。
+M4 演练结果：真实 CLI 子进程离线 SDK 执行 backfill、两股 partial、失败/成功 resume、jobs 和 incremental，行情/指标保持 2 行；本地 indicators 第一次补齐 65 行、再次 changed_count=0；独立 scheduler --once 两次验证首次 partial、重启成功跳过/失败 ID 保留、原始错误不泄漏。全部在新隔离库运行。另有真实浏览器 -> Vite -> API -> PostgreSQL 验收 20 条明确模拟日线、MA5/20 与不足 MA60、任务状态；开发库原四表和卷保留。该段为 M4 历史记录；M5 的真实上游、日历及新 Linux 结果见 [M5 验收](M5_ACCEPTANCE.md)。
+
+## M5 加密备份与独立恢复
+
+备份脚本仅通过本地 Compose 读取数据库，不打印连接密码，不落盘明文 dump，输出 GPG AES-256 加密归档。密钥独立保管，权限必须 0600；`secrets/` 与 `data/` 已忽略。不要把密钥与归档一起上传或提交。
+
+```bash
+# 一次性生成本机备份密钥，拒绝覆盖既有密钥
+python3 -c 'import os,secrets; from pathlib import Path; p=Path("secrets"); p.mkdir(exist_ok=True); os.umask(0o077); f=(p/"backup.passphrase").open("x"); f.write(secrets.token_hex(32)); f.close()'
+.venv/bin/python scripts/backup_postgres.py --key-file secrets/backup.passphrase --output data/backups/manual.dump.gpg
+```
+
+输出路径不可已存在；失败输出不能当作有效备份。验证归档可解密并列出内容（不写明文文件）：
+
+```bash
+set -o pipefail
+gpg --batch --pinentry-mode loopback --passphrase-file secrets/backup.passphrase --decrypt data/backups/manual.dump.gpg | docker compose exec -T db pg_restore --list
+```
+
+恢复必须使用新建且空的独立实例，不能指向开发库。准备 `RESTORE_CONTAINER`（新实例已就绪，数据库 `stockinsight`、用户 `stockinsight`，私有密码通过 env-file 注入，端口只绑定 loopback）后：
+
+```bash
+set -o pipefail
+gpg --batch --pinentry-mode loopback --passphrase-file secrets/backup.passphrase --decrypt data/backups/manual.dump.gpg | docker exec -i "$RESTORE_CONTAINER" pg_restore -U stockinsight -d stockinsight --no-owner --no-acl --exit-on-error
+```
+
+核验 migration revision、四表计数与内容哈希、约束和索引，再通过只读 API 验证搜索/日线/均线/任务。M5 实例和归档位置见 [M5 验收](M5_ACCEPTANCE.md)。该演练不代表异地备份、定时备份、轮转或生产 RPO/RTO 已完成，生产运维属于 M6。

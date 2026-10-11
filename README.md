@@ -1,23 +1,23 @@
 # StockInsight
 
-StockInsight 是面向个人投资研究的中国 A 股行情与风险分析 Web 平台。当前已完成 **M0–M4：基础工程、本地采集、历史行情与均线、任务状态和独立盘后调度**。
+StockInsight 是面向个人投资研究的中国 A 股行情与风险分析 Web 平台。已实现基础工程、真实行情采集、搜索、K 线、均线、任务状态及独立自动更新；M5 全部验收已通过，v0.1.0 发布候选准备完成。
 
 项目不会连接券商或执行真实交易，不承诺收益，也不会把未经验证的预测作为确定的投资建议。
 
 ## 当前状态
 
 - 目标版本：v0.1.0
-- 当前阶段：Milestone 0–4 已完成；下一任务为 M5-01
+- 当前阶段：M0–M5 全部完成，v0.1.0 RC 就绪；证据见 [M5 验收报告](docs/M5_ACCEPTANCE.md)
 - 已建立：项目基线、开发环境、FastAPI 健康接口、四张 ORM 模型和初始 migration、Vue/Vite 前端壳及测试入口
 - 已新增：本地三服务 Compose、隔离配置、JSON 脱敏日志、统一错误响应和请求关联 ID
-- 已新增：[Provider 契约与 AKShare 适配](docs/MARKET_DATA_PROVIDER.md)，包含固定 fixture 离线测试；未验收真实联网采集
+- 已新增：[Provider 契约与 AKShare 适配](docs/MARKET_DATA_PROVIDER.md)，包含固定 fixture 离线测试；真实采集已验证；默认日线显式选择腾讯接口，来源 `akshare_tx`
 - 已新增：[独立行情 Validator](docs/MARKET_DATA_VALIDATOR.md)，校验代码、日期、OHLCV、元数据、单位与存储精度；交易日历通过显式参数注入
 - 已新增：[股票基础信息同步与搜索持久化](docs/STOCK_PERSISTENCE.md)，含幂等 UPSERT、未知信息保护及真实 PostgreSQL 隔离库验收
 - 已新增：[日线采集与区间补采持久化](docs/DAILY_PRICE_PERSISTENCE.md)，含幂等 UPSERT、单股事务和跨股部分失败；模拟来源/真实隔离库验收通过
 - 已新增：[本地采集 CLI、任务与恢复](docs/COLLECTION_CLI.md)，含安全错误摘要、有界退避、活动任务防重和幂等原范围恢复
 - 已新增：[股票列表、详情与日线查询 API](docs/STOCK_QUERY_API.md)，含分页/上限、安全错误、来源时间与精确金额契约
 - 已新增：[前端 API/搜索/详情/K 线与成交量](docs/FRONTEND_MARKET.md)，含加载/空/错误、日期过滤、精确明细、来源与获取时间
-- 已新增：[版本化 MA5/20/60](docs/MOVING_AVERAGES.md)、[独立盘后调度](docs/SCHEDULER.md)和[增量/补采/恢复手册](docs/OPERATIONS.md)；真实上游稳定性、完整日历与生产验收待 M5/M6
+- 已新增：[版本化 MA5/20/60](docs/MOVING_AVERAGES.md)、[独立盘后调度](docs/SCHEDULER.md)和[增量/补采/恢复手册](docs/OPERATIONS.md)；2026 交易日历及本地真实调度已验证；生产验收属于 M6
 
 ## v0.1.0 计划范围
 
@@ -84,7 +84,7 @@ source .venv/bin/activate
 
 宿主机环境：Node.js 22.23.1、Python 3.12.3 `.venv`、Docker Engine 29.1.3、Compose 2.40.3、PostgreSQL 客户端 16.15。系统 Node.js 18.19.1 仍保留。Codex 沙箱内 Docker socket 访问受限，提升权限后环境检查全部通过。
 
-M1-05 已在官方镜像中验证 Node.js 22.23.3、Python 3.12.15 和 PostgreSQL 16.15。本机 daemon 未配置代理，直接 pull 超时；本次使用从 Ubuntu 官方包提取到 `/tmp` 的 skopeo，经既有 shell 代理下载 Docker Hub 官方镜像并 `docker load` 导入，没有改动系统 daemon 配置或关闭 TLS。前后端构建通过，三服务及容器网络、显式 migration 和 HTTP 链路已验收；后续全新环境验证仍属于 M5。
+M1-05 已在官方镜像中验证 Node.js 22.23.3、Python 3.12.15 和 PostgreSQL 16.15。本机 daemon 未配置代理，直接 pull 超时；本次使用从 Ubuntu 官方包提取到 `/tmp` 的 skopeo，经既有 shell 代理下载 Docker Hub 官方镜像并 `docker load` 导入，没有改动系统 daemon 配置或关闭 TLS。前后端构建通过，三服务及容器网络、显式 migration 和 HTTP 链路已验收；M1 阶段将全新环境验证留作 M5；现已完成，见 M5 验收报告。
 
 ## 开发入口
 
@@ -142,7 +142,7 @@ docker compose exec -T web npm run typecheck
 docker compose exec -T web npm test
 ```
 
-上述只提供 migration URL 的容器命令还会跳过股票/日线 PostgreSQL 集成；完整 287 项验收需按[日线持久化专题](docs/DAILY_PRICE_PERSISTENCE.md#5-验证与复现)配置三个独立新空库 URL。前端当前预期 25 个测试通过，浏览器复现另见前端专题。migration 测试会删除其专用测试库内的业务表，不能改用开发库名称。
+上述只提供 migration URL 的容器命令还会跳过股票/日线 PostgreSQL 集成；完整验收使用 `.venv/bin/python scripts/test_postgres.py` 创建六个新隔离库，当前 388 项通过。前端当前预期 31 个测试通过，浏览器复现另见前端专题。migration 测试会删除其专用测试库内的业务表，不能改用开发库名称。
 
 停止和恢复（保留数据库卷）：
 
@@ -153,7 +153,7 @@ docker compose up --detach --no-build --wait --wait-timeout 120
 docker compose down
 ```
 
-不要执行 `down -v`、`volume prune` 或删除已有数据卷。首次初始化后改变 `.env` 中 PostgreSQL 用户/密码不会修改卷内既有账户；需要按数据库权限流程处理，不能通过删除卷规避。不要将包含凭据的完整 `docker compose config`、容器环境或 `.env` 输出贴入报告。
+启用自动更新后，停止/恢复命令需要加 `--profile automation`，同时管理 scheduler。不要执行 `down -v`、`volume prune` 或删除已有数据卷。首次初始化后改变 `.env` 中 PostgreSQL 用户/密码不会修改卷内既有账户；需要按数据库权限流程处理，不能通过删除卷规避。不要将包含凭据的完整 `docker compose config`、容器环境或 `.env` 输出贴入报告。
 
 ## 后端安装、运行和验证
 
@@ -161,7 +161,7 @@ docker compose down
 
 ```bash
 source .venv/bin/activate
-python -m pip install --editable 'backend[dev]'
+python -m pip install -c backend/constraints.txt --editable 'backend[dev,market-data]'
 ```
 
 启动开发服务：
@@ -184,7 +184,7 @@ curl --noproxy '*' http://127.0.0.1:8000/api/v1/health
 
 该响应只证明 API 进程能够处理请求，不声明 PostgreSQL、数据采集器、Docker 或外部数据源健康。
 
-浏览器访问 `http://127.0.0.1:8000/docs` 可使用自动生成的 Swagger UI：查看已实现接口的方法、路径、参数、响应模型，并通过 `Try it out` / `Execute` 发送真实请求。当前只有健康业务接口；文档不是股票业务页面，也不是完整自动化测试。未来带写入/管理能力的接口会真实修改状态，不能把文档按钮当成模拟操作。
+浏览器访问 `http://127.0.0.1:8000/docs` 可使用自动生成的 Swagger UI：查看已实现接口的方法、路径、参数、响应模型，并通过 `Try it out` / `Execute` 发送真实请求。当前包含健康、股票搜索/详情、日线、均线及任务状态六个 GET 接口；文档入口不是完整自动化测试。未来带写入/管理能力的接口会真实修改状态，不能把文档按钮当成模拟操作。
 
 运行质量检查和测试：
 
@@ -195,7 +195,7 @@ curl --noproxy '*' http://127.0.0.1:8000/api/v1/health
 .venv/bin/alembic -c backend/alembic.ini heads
 ```
 
-最后一条命令应输出 `0001_initial_schema (head)`。上述 Pytest 命令运行 268 个非 PostgreSQL 测试；真实 PostgreSQL migration 测试需要按下节单独配置，不能以 metadata 测试代替。
+最后一条命令应输出 `0001_initial_schema (head)`。上述 Pytest 命令仅运行非 PostgreSQL 测试；真实 PostgreSQL migration 测试需要按下节单独配置，不能以 metadata 测试代替。
 
 ## 数据库迁移与隔离验收
 
@@ -315,4 +315,52 @@ git push origin main
 git status --short --branch
 ```
 
-下一任务为 M5-01；M4 已合并本地 main 并同步 GitHub，详情见交接文档，详见交接文档。本地合并不等于部署，也不会自动执行数据库 migration。
+本轮 M5 全流程已完成；M4 已合并本地 main 并同步 GitHub，M5 在功能分支开发，具体状态见交接文档。本地合并不等于部署，也不会自动执行数据库 migration。
+
+## 真实采集与自动更新
+
+默认股票目录包含沪深支持范围，日线演示及自动更新覆盖 `000001.SZ`、`600519.SH`、`300750.SZ`、`600036.SH`，不是全市场日线。首次先执行上面的启动和迁移，再执行：
+
+```bash
+# Docker 需要 Buildx/BuildKit；如上游网络受限，先解决网络再采集。
+docker compose --profile automation build scheduler
+docker compose --profile automation run --rm scheduler python -m app.jobs.cli stocks
+docker compose --profile automation run --rm scheduler python -m app.jobs.cli daily --symbol 000001.SZ --symbol 600519.SH --symbol 300750.SZ --symbol 600036.SH --start 2026-01-05 --end 2026-10-09
+docker compose --profile automation up -d --no-build scheduler
+docker compose logs --tail 30 scheduler
+```
+
+固定日期是 2026-10-12 验收样例；日常启动会按真实当前时钟补齐最近已收盘交易日，随后在上海时间 17:30 更新当天。通过 `--catch-up` 补齐最近收盘日，不伪造时钟、不采未收盘当天。默认日线接口为 `stock_zh_a_hist_tx`，持久来源 `akshare_tx`；可用环境变量 `MARKET_DATA_DAILY_INTERFACE=stock_zh_a_hist` 显式选东方财富，失败不会自动切换来源。交易日历到 2026-12-31，到期前需依据交易所公告更新并重启。
+
+浏览器访问首页的四只股票入口或搜索 `600519`，进入详情可看到 K 线和 MA5/20/60；数据状态显示真实成功及失败任务。测试 fixture 只存在于隔离测试库。
+
+真实页面只读验收：在 `frontend/` 执行 `node scripts/browser-live.mjs`（需先安装 Playwright Chromium 及运行库）；边界状态另运行 `npm run test:browser`，其中模拟数据明确标记。备份与恢复见 [本地运维](docs/OPERATIONS.md)和 [M5 报告](docs/M5_ACCEPTANCE.md)。
+
+### 已准备镜像的全新 Linux 验证
+
+如果新环境无法直连 Registry，可以在已完成构建的机器导出**镜像及源码**，不导出 `.env`、数据库或数据卷：
+
+```bash
+# 本地已构建的 API/scheduler 代码相同，镜像包含 market-data extra。
+docker image tag stockinsight-local-scheduler stockinsight-m5-rc-api
+docker build -t stockinsight-m5-rc-web frontend
+docker save -o /tmp/stockinsight-images.tar postgres:16-bookworm stockinsight-m5-rc-api stockinsight-m5-rc-web stockinsight-local-scheduler
+```
+
+在已安装 Docker/Compose 的全新 Linux 上解包源码与上述镜像文件，从仓库根目录执行：
+
+```bash
+docker load -i /tmp/stockinsight-images.tar
+python3 scripts/init_local_env.py
+docker compose -f compose.yaml -f compose.images.yaml up -d --no-build --wait --wait-timeout 180
+docker compose exec -T api alembic upgrade head
+docker compose exec -T api alembic check
+docker compose -f compose.yaml -f compose.images.yaml --profile automation run --rm scheduler python -m app.jobs.cli stocks
+docker compose -f compose.yaml -f compose.images.yaml --profile automation run --rm scheduler python -m app.jobs.cli daily --symbol 600519.SH --start 2026-01-05 --end 2026-10-09
+docker compose -f compose.yaml -f compose.images.yaml --profile automation up -d --no-build scheduler
+curl --noproxy '*' --fail 'http://127.0.0.1:5173/api/v1/stocks/600519.SH/prices?start_date=2026-01-05&end_date=2026-10-09'
+```
+
+这是预构建开发 Compose 镜像的部署路径；应用仍使用只读源码挂载。M5 在独立 Ubuntu 虚拟机、独立 Docker、零既有数据卷上按此路径验收，镜像不包含任何原库行情。常规有网络环境继续使用上文 `up --build` 路径。生产镜像、公开镜像仓库与公网部署属于 M6。
+
+M5 的全新 Linux 使用 TCG 软件模拟，采集高峰会延迟 Python/Node 健康探测进程启动。该环境额外叠加 `-f compose.acceptance.yaml`，将探测进程预算改为 30 秒、间隔 15 秒，原 HTTP 探测不变；普通本地环境不加该覆盖文件，仍使用 5 秒预算。验收同时要求真实 API 和浏览器通过，不以放宽预算代替业务验证。该配置不作为生产容量建议。

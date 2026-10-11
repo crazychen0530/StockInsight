@@ -1,0 +1,15 @@
+# Optional process-start budget for software-emulated Linux acceptance.
+# Keep the original HTTP checks; regular local/production configuration is unchanged.
+services:
+  api:
+    healthcheck:
+      interval: 15s
+      timeout: 30s
+      retries: 12
+      start_period: 30s
+  web:
+    healthcheck:
+      interval: 15s
+      timeout: 30s
+      retries: 12
+      start_period: 30s

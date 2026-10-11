@@ -100,3 +100,7 @@ fixture 断言指定后缀及空库；仅清理该轮新建库内自己的测试
 ## M4 增补
 
 非空日线现在同事务重算 MA5/20/60；新增 indicators 本地重算命令及独立调度入口。手工 incremental、历史 backfill、jobs/resume 与权限/退出码操作见[运维手册](OPERATIONS.md)，调度日历/就绪/防重见[调度手册](SCHEDULER.md)。原有空响应和覆盖边界不变。
+
+## M5 真实采集补充
+
+真实运行已通过，详见 [M5 验收](M5_ACCEPTANCE.md)。`MARKET_DATA_DAILY_INTERFACE` 显式选择东方财富或腾讯，任务家族仍 `akshare`，腾讯日线持久来源 `akshare_tx`。数据库/指标流程与计数含义不变，不失败后静默换源。Compose 可选 automation 镜像包含 market-data extra，首次 stocks/daily 和后续独立常驻调度命令见 [README](../README.md#真实采集与自动更新)。

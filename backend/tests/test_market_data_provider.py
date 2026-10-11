@@ -252,3 +252,60 @@ def test_provider_error_has_safe_summary():
         "provider_unavailable", "Market data provider unavailable", retryable=True
     )
     assert error.retryable and error.status_code == 503
+
+
+def test_stock_snapshot_excludes_cdr_without_relaxing_validator():
+    table = {"columns": ["code", "name"], "data": [["689009", "模拟CDR"], ["600519", "模拟A股"]]}
+    result = provider(json.dumps(table)).fetch_stocks()
+    assert [row.symbol for row in result.records] == ["600519.SH"]
+    from app.collectors.validator import MarketDataValidationError, normalize_symbol
+
+    with pytest.raises(MarketDataValidationError):
+        normalize_symbol("689009.SH")
+
+
+def test_tencent_explicit_interface_preserves_units_and_shortest_float_values():
+    payload = json.dumps(
+        {
+            "columns": ["date", "open", "high", "low", "close", "volume", "amount"],
+            "data": [["2026-09-28", 1399.47, 1400, 1390, 1395, 120000, 1000000000.0000001]],
+        }
+    )
+    transport = FixtureTransport(payload)
+    adapter = AkShareProvider(
+        Settings(market_data_daily_interface="stock_zh_a_hist_tx"), transport=transport
+    )
+    batch = adapter.fetch_daily_prices("600519.SH", START, END)
+    from app.jobs.collection import SourceProvider
+
+    assert (
+        SourceProvider(adapter, "akshare").fetch_daily_prices("600519.SH", START, END).source
+        == "akshare_tx"
+    )
+    assert batch.source == "akshare_tx"
+    assert batch.source_interface == "stock_zh_a_hist_tx"
+    assert batch.records[0].open == Decimal("1399.47")
+    assert batch.records[0].volume_shares == 120000
+    assert batch.records[0].amount_cny == Decimal("1000000000.00")
+    assert transport.calls[0][1]["symbol"] == "sh600519"
+    payload = payload.replace("1000000000.0000001", "12345.678")
+    with pytest.raises(ProviderContractError):
+        AkShareProvider(
+            Settings(market_data_daily_interface="stock_zh_a_hist_tx"),
+            transport=FixtureTransport(payload),
+        ).fetch_daily_prices("600519.SH", START, END)
+
+
+def test_tencent_sz000_equity_sdk_lots_are_converted_once():
+    payload = json.dumps(
+        {
+            "columns": ["date", "open", "high", "low", "close", "volume", "amount"],
+            "data": [["2026-09-28", 10, 10, 10, 10, 1200, 1200000]],
+        }
+    )
+    adapter = AkShareProvider(
+        Settings(market_data_daily_interface="stock_zh_a_hist_tx"),
+        transport=FixtureTransport(payload),
+    )
+    assert adapter.fetch_daily_prices("000001.SZ", START, END).records[0].volume_shares == 120000
+    assert adapter.fetch_daily_prices("300750.SZ", START, END).records[0].volume_shares == 1200

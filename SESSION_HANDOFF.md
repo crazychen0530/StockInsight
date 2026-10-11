@@ -1,77 +1,60 @@
 # StockInsight 会话交接
 
-> 更新时间：2026-10-12（Asia/Shanghai）
-> 以当前 Git、代码和测试为准；模拟行情不代表真实上游验收。
+更新时间：2026-10-12，Asia/Shanghai。当前工作目录 `/home/crazychen/myprojects/StockInsight`。
 
-## 1. 当前里程碑与授权
+## 1. 本轮授权与范围
 
-- 目标版本 v0.1.0，M0–M4 全部完成。
-- 本会话用户明确授权从 M4-01 连续完成整个 M4 后停止；已完成五项，没有进入 M5。
-- 当前支持股票搜索/详情、K 线/成交量/MA5/20/60、数据状态、本地采集/恢复/重算和独立盘后调度。
-- 下一任务 M5-01：完整核心测试与 v0.1.0 验收准备；不等于已完成 M5/M6。
+用户明确要求真实数据采集与自动更新跑通，让搜索、K 线、均线、数据状态有实际内容，并完成 M5 全部验收。M6 公网部署、服务器购买、远程推送、tag/Release 未在本轮授权。上一轮 M4 的合并与推送已完成，基线 `main/origin/main` 为 `aa3da56`，本轮在 `feature/m5-live-data-acceptance` 开发。
 
-## 2. 本轮实现和架构
+## 2. 真实运行
 
-- M4-01：不可变 ClosePoint/MovingAverage，按股票/日期排序，Decimal 固定 Context 精度 40、HALF_UP 四位，版本 sma-close-v1；窗口不足 null，无未来记录、无日历日填充；输入严格校验。
-- M4-02：非空 DailyPriceService 单股票事务内写行情和全历史指标；股票行锁串行化并发写/重算，版本 UPSERT，值相同保留 computed_at，补采历史/修正重算后继窗口。沿用原表，没有 migration/新依赖。
-- 两个新 GET：`/api/v1/stocks/{symbol}/indicators` 和 `/api/v1/system/data-status`。只读数据库、日期闭区间/上限/has_more、版本/null/精确 Decimal 字符串和安全错误；指标来源只代表当日输入，任务计数为股票工作项。
-- M4-03：详情 ECharts LineChart MA5/20/60，日期关联、null 不连线、精确 tooltip/明细、版本/来源/计算时间；指标加载/错误独立，不阻断日线。图表在明细前。`/data-status` 提供最新任务状态/计数/范围/错误/游标、刷新/空错重试。
-- M4-04：独立 `app.jobs.scheduler`，Shanghai 可配置盘后时间、受控 JSON 日历来源/覆盖、调度锁/采集锁、成功当日游标跳过、失败/中断原 ID 重放、重叠最近本地日期增量、当日数据未就绪失败和有界重试、逐股成果保留/批次 partial。正常锁退出主动 unlock 再关闭，缩短原断连释放窗口。
-- M4-05：`cli indicators --symbol` 本地补齐，无 Provider 初始化；完整增量/补采/恢复手册与可复现六隔离库测试脚本。
-- 保持 Router -> Service -> Repository -> Database 与独立纯 Calculator；API 生命周期不导入/启动 scheduler，没有公开采集入口、Schema/核心栈/单位/部署变化。
+- 开发库保留原卷 `stockinsight-local_postgres_data`，revision `0001_initial_schema`；不向开发库写模拟数据。
+- 真实目录 5,223 只；真实日线与均线各 732 行。覆盖平安银行 `000001.SZ`、贵州茅台 `600519.SH`、宁德时代 `300750.SZ`、招商银行 `600036.SH`，各 183 个交易日，2026-01-05～10-09。
+- 四只股票日期集合与官方沪深 2026 交易日历一致，最新 MA5/20/60 独立复算一致。日线 `akshare_tx`、不复权、元/股/元、UTC 获取时间，MA `sma-close-v1`；贵州茅台最后 MA60 `1291.0760`。
+- 首页新增默认采集范围及四只股票入口；股票目录不代表全市场日线。其他股票需手动补采并加入 scheduler 名单。
+- db/API/web 仍 healthy、loopback 5432/8000/5173，浏览器 `http://127.0.0.1:5173/`。
+- `automation` profile scheduler 已常驻，`restart: unless-stopped`、独立于 API、上海 17:30、启动补最近收盘交易日；当前真实时钟为 10-12 盘前，最近目标 10-09。重启实际 `job_count=0, skipped_jobs=4`，未冒充未来 17:30 已发生。
+- 日历 `config/calendars/sse_szse_2026.json` 按沪深全年公告生成，242 日，覆盖至 2026-12-31。到期前更新公告派生清单并重启；覆盖外拒绝采集，不猜测工作日。
 
-## 3. 测试与实际结果
+## 3. 实现修正与架构
 
-- `.venv/bin/python scripts/test_postgres.py`：**383 passed，13.83 秒，无 skip**，新建六个随机唯一空库，保留库供排查。包含 migration 升降级/再升级、既有采集/查询回归和 M4 集成。
-- 新增纯计算 11 项：窗口/分组/乱序/无未来前缀/非法输入/大 Decimal/调用方精度与 Inexact trap 隔离。显式模拟数据。
-- 指标 PostgreSQL：同事务失败回滚行情、历史修正/插入、并发不相交追加后的全历史正确性、幂等时间、真实 API null/Decimal/版本/日期/上限/404/空和任务原始错误脱敏。
-- 调度：8 项离线固定时钟/日历测试，真实数据库双锁/重启跳过/失败原 ID/未就绪重试/partial/水位。真实独立 scheduler CLI 子进程使用离线 SDK 和测试注入时钟两次 --once，首次 partial，第二次成功股票跳过且失败任务 ID 复用；生产入口没有假时钟参数。
-- 真实采集 CLI 子进程演练 backfill、partial、failed/succeeded resume、jobs、incremental，重复后行情/指标各 2 行；本地 indicators 首次补齐 65 行，重复 changed_count=0，不创建 Provider。
-- `.venv/bin/ruff check backend scripts/test_postgres.py`、`.venv/bin/ruff format --check backend scripts/test_postgres.py`：通过，73 文件格式；`.venv/bin/python -m pip check`：无依赖冲突。
-- Node 22.23.1：`npm run typecheck --prefix frontend`、`npm test --prefix frontend`：**31 passed**；`npm run build-only --prefix frontend`：通过。均线响应/状态错误校验、组件状态和真实 ECharts SVG 对齐/null/tooltip 已覆盖。
-- `npm run test:browser --prefix frontend`：通过真实 Vite -> API 只读列表，再使用浏览器 HTTP 模拟 fixture 验证均线图例、搜索/详情/SVG/鼠标缩放/日期/截断/空/错/重试、390px、状态空页，无浏览器异常；调整图表至明细前后复跑通过。
-- `.venv/bin/python /tmp/stockinsight-m4-real-browser.py`：新库 m4_browser_052c1775_query_api_test，模拟 Provider -> 持久 CollectionRunner 任务 -> 行情/均线 -> 真实 Chromium/Vite/Axios/FastAPI/Repository/PostgreSQL/SVG/status 全链路通过。20 条明确模拟日线、MA5/20 与不足 MA60、成功任务可见。专用 8001/5174 服务 finally 停止，原服务保留；脚本/截图在 /tmp，不当作全新 Linux 或真实上游验收。
-- 本机浏览器运行环境沿用 M3：PLAYWRIGHT_BROWSERS_PATH=/tmp/stockinsight-browser/browsers、LD_LIBRARY_PATH=/tmp/stockinsight-browser/libs/usr/lib/x86_64-linux-gnu、FONTCONFIG_FILE=/tmp/stockinsight-browser/fonts.conf；未系统安装或分发字体。
-- 文档链接、围栏/Mermaid 结构、真实私有凭据/Token/私钥扫描与 git diff --check 通过，最终数量以交付工具输出为准；未以结构检查冒充 Mermaid 渲染。
-- 首轮完整测试失败原因是新增指标子表未纳入旧 fixture 清理、模拟日期包含周末、旧 OpenAPI 路由断言未更新；均修复后在新空库完整复跑通过。没有沿用失败结果计作通过。
+CDR 689 过滤但核心 Validator 不放宽；SDK DataFrame 用 Python 最短往返数字 JSON；显式腾讯接口及真实来源；腾讯金额仅清除两 ULP 内的单位换算尾数，实质分以下输入拒绝；1.19.1 深市 000 股票补一次手转股。东方财富在本网络连续失败，显式选择腾讯成功，不自动改源。
 
-## 4. 本地运行和数据保护
+来源由 Provider 声明并经 SourceProvider 校验，Repository 不判断上游。API/Service/Repository 分层、同事务指标和独立调度不变；无 Schema/migration 变化。`--catch-up` 按目标交易日而非本地尝试日期去重，补前日不会阻止当日盘后。ADR-020 记录已授权范围内细化，无核心技术栈/价格口径变化。
 
-- db/api/web 均 healthy，只绑定 loopback 5432/8000/5173，原卷 stockinsight-local_postgres_data 保留。
-- 开发库 stockinsight：0001_initial_schema，stocks/daily_prices/technical_indicators/data_sync_jobs 均 **0 行**（本轮只读复核）。页面应显示空状态，未填充模拟行情/触发真实采集。
-- 真实 HTTP API 与 Vite 代理 data-status 均 200 空列表；OpenAPI 六个 GET 路由验证通过。依赖未变化，原容器源码挂载热更新，本轮无需重建服务。
-- 默认 Compose 仍三服务，没有自动常驻 scheduler。操作者提供完整已核验日历/目标股票/起始日后，按 docs/SCHEDULER.md 启动；这避免未经配置的真实网络采集。
-- scripts/test_postgres.py 每次创建六个新隔离库并保留，不清任何现有库。测试使用 .env 本机连接信息，不输出凭据，迁移升降级只作用于随机空测试库。
+Dockerfile 使用版本 constraints，BuildKit `build_proxy` 临时 secret 可选；不以 build args 保存代理。宿主原本缺 Buildx，已从签名 apt 索引包解压到 `/tmp/stockinsight-m5-vm/buildx`；临时 `DOCKER_CONFIG=/tmp/stockinsight-m5-vm/docker-config` 发现 plugin。常驻容器运行不依赖该目录，重新构建需标准 Buildx/Compose 安装或该临时配置。
 
-## 5. Git 与 GitHub
+## 4. 已执行验证
 
-- 2026-10-12 用户明确授权 M4 完成后本地合并并推送；先 fetch origin main，确认远程仍为 12a3005、工作区干净且为 M4 祖先。
-- 已将 feature/m4-01-moving-averages 快进合并本地 main，无冲突，合并后与验收功能分支代码树完全一致。
-- M4-01 0a99d42、M4-02 6071b81、M4-03 5c8a9c0、M4-04 7ca0085、M4-05 30730a3 五项全部完成并正常推送 origin/main。
-- git ls-remote 核验远程代码交付 SHA 为 30730a31b231ab7ec224d9896c170e9916c9bd76，与本地一致；本同步记录另行提交并同步，最终 HEAD 见 Git 和交付报告。
-- 当前分支 main，工作区在提交后应干净，功能分支保留；origin 为既有私有仓库。未强推、删除分支、创建标签/Release 或部署公网。
-- 合并后复核：后端离线 341 passed、42 deselected（PostgreSQL），前端类型/31 项测试、Ruff/格式通过。未重跑完整 PostgreSQL/migration/浏览器/构建，代码树未变，原完整 383 项及浏览器证据保留。
-- 推送前扫描五项提交覆盖的 188 个 blob，真实本机私有凭据、Token/私钥模式、真实 .env 和超大文件检查通过。
+- `.venv/bin/python scripts/test_postgres.py`：最终 **388 passed in 15.79s**，六个新隔离库，含 migration 升降级/再升级、采集 CLI 真实子进程/信号恢复、API/指标/调度，无 skip。测试库保留，不清已有库。
+- Ruff 检查和格式通过；前端 `npm run typecheck`、`npm test` **31 passed**，生产构建直接 `npm run build-only` 通过；详情 chunk 602.26KB / gzip206.73KB 警告保留。
+- 模拟边界 `npm run test:browser` 与真实数据 `node scripts/browser-live.mjs` 分开；桌面/390px 搜索→详情→SVG/MA→来源/状态页均通过，无浏览器异常。
+- 浏览器本机运行库：`PLAYWRIGHT_BROWSERS_PATH=/tmp/stockinsight-browser/browsers`、`LD_LIBRARY_PATH=/tmp/stockinsight-browser/libs/usr/lib/x86_64-linux-gnu`、`FONTCONFIG_FILE=/tmp/stockinsight-browser/fonts.conf`。软件模拟新 Linux 可设置 `STOCKINSIGHT_BROWSER_TIMEOUT_MS=120000`，不修改生产延迟承诺。
+- pip-audit 无已知漏洞；启用 TLS 验证的 npm audit 0 漏洞、229 节点。镜像历史实际密码/代理值比对未发现泄漏。最终源码凭据、链接、围栏/Mermaid 结构与 `git diff --check` 在提交前再核验，不冒充 Mermaid 渲染。
+- 本机每接口 20 次顺序请求 p95：搜索17.83ms、日线30.59ms、均线32.42ms、任务8.02ms；不作为并发容量承诺。
 
-## 6. 已知限制和后续验收
+## 5. 新 Linux 与备份
 
-- 真实 AKShare 稳定性/上游授权、经核验完整交易日历和盘后就绪运维仍待 M5；测试日历/fixture 不证明真实市场可用。
-- 调度当天收盘数据缺失（包括可能停牌）记录 failed；需人工核验。每 daemon/天一批、每股有界重试，耗尽后本日需明确重新运行 --once/重启。覆盖外拒绝执行，不用 weekdays 猜测；更新日历需重启。
-- 自动增量水位不证明历史完整，早期缺口/修正需显式 backfill；全历史指标重算优先正确性，长期大数据量需后续实测优化。
-- 双会话锁约束协作入口，不声称分布式 fencing 或任意直接 Service 调用互斥；崩溃锁释放仍依赖 PostgreSQL 回收。原 M3 已知物理断连窗口已改为正常退出显式 unlock，真实进程崩溃场景由既有 SIGTERM/SIGKILL 测试覆盖。
-- stocks 无逐行来源/时间列，仍 null；指标 source 指当日输入，不是整个窗口全部来源。has_more/空和获取时间不证明覆盖完整/最新。
-- 大成交量超过 JS 安全整数会明确拒绝；图形坐标浮点近似、明细字符串精确。
-- 详情 chunk 约 602 KB（gzip 207 KB）保留 Vite 500 KB 警告，M5 性能复核，不隐藏阈值。
-- Docker daemon Registry 直拉网络与沙箱 socket 限制仍在；生产 SPA 回退/反向代理/访问控制、全新 Linux、备份恢复属于 M5/M6。
+M5-02 通过：官方 Ubuntu Minimal 镜像 SHA-256 已校验，独立 QEMU TCG、Ubuntu24.04.5、内核6.8.0-146-generic、独立 Docker29.1.3。安装后确认零镜像/容器/卷；不共享宿主 socket。按 README 预构建开发镜像路径导入制品、创建新卷，采集前四表0行，迁移无模型差异，真实采集后5223/732/732/6行、独立调度4项成功、重启跳过4项。HTTP/桌面/手机浏览器及复验通过，49个后端与21个前端运行源码哈希与工作区一致。TCG高峰探测启动误报已用compose.acceptance.yaml的30秒预算修正，保留原HTTP探测，最终三服务healthy。无认证信息的本机代理仅传入host/port，未转移凭据。验收VM正常关闭，磁盘/卷保留；详细结果见docs/M5_ACCEPTANCE.md。
 
-## 7. 文档与下一会话
+M5-04 通过：GPG AES-256 归档恢复到独立容器 `stockinsight-m5-restore-1bdd7e`、独立卷、loopback15432。备份时四表5223/732/732/13行，revision1行，内容哈希一致；等价 text cast 规范化后约束/索引一致。临时8002只读 API 搜索/详情/行情/指标/任务五项通过，已停止临时 API。原库后来自动调度新增任务，任务数可能大于备份时13，不是丢失。
 
-已更新 TASKS、CHANGELOG、README、交接、ADR-019、architecture、DEPLOYMENT、FRONTEND_MARKET、COLLECTION_CLI，并新增 MOVING_AVERAGES、SCHEDULER、OPERATIONS。产品方向/总体架构基线不变。
+密钥 `secrets/backup.passphrase`、加密归档 `data/backups/stockinsight-20261011T172650Z.dump.gpg` 均0600、Git忽略。`scripts/backup_postgres.py` 实际输出 `data/backups/m5-script-acceptance.dump.gpg`。明文 dump 未落盘；密钥与归档应异地分开保管。独立恢复实例/卷保留，不自动删除。生产异地/定时/轮转与 RPO/RTO 属于M6。
+
+## 6. 限制与交付边界
+
+stocks 的逐行来源时间仍null，未知状态/上市日期不推断。行情和指标只覆盖4只股票，空响应不证明全覆盖；指标source仅当前日输入。失败任务保留错误，后续成功不抹掉其他任务记录。停牌/目标日缺行仍可见失败，早期缺口需显式 backfill；自动水位不证明全历史完整。
+
+AKShare SDK MIT不授予上游行情公开再分发许可。公开/商业数据展示授权未取得；M5完成的是本地复核，M6需所有者确认许可、认证、HTTPS、最小权限生产账户与运维。本地开发Compose/Vite不直接当生产镜像。目前无需购买服务器。
+
+## 7. 下一步与 Git
+
+**M5-01～05 全部 DONE，v0.1.0 RC 准备完成。**分支 `feature/m5-live-data-acceptance`，最终提交见Git日志；不合并main、不推送、不创建tag/Release。本轮在M5发布候选验收完成后停止，后续合并/同步或进入M6需用户明确指示；远程main已只读核验仍为aa3da561d7054adacf93c01fdff4f9fd5af09ca9。
+
+下一会话可复制任务（仅在用户明确要求公网后）：
 
 ```text
-继续开发 /home/crazychen/myprojects/StockInsight，执行 M5-01：核心后端/前端/migration/端到端验收。先依次阅读 AGENTS.md、PROJECT_PLAN.md、TASKS.md、SESSION_HANDOFF.md、docs/DECISIONS.md 和 M4 三份专题，检查工作区、分支、提交和远程。当前 M4 五项已快进合并 main 并同步 GitHub；从已同步的干净 main 创建 M5 功能分支，保护已有分支和开发库，不自动推送或清库。用 scripts/test_postgres.py 创建新隔离库复现完整回归，整理十类测试证据和真实上游/交易日历/性能/部署边界，完成任务文档及本地提交。M5-02 全新 Linux 与后续任务只按新的授权推进，M6 不启动。
+继续 /home/crazychen/myprojects/StockInsight，执行 M6-01 部署需求与容量评估。先依次阅读 AGENTS.md、PROJECT_PLAN.md、TASKS.md、SESSION_HANDOFF.md、docs/DECISIONS.md、docs/M5_ACCEPTANCE.md，检查实际Git/服务状态。M5已全部验收，本地4只股票真实数据与scheduler正在运行；保护原库/卷及加密备份。先依据实际数据量、预期访问规模、HTTPS/认证/最小权限/数据公开授权条件形成具体方案，不擅自采购、公开部署、发布Release或清库；合并/推送只按用户的新明确授权执行。
 ```
 
-## 8. 服务器与同步
-
-无需购买服务器，尚未满足 M5 MVP、安全、真实上游/授权、全新 Linux 和备份恢复条件。M4 五项已按用户授权合并并同步 GitHub，本同步记录随后的文档提交一并同步；没有公网部署。真实股票/日线/指标/任务库仍为空，常驻调度未启动。M4 完成指 TASKS.md 规定的代码、隔离测试和文档标准，不能表述为页面已有真实行情或自动更新已实际运行。
+验收证据副本在data/acceptance/m5-20261012/（Git忽略）；临时恢复实例已停止但卷保留，原开发db/API/web/scheduler继续运行。

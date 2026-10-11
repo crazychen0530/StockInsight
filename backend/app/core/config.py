@@ -21,6 +21,9 @@ class Settings(BaseModel):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     app_timezone: str = "Asia/Shanghai"
     market_data_timeout_seconds: float = 30.0
+    market_data_daily_interface: Literal["stock_zh_a_hist", "stock_zh_a_hist_tx"] = (
+        "stock_zh_a_hist"
+    )
     database_url: SecretStr | None = None
     test_database_url: SecretStr | None = None
     pg_host: str | None = None
@@ -111,6 +114,7 @@ def load_settings(environ: Mapping[str, str] | None = None) -> Settings:
         "LOG_LEVEL": "log_level",
         "APP_TIMEZONE": "app_timezone",
         "MARKET_DATA_TIMEOUT_SECONDS": "market_data_timeout_seconds",
+        "MARKET_DATA_DAILY_INTERFACE": "market_data_daily_interface",
         "DATABASE_URL": "database_url",
         "TEST_DATABASE_URL": "test_database_url",
         "PGHOST": "pg_host",

@@ -76,12 +76,22 @@ class TradingCalendar:
             )
         return local.date() in self.days and local.time() >= at
 
+    def target_day(self, now: datetime, at: daytime, *, catch_up=False):
+        due = self.due(now, at)  # Always enforce timezone and coverage.
+        local = now.astimezone(SHANGHAI)
+        if due:
+            return local.date()
+        if catch_up:
+            return max((day for day in self.days if day < local.date()), default=None)
+        return None
+
 
 class ReadyProvider:
     """Missing today's close is a visible retryable failure, never a successful stale update."""
 
     def __init__(self, provider, calendar):
         self.provider, self.calendar = provider, calendar
+        self.daily_source = getattr(provider, "daily_source", "akshare")
 
     def fetch_daily_prices(self, symbol, start, end):
         batch = self.provider.fetch_daily_prices(symbol, start, end)
@@ -113,10 +123,10 @@ class AfterCloseScheduler:
             raise ValueError("Invalid scheduler configuration")
         self.initial_start, self.at = initial_start, at
 
-    def tick(self, now):
-        if not self.calendar.due(now, self.at):
+    def tick(self, now, *, catch_up=False):
+        day = self.calendar.target_day(now, self.at, catch_up=catch_up)
+        if day is None:
             return {"status": "not_due", "job_count": 0, "failed_jobs": 0}
-        day = now.astimezone(SHANGHAI).date()
         if day < self.initial_start:
             return {"status": "not_due", "job_count": 0, "failed_jobs": 0}
         results, failures, skipped = [], 0, 0
@@ -160,6 +170,9 @@ def parser():
     result.add_argument("--max-attempts", type=int, default=3)
     result.add_argument("--retry-delay", type=float, default=1)
     result.add_argument("--once", action="store_true")
+    result.add_argument(
+        "--catch-up", action="store_true", help="Update the last completed trading day at startup"
+    )
     return result
 
 
@@ -194,15 +207,16 @@ def main(argv=None):
         attempted = None
         while True:
             now = datetime.now(UTC)
-            day = now.astimezone(SHANGHAI).date()
-            if day != attempted:
-                result = scheduler.tick(now)
+            day = calendar.target_day(now, args.at, catch_up=args.catch_up)
+            if args.once or day != attempted:
+                result = scheduler.tick(now, catch_up=args.catch_up)
                 if result["status"] != "not_due":
                     attempted = day  # Bounded retries once per daemon/day; explicit restart or --once retries failures.
                 if args.once or result["status"] != "not_due":
                     _emit(
                         "scheduler_result",
                         **result,
+                        target_date=day.isoformat() if day else None,
                         calendar_source=calendar.source,
                         coverage_verified=False,
                     )

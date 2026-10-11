@@ -1,0 +1,12 @@
+# Optional deployment of locally prepared artifacts; never pulls a guessed remote image.
+# Use with: docker compose -f compose.yaml -f compose.images.yaml up -d --no-build
+services:
+  api:
+    image: ${STOCKINSIGHT_API_IMAGE:-stockinsight-m5-rc-api}
+    pull_policy: never
+  web:
+    image: ${STOCKINSIGHT_WEB_IMAGE:-stockinsight-m5-rc-web}
+    pull_policy: never
+  scheduler:
+    image: ${STOCKINSIGHT_SCHEDULER_IMAGE:-stockinsight-local-scheduler}
+    pull_policy: never

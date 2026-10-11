@@ -24,5 +24,14 @@ onMounted(load)
       </RequestState>
       <RouterLink class="button-link" to="/stocks">搜索股票 →</RouterLink>
     </div>
+    <div class="panel">
+      <h2>默认行情采集范围</h2>
+      <p>自动更新默认覆盖以下 4 只股票；股票目录中的其他股票需要先补采行情。日线在收盘后更新。</p>
+      <p><RouterLink to="/stocks/000001.SZ">平安银行</RouterLink> ·
+        <RouterLink to="/stocks/600519.SH">贵州茅台</RouterLink> ·
+        <RouterLink to="/stocks/300750.SZ">宁德时代</RouterLink> ·
+        <RouterLink to="/stocks/600036.SH">招商银行</RouterLink></p>
+      <RouterLink to="/data-status">查看实际采集任务状态 →</RouterLink>
+    </div>
   </section>
 </template>

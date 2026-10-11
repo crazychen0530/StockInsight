@@ -44,3 +44,19 @@ PYTHONPATH=backend .venv/bin/python -m app.jobs.scheduler \
 ## 验收证据
 
 固定时钟/模拟日历和 Provider 覆盖上海盘前/盘后、节假日、覆盖不足、非法配置、未就绪和部分成功。全新隔离 PostgreSQL 验证独立连接锁、CLI 采集锁、失败重试、持久成功跳过、失败原 ID 重放、重叠水位和单股成果保留。实际独立 scheduler CLI 子进程经离线 SDK/固定测试时钟两次 --once，首次 partial，第二次跳过成功股票且复用失败 ID，错误不泄漏原文；生产 CLI 没有模拟时钟/数据参数。真实上游稳定性和真实交易日历运维仍留 M5 验收。
+
+## M5 实际运行配置（2026-10-12）
+
+仓库 `config/calendars/sse_szse_2026.json` 根据[上交所全年休市公告](https://www.sse.com.cn/disclosure/announcement/general/c/c_20251222_10802507.shtml)及[深交所全年公告](https://investor.szse.cn/disclosure/notice/general/t20251222_618087.html)的节假日区间与周末休市规则生成，覆盖全年 242 个交易日。调休上班的周末仍休市；日历不猜测临时停市或停牌。到期前更新并重启进程。
+
+`--catch-up` 是显式可选模式：盘前、周末或节假日以最近已收盘交易日为目标；当天到达配置的盘后时间后改为当天。daemon 按目标交易日记录本进程已尝试范围，补昨天不会阻止今天 17:30 的更新；成功水位继续由数据库持久化防重。无日历覆盖仍拒绝执行，失败仍有界重试，不修改时钟。
+
+Compose 的 `automation` profile 提供独立 scheduler，默认 4 只股票及腾讯接口，`restart: unless-stopped`；启动/停机/重启均与 API 分离。首次历史范围与股票名单位于 Compose command，修改后重建容器；不是所有 5,223 只目录股票的行情订阅。配置与真实证据见 [M5 验收](M5_ACCEPTANCE.md)。
+
+```bash
+docker compose --profile automation up -d --no-build scheduler
+docker compose logs --tail 30 scheduler
+docker compose restart scheduler
+# 明确停止自动更新，保留业务数据及容器
+docker compose stop scheduler
+```

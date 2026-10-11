@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+### 2026-10-12 M5 发布候选验收
+
+- 真实目录5,223只；四只默认股票732条不复权日线及732条MA，搜索/K线/均线/数据状态由真实数据驱动，首页明确行情覆盖范围。
+- 显式腾讯日线来源配置，修复CDR范围、JSON浮点尾数、腾讯金额单位尾数及深市000股/手转换；核心Validator不放宽，Repository不判断第三方接口，无Schema变更。
+- 新增2026沪深官方日历、启动补最近收盘日、独立常驻Compose调度与真实重启防重；依赖constraints锁定、BuildKit临时代理secret、预构建开发镜像及软件模拟验收覆盖文件。
+- 完整后端388passed、前端类型/31测试/生产构建、模拟边界和真实桌面/手机浏览器通过；pip-audit与TLS开启的npm audit无已知漏洞。
+- 全新独立Ubuntu/Docker零数据卷部署、迁移无差异、真实采集/调度和浏览器通过；GPG AES-256加密备份、独立PostgreSQL恢复的内容/Schema/API通过，新增可复用备份脚本。
+- M5-01～05全部DONE，v0.1.0 RC准备完成；保留详情chunk警告、股票基础来源时间缺失及上游公开授权边界。未创建tag/Release、推送或公网部署。完整证据见docs/M5_ACCEPTANCE.md。
+
 ### Added
 
 - M3-01：新增股票列表/搜索、详情与显式区间日线 GET API，稳定分页/日期排序/上限、安全错误、只读事务与并发快照；复用既有服务和持久化层，无新依赖或 Schema。
@@ -56,7 +65,7 @@
 - 新增 Vite `/api` 开发代理，保留原生开发默认目标；开发镜像采用非 root 应用用户和只读源码挂载。
 - 完成本地 Compose 构建、健康、网络数据库连接、显式 migration、HTTP、隔离库全后端回归、容器前端测试及持久卷停止/恢复验收。
 
-### Known limitations
+### Known limitations（M2 阶段历史记录；当前状态见 docs/M5_ACCEPTANCE.md）
 
 - Milestone 1、Milestone 2 与 M3-01 已完成；本地采集 CLI 和查询 API 经模拟来源/真实隔离库验收，真实上游稳定性与行情页面尚未验收/实现。
 - 全量首轮既有采集测试出现一次 advisory lock 冲突；新隔离库复跑通过，连接物理关闭与锁释放潜在竞态待后续调查。

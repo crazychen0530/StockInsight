@@ -69,5 +69,30 @@ services:
       retries: 12
       start_period: 10s
 
+  scheduler:
+    profiles: [automation]
+    build:
+      context: ./backend
+      args:
+        INSTALL_EXTRAS: dev,market-data
+    restart: unless-stopped
+    environment:
+      APP_ENV: development
+      DATABASE_URL: postgresql+psycopg:///${POSTGRES_DB:-stockinsight}
+      PGHOST: db
+      PGPORT: "5432"
+      PGDATABASE: ${POSTGRES_DB:-stockinsight}
+      PGUSER: ${POSTGRES_USER:-stockinsight}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set a private local password in .env}
+      MARKET_DATA_DAILY_INTERFACE: ${MARKET_DATA_DAILY_INTERFACE:-stock_zh_a_hist_tx}
+      MARKET_DATA_TIMEOUT_SECONDS: "120"
+    volumes:
+      - ./backend:/workspace/backend:ro
+      - ./config/calendars:/workspace/calendars:ro
+    command: [python, -m, app.jobs.scheduler, --calendar, /workspace/calendars/sse_szse_2026.json, --symbol, "000001.SZ", --symbol, "600519.SH", --symbol, "300750.SZ", --symbol, "600036.SH", --initial-start, "2026-01-05", --catch-up]
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   postgres_data:

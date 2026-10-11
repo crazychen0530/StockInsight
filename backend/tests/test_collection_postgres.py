@@ -255,7 +255,7 @@ def test_actual_cli_partial_failed_inspection_and_resume_offline(jobs, tmp_path)
 from pathlib import Path
 class Frame:
     columns=[]
-    def to_json(self,**kwargs): return Path({str(fixture)!r}).read_text()
+    def to_dict(self,**kwargs): return __import__("json").loads(Path({str(fixture)!r}).read_text())
 def stock_zh_a_hist(**kwargs):
     print('password=fixture-secret')
     if kwargs['symbol']=='000002': raise KeyError('password=fixture-secret')
@@ -363,7 +363,7 @@ def stock_zh_a_hist(**kwargs):
 from pathlib import Path
 class Frame:
     columns=[]
-    def to_json(self,**kwargs): return Path({str(fixture)!r}).read_text()
+    def to_dict(self,**kwargs): return __import__("json").loads(Path({str(fixture)!r}).read_text())
 def stock_zh_a_hist(**kwargs): return Frame()
 """)
     result = subprocess.run(

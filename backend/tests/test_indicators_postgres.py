@@ -343,7 +343,7 @@ def test_actual_scheduler_cli_once_restart_and_safe_errors(market, tmp_path):
 from pathlib import Path
 class Frame:
     columns=[]
-    def to_json(self, **kwargs): return Path({str(fixture)!r}).read_text()
+    def to_dict(self, **kwargs): return __import__("json").loads(Path({str(fixture)!r}).read_text())
 def stock_zh_a_hist(**kwargs):
     if kwargs['symbol']=='000002': raise KeyError('password=fixture_scheduler_private')
     return Frame()

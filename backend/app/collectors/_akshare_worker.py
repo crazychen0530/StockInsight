@@ -10,7 +10,11 @@ from datetime import date
 
 def main() -> int:
     request = json.load(sys.stdin)
-    if request["interface"] not in {"stock_info_a_code_name", "stock_zh_a_hist"}:
+    if request["interface"] not in {
+        "stock_info_a_code_name",
+        "stock_zh_a_hist",
+        "stock_zh_a_hist_tx",
+    }:
         return 11
     # Third-party logs/progress/raw exception messages never cross into app output.
     logging.disable(logging.CRITICAL)
@@ -22,11 +26,16 @@ def main() -> int:
             return 13
         try:
             frame = getattr(akshare, request["interface"])(**request["parameters"])
-            if "日期" in frame.columns:
-                frame["日期"] = frame["日期"].map(
+            for column in ("日期", "date"):
+                if column not in frame.columns:
+                    continue
+                frame[column] = frame[column].map(
                     lambda value: value.isoformat() if isinstance(value, date) else value
                 )
-            payload = frame.to_json(orient="split", date_format="iso", double_precision=15)
+            # pandas' JSON encoder exposes binary float tails (e.g. 1399.47
+            # becomes 1399.470000000000027). Python's shortest round-trip
+            # representation preserves the SDK value without inventing precision.
+            payload = json.dumps(frame.to_dict(orient="split"), default=str, allow_nan=False)
         except Timeout:
             return 10
         except (KeyError, ValueError, TypeError, AttributeError):

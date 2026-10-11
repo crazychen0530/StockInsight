@@ -1,15 +1,15 @@
 # StockInsight 部署规划
 
-> 状态：M1 基础工程与本地 Compose 已验收；生产部分仍为规划
+> 状态：本地真实采集与独立自动更新已运行；M5 验收见专题，生产部分仍为规划
 >
-> 当前阶段：Milestone 0–4 已完成；开发早期不购买服务器
+> 当前阶段：M0–M5 全部完成，v0.1.0 RC 就绪；尚不购买服务器
 
 ## 1. 本地开发部署方式
 
 M1 支持两种本地方式，具体命令见 [README.md](../README.md#本地-docker-compose)：
 
 1. 混合开发：Docker Compose 运行 PostgreSQL，后端和前端使用宿主机开发服务器，以便调试和热更新。
-2. 全容器开发：使用根目录 `compose.yaml` 运行 `db`、`api`、`web`。M1-05 不创建 Worker/Scheduler 业务入口，待对应任务实现后再加入独立进程。
+2. 全容器开发：使用根目录 `compose.yaml` 运行 `db`、`api`、`web`。M5 可显式启用 automation profile 加入独立 scheduler；默认三服务不采集。
 
 本地配置从 `.env.example` 派生到不进入 Git 的 `.env`。数据库 migration 必须由明确的 Alembic 命令执行，不允许应用启动时隐式修改 Schema。测试数据库与开发数据库隔离。
 
@@ -87,7 +87,7 @@ M5 后必须用实际股票数量、历史区间、数据库体积、采集耗�
 6. PostgreSQL 备份与独立恢复演练通过。
 7. 项目所有者明确决定需要公网访问并批准预算和部署。
 
-当前完成 M0 及 M1-01 至 M1-06，仍不满足购买条件。M1-06 保持三服务和持久卷不变，显式注入环境/日志级别/时区，禁用原始 Uvicorn access log，使用带服务端关联 ID 的脱敏 JSON 日志。`APP_ENV=production` 不等于完成生产访问控制或安全验收。
+当前真实本地运行与 M5 验收不等于公网授权，仍不满足购买条件。M1 阶段记录：M1-06 保持三服务和持久卷不变，显式注入环境/日志级别/时区，禁用原始 Uvicorn access log，使用带服务端关联 ID 的脱敏 JSON 日志。`APP_ENV=production` 不等于完成生产访问控制或安全验收。
 
 ## 6. 域名与 HTTPS 配置方案
 
@@ -145,15 +145,14 @@ M5 后必须用实际股票数量、历史区间、数据库体积、采集耗�
 
 ## 11. 当前部署状态
 
-- 未购买云服务器。
-- 未配置域名、TLS、生产 Compose、CI/CD 或 Registry。
-- 已建立本地 Compose PostgreSQL 16.15 持久开发库，达到 `0001_initial_schema`，四张业务表为空；隔离测试库完成后端 9 个测试，无跳过。
-- 三服务均 healthy，API 连接数据库、直连与代理健康接口、Vite 页面和停止/恢复持久性均通过；本次结束保持服务运行。
-- 本机直接 pull 仍超时，官方镜像经用户态代理下载并导入；未创建生产实例，备份恢复演练仍待执行。
-- 已配置 GitHub 私有远程仓库并完成 `main` 首次同步，但尚未建立 CI/CD 发布流程。
+- 未购买云服务器，未配置域名、TLS、生产 Compose、公开 Registry 或 CI/CD 发布。
+- 本地开发库 revision `0001_initial_schema`、股票 5,223、日线/指标各 732；默认 4 只股票，保留原卷。
+- db/API/web healthy，automation scheduler 常驻，全部宿主端口仅 loopback；真实采集与重启防重已验收。
+- 加密备份已在独立 PostgreSQL 实例恢复并核对完整内容、约束、索引与 API；没有删除原库/卷。
+- 全新 Ubuntu 独立 VM/Docker 的具体步骤和结果见 [M5 验收](M5_ACCEPTANCE.md)，不以原开发环境替代。
+- M4 main 已同步私有 GitHub，M5 在功能分支完成后另按授权同步；本地开发镜像不直接宣称可公网生产部署。
 
-本地完成状态仅适用于本次开发机验收；生产章节仍是后续实施与验收依据。全新 Linux 环境部署、采集稳定性和生产安全验收不能由本次基础工程验收替代。
-
+以下 M2/M3/M4 小节是当时的阶段记录，当前状态以本节与 M5 专题为准。
 
 ## M2-05 本地采集进程
 
@@ -170,3 +169,9 @@ M5 后必须用实际股票数量、历史区间、数据库体积、采集耗�
 ## M4 本地分析与调度入口
 
 M4 已完成均线、指标/任务状态只读 API、详情均线与 `/data-status`、独立宿主机调度 CLI。调度沿用独立进程设计；默认 Compose 仍仅 db/api/web，原卷保留，不自动启动网络采集。无需新依赖、数据库迁移或服务器。参见[均线](MOVING_AVERAGES.md)、[调度](SCHEDULER.md)和[运维操作](OPERATIONS.md)。生产进程监督、账号权限、真实日历/上游验收、全新 Linux、备份恢复仍属于 M5/M6，不能用本地测试替代。
+
+## M5 本地自动更新与验收入口
+
+默认三服务不采集；用户显式启用 `automation` profile 后，独立 scheduler 按已核验 2026 日历与 4 只股票名单执行真实采集，带启动补齐和持久防重。所有端口仍仅 loopback，数据库卷保留。构建使用 `backend/constraints.txt` 锁定已审计 Python 3.12 依赖，前端使用 `package-lock.json`。Dockerfile 可选 BuildKit `build_proxy` secret，仅在依赖安装 RUN 中读取，禁止将带凭据代理作为 build args。
+
+详细命令见 [README](../README.md#真实采集与自动更新)，真实数据、全新 Linux、依赖审计及加密备份恢复的证据统一见 [M5 验收报告](M5_ACCEPTANCE.md)。本地开发 Compose 包含 dev 依赖及 Vite，不直接宣称满足公网生产部署；M6 的 HTTPS、认证、最小权限生产账户、告警、日志轮转与异地备份另行实施。

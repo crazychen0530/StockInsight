@@ -55,8 +55,8 @@ class SourceProvider:
     def __init__(self, provider, source):
         self.provider, self.source = provider, source
 
-    def _check(self, batch):
-        if batch.source != self.source:
+    def _check(self, batch, expected_source=None):
+        if batch.source != (expected_source or self.source):
             raise ApplicationError("provider_source_mismatch", "Provider source mismatch", 422)
         return batch
 
@@ -64,7 +64,10 @@ class SourceProvider:
         return self._check(self.provider.fetch_stocks())
 
     def fetch_daily_prices(self, symbol, start_date, end_date):
-        return self._check(self.provider.fetch_daily_prices(symbol, start_date, end_date))
+        return self._check(
+            self.provider.fetch_daily_prices(symbol, start_date, end_date),
+            getattr(self.provider, "daily_source", self.source),
+        )
 
 
 class CollectionRunner:

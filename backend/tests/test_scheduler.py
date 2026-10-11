@@ -120,3 +120,45 @@ def test_calendar_file_duplicate_and_safe_cli_failure(tmp_path, capsys):
         == 2
     )
     assert "invalid_scheduler_configuration" in capsys.readouterr().out
+
+
+def test_catchup_uses_last_closed_day_and_advances_at_close():
+    service, repo, runner = scheduler()
+    before_close = NOW.replace(hour=8)
+    assert CALENDAR.target_day(before_close, time(17, 30), catch_up=True) == START
+    assert CALENDAR.target_day(NOW, time(17, 30), catch_up=True) == END
+    assert CALENDAR.target_day(NOW.replace(day=30), time(17, 30), catch_up=True) == END
+    assert CALENDAR.target_day(NOW.replace(day=1), time(17, 30), catch_up=True) is None
+    service.tick(before_close, catch_up=True)
+    assert all(call.args[1] == START for call in repo.scope.call_args_list)
+    assert runner.run.call_count == 2
+    with pytest.raises(ApplicationError):
+        CALENDAR.target_day(NOW.replace(month=11), time(17, 30), catch_up=True)
+
+
+def test_once_before_due_exits_without_fetching_or_waiting(monkeypatch, capsys):
+    import app.jobs.scheduler as module
+
+    monkeypatch.setattr(module.TradingCalendar, "load", lambda _: CALENDAR)
+    monkeypatch.setattr(module, "datetime", SimpleNamespace(now=lambda _: NOW.replace(hour=8)))
+    engine = MagicMock()
+    monkeypatch.setattr(module, "create_configured_database_engine", lambda _: engine)
+    constructor = MagicMock()
+    monkeypatch.setattr(module, "CollectionRunner", constructor)
+    assert (
+        module.main(
+            [
+                "--calendar",
+                "fixture-not-read.json",
+                "--symbol",
+                "000001.SZ",
+                "--initial-start",
+                START.isoformat(),
+                "--once",
+            ]
+        )
+        == 0
+    )
+    constructor.return_value.run.assert_not_called()
+    engine.dispose.assert_called_once()
+    assert '"status": "not_due"' in capsys.readouterr().out

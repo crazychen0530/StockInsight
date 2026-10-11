@@ -68,3 +68,11 @@
 现有 Compose API 镜像仅安装 `.[dev]`，未重建或安装可选 SDK；继续提供基础 HTTP 服务。未来 Worker 镜像需显式安装 market-data extra 并注入 timeout；当前不提供采集启动入口。未改变 Compose 服务、数据库表或卷，不需要 migration。
 
 真实上游样本、限流、完整性、稳定性及公开/商业使用许可尚未验证或确认。离线契约测试通过不等于真实行情采集、数据库存储或端到端业务验收。当前继续本地开发，无服务器采购需求。
+
+## M5 真实上游修正
+
+显式环境配置 `MARKET_DATA_DAILY_INTERFACE` 可选 `stock_zh_a_hist`（默认东方财富）或 `stock_zh_a_hist_tx`（腾讯）；Compose automation 默认腾讯。不会失败后静默切换。腾讯行持久来源为 `akshare_tx`，任务 scope 的 `akshare` 表示采集器家族，实际日线来源由 Provider 声明并经 SourceProvider 校验；Repository 不判断第三方接口。字段按[AKShare 官方说明](https://github.com/akfamily/akshare/blob/main/docs/data/stock/stock.md)和安装的 1.19.1 源码核验：腾讯 volume 已为股、amount 已为元，不重复乘 100/10,000。该版本错误地将深市 `000xxx` 股票划入指数分支，适配层为该段补足一次手转股；主板/创业板其他段及科创板沿用 SDK 的股单位。
+
+SDK DataFrame 改用 Python 最短往返数字表示，消除 Pandas `double_precision=15` 制造的浮点尾数，不降低 Validator 存储精度标准。腾讯 SDK 金额乘 10,000 的二进制尾数仅允许在 2 个 IEEE-754 ULP 内还原为分，且 ULP 必须小于半分；有意义的分以下金额仍拒绝。CDR `689xxx.SH` 与北京股票在股票目录适配入口排除，核心代码 Validator 不放宽。
+
+2026-10-12 东方财富日线多次连接失败，腾讯接口实际采集通过；完整证据见 [M5 验收](M5_ACCEPTANCE.md)。上游开源 SDK 的 MIT 许可不等于其聚合数据可公开转载或商业使用。
