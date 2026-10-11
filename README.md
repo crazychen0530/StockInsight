@@ -1,13 +1,13 @@
 # StockInsight
 
-StockInsight 是面向个人投资研究的中国 A 股行情与风险分析 Web 平台。当前已完成 **Milestone 1：基础工程与 Milestone 2：本地行情采集**；后端健康接口可运行，但尚未提供股票行情业务功能。
+StockInsight 是面向个人投资研究的中国 A 股行情与风险分析 Web 平台。当前已完成 **Milestone 1：基础工程与 Milestone 2：本地行情采集**；已提供本地数据库股票查询 API，行情页面尚未实现。
 
 项目不会连接券商或执行真实交易，不承诺收益，也不会把未经验证的预测作为确定的投资建议。
 
 ## 当前状态
 
 - 目标版本：v0.1.0
-- 当前阶段：Milestone 0、Milestone 1、Milestone 2 已完成；下一任务为 M3-01
+- 当前阶段：Milestone 0、Milestone 1、Milestone 2 已完成；M3-01 已完成，下一任务为 M3-02
 - 已建立：项目基线、开发环境、FastAPI 健康接口、四张 ORM 模型和初始 migration、Vue/Vite 前端壳及测试入口
 - 已新增：本地三服务 Compose、隔离配置、JSON 脱敏日志、统一错误响应和请求关联 ID
 - 已新增：[Provider 契约与 AKShare 适配](docs/MARKET_DATA_PROVIDER.md)，包含固定 fixture 离线测试；未验收真实联网采集
@@ -15,7 +15,8 @@ StockInsight 是面向个人投资研究的中国 A 股行情与风险分析 Web
 - 已新增：[股票基础信息同步与搜索持久化](docs/STOCK_PERSISTENCE.md)，含幂等 UPSERT、未知信息保护及真实 PostgreSQL 隔离库验收
 - 已新增：[日线采集与区间补采持久化](docs/DAILY_PRICE_PERSISTENCE.md)，含幂等 UPSERT、单股事务和跨股部分失败；模拟来源/真实隔离库验收通过
 - 已新增：[本地采集 CLI、任务与恢复](docs/COLLECTION_CLI.md)，含安全错误摘要、有界退避、活动任务防重和幂等原范围恢复
-- 未实现：股票业务 API、行情页面、指标计算和自动调度；未验收真实联网采集稳定性
+- 已新增：[股票列表、详情与日线查询 API](docs/STOCK_QUERY_API.md)，含分页/上限、安全错误、来源时间与精确金额契约
+- 未实现：行情页面、指标计算和自动调度；未验收真实联网采集稳定性
 
 ## v0.1.0 计划范围
 
@@ -292,7 +293,7 @@ curl --noproxy '*' http://127.0.0.1:4173/
 
 ### 本地功能分支合并示例
 
-以下命令适用于工作区干净、任务验收通过、功能分支包含目标 main 全部历史且未分叉的情形。M1 已合并并推送 main，三个已合并本地 M1 分支已清理、远程功能分支保留。以下以未来完成的 M2-01 分支为示例，当前还未创建该分支，不能直接执行合并；实际状态见交接文档。
+以下命令适用于工作区干净、任务验收通过、功能分支包含目标 main 全部历史且未分叉的情形。M1 已合并并推送 main，三个已合并本地 M1 分支已清理、远程功能分支保留。以下仅为合并操作示例；实际目标分支与授权状态见交接文档，不直接执行。
 
 ```bash
 git status --short --branch
@@ -313,4 +314,4 @@ git push origin main
 git status --short --branch
 ```
 
-确认 main 已包含完整基础工程后，下一任务从 main 新建 `feature/m2-01-market-data-provider`。本地合并不等于部署，也不会自动执行数据库 migration。
+下一任务为 M3-02，须基于已完成的 M3-01 提交创建功能分支，详见交接文档。本地合并不等于部署，也不会自动执行数据库 migration。

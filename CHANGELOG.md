@@ -6,6 +6,9 @@
 
 ### Added
 
+- M3-01：新增股票列表/搜索、详情与显式区间日线 GET API，稳定分页/日期排序/上限、安全错误、只读事务与并发快照；复用既有服务和持久化层，无新依赖或 Schema。
+- 新增 28 单元与 5 PostgreSQL API 测试，完整 356 passed；日线保留来源/UTC 时间/不复权/单位和 Decimal 字符串，股票缺失来源/时间明确 null。详见 docs/STOCK_QUERY_API.md、ADR-017。
+
 - M2-05：新增受控本地 stocks/daily/jobs/resume CLI、每股持久任务与安全错误摘要、Provider 有界退避、协作采集锁/活动防重、提交后 checkpoint 与原范围幂等恢复。
 - 新增 26 单元和 10 PostgreSQL 测试，覆盖全/部分失败、重复运行、真实进程中断与提交后恢复；复用已有服务、配置和模型，无 Schema、业务 API 或前端变化。详见 docs/COLLECTION_CLI.md、ADR-016。
 
@@ -55,7 +58,8 @@
 
 ### Known limitations
 
-- Milestone 1 与 M2-01 至 M2-04 已完成；基础信息与日线持久化经模拟来源/真实隔离数据库验收，真实上游稳定性尚未验收；CLI/任务状态/重试断点、业务 API 与行情页面尚未实现。
+- Milestone 1、Milestone 2 与 M3-01 已完成；本地采集 CLI 和查询 API 经模拟来源/真实隔离库验收，真实上游稳定性与行情页面尚未验收/实现。
+- 全量首轮既有采集测试出现一次 advisory lock 冲突；新隔离库复跑通过，连接物理关闭与锁释放潜在竞态待后续调查。
 - 本地 Compose 已验收；生产部署、全新 Linux 环境验证和备份恢复仍待完成。
 - 当前唯一 Alembic head 为 `0001_initial_schema`，本地持久开发库已升级；不包含真实或模拟行情数据。
 - 当前 daemon 直接拉取 Docker Hub 超时；已通过用户态工具经既有代理下载官方镜像并导入，未变更系统 daemon 配置。后端依赖和基础镜像 digest 尚未完全锁定。

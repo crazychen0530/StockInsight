@@ -1,24 +1,24 @@
 # StockInsight 会话交接
 
-> 更新时间：2026-10-11（Asia/Shanghai）
+> 更新时间：2026-10-12（Asia/Shanghai；M3-01 验收于 10-11 完成，跨午夜收尾）
 >
 > 本文件记录可核验的当前状态。新会话开始时必须结合 Git、任务清单和实际环境重新确认；不得把规划内容当作已实现功能。
 
 ## 1. 当前版本与里程碑
 
 - 目标版本：`v0.1.0`
-- 当前完成阶段：Milestone 0、Milestone 1（六项全部 DONE）与 Milestone 2（五项全部 DONE）
-- 当前完成任务：M1-01 环境、M1-02 后端、M1-03 前端、M1-04 ORM/migration、M1-05 Compose、M1-06 配置/日志/异常/fixture，以及 M2-01 Provider 契约与 AKShare 适配、M2-02 独立 Validator、M2-03 基础信息同步与搜索持久化、M2-04 日线采集与补采持久化、M2-05 本地 CLI/任务/重试/恢复
-- 下一任务：M3-01（股票列表、详情和行情查询 API）
-- 当前交付性质：基础工程已验收，不等于 v0.1.0 MVP 完成；Provider/Validator 离线及基础信息/日线模拟来源与真实隔离库验收完成，已有本地 CLI/任务/重试/恢复，尚无股票业务 HTTP API、K 线或均线业务
+- 当前完成阶段：Milestone 0、Milestone 1（六项全部 DONE）、Milestone 2（五项全部 DONE）及 M3-01
+- 当前完成任务：M1-01 环境、M1-02 后端、M1-03 前端、M1-04 ORM/migration、M1-05 Compose、M1-06 配置/日志/异常/fixture，以及 M2-01 Provider 契约与 AKShare 适配、M2-02 独立 Validator、M2-03 基础信息同步与搜索持久化、M2-04 日线采集与补采持久化、M2-05 本地 CLI/任务/重试/恢复，以及 M3-01 股票查询 API
+- 下一任务：M3-02（统一前端 API 客户端、路由和页面框架）
+- 当前交付性质：基础工程已验收，不等于 v0.1.0 MVP 完成；Provider/Validator 离线及基础信息/日线模拟来源与真实隔离库验收完成，已有本地 CLI/任务/重试/恢复，已有股票列表/详情/日线 HTTP API，尚无行情页面、K 线或均线业务
 
 ## 2. 当前 Git 状态
 
-- 当前分支：`main`。经用户明确授权，已执行 `git merge --ff-only feature/m2-05-collection-cli`，由 `19c6ba4` 快进至 M2 交付提交 `ca50c94`，无冲突、无额外 merge commit，合并前后业务代码树一致。
-- 已执行 `git push origin main`，GitHub main 由 `19c6ba4` 更新至 `ca50c94`，随后 `git ls-remote --heads origin main` 核验一致；M2-01 至 M2-05 五个功能提交全部进入本地和 GitHub main。
-- 本同步记录另形成 `docs: record M2 integration and main synchronization` 并随本轮授权推送 main；最终准确 SHA/状态以 `git log -3 --oneline --decorate`、`git status --short --branch` 和远程核验结果为准。
-- 保留全部本地/远程功能分支；没有强推、删分支、删卷、迁移开发库或部署公网。
-- 下一任务从干净且与远程同步的 main 创建 `feature/m3-01-stock-query-api`；后续推送仍须对应授权。
+- 当前分支：`feature/m3-01-stock-query-api`，从干净且已同步的 main `68589318270c713fe0a7d59318407c5ee94197ec` 创建。
+- M2 代码 `ca50c94` 与同步记录 `6858931` 均已进入本地/GitHub main；本轮开始以 `git ls-remote --heads origin main` 核验准确 SHA 一致。
+- M3-01 形成单一 `feat: add stock and daily price query APIs` 本地逻辑提交；准确 SHA 通过 `git log -1 --oneline` 核验，提交完成后工作区应干净。
+- 本轮未合并 main、未 push、未删除分支/卷、未修改开发库 Schema 或部署公网。main 保持 `6858931`；后续合并/推送须对应授权。
+- 下一任务基于验收后的 M3-01 提交创建 `feature/m3-02-frontend-api-framework`，不能直接从尚未合并 M3-01 的旧 main 开始。
 
 ## 3. 已完成功能
 
@@ -93,22 +93,41 @@ M2-05 新增：
 - checkpoint 只在业务提交后记录实际返回记录；提交后崩溃仍可幂等重放原区间，成功任务恢复为空操作。恢复重置本次 started_at/结束时间/计数，未保存逐次历史。
 - 新增 26 单元/10 PostgreSQL 测试，完整 323 passed 无 skip；包含真实 SIGTERM SDK 回收、SIGKILL 接管与提交后崩溃窗口。详见 [CLI 专题](docs/COLLECTION_CLI.md)、ADR-016。无新依赖/Schema。
 
-尚未实现股票业务 HTTP API、指标计算、定时任务或行情业务页面。Provider/Validator 通过不证明真实证券存在、完整日历或真实报价；基础信息与日线模拟来源/真实隔离库验收不等于真实上游采集验收。stocks 无逐行来源/版本审计列，本次仅在同步收据保留元数据，不新增 Schema。
+M3-01 新增：
+
+- GET /api/v1/stocks、/stocks/{symbol}、/stocks/{symbol}/prices：Pydantic 契约、复用搜索/Validator、稳定分页、闭区间升序/上限/has_more、安全 422/404/503。
+- Router -> StockQueryService -> Repository -> Database；延迟创建应用级只读事务工厂，lifespan dispose，健康独立；列表/日线分别保持 REPEATABLE READ 同快照。
+- 股票 source/fetched_at 明确 null；日线逐行来源/UTC 获取时间、Decimal 字符串、CNY/股/不复权；不触发 Provider/采集/计算或 migration。
+- 新增 28 单元与 5 PostgreSQL API 测试，完整 356 passed 无 skip；详见[查询 API 专题](docs/STOCK_QUERY_API.md)、ADR-017。无新依赖/Schema/前端/部署变化。
+
+尚未实现指标计算、定时任务或行情业务页面。Provider/Validator 通过不证明真实证券存在、完整日历或真实报价；基础信息与日线模拟来源/真实隔离库验收不等于真实上游采集验收。stocks 无逐行来源/版本审计列，本次仅在同步收据保留元数据，不新增 Schema。
 
 ## 4. 正在开发的功能
 
-M2 五项全部完成并本地提交；本次结束保持原有三服务运行。M3-01 待下一任务启动。
+M3-01 已完成并形成本地提交；本次结束保持原有三服务运行。下一任务 M3-02。
 
 ## 5. 未完成任务
 
 下一阶段优先任务来自 `TASKS.md`：
 
-1. M3-01：股票列表、详情和行情查询 API。
-2. M3：股票查询 API、搜索/详情页、K 线与成交量；M4：均线和自动更新；M5：完整 MVP 验收。
+1. M3-02：统一前端 API 客户端、路由和页面框架。
+2. M3：搜索/详情页、K 线与成交量；M4：均线和自动更新；M5：完整 MVP 验收。
 
 按里程碑推进，不提前实现实时行情、AI 预测、自动交易或其他未批准范围。
 
 ## 6. 最近一次实际测试及结果
+
+最新：M3-01 股票查询 API 验收（2026-10-11）：
+
+- 开始环境脚本全部通过，三服务 healthy；干净 main 与 GitHub main 均为 `6858931`，创建 M3-01 功能分支。
+- `.venv/bin/python -m pytest backend -q -m 'not postgres'`：322 passed、29 deselected（新增 PostgreSQL 模块前的离线阶段）。
+- `python3 /tmp/stockinsight-m301-check.py`：临时 runner 仅在进程内读取本地凭据，用 PG* 和无密码 URL 创建五个全新数据库，再执行 `.venv/bin/python -m pytest backend -q`。最终 **356 passed，无 skip，10.79s**，含新增 28 单元/5 PostgreSQL API 测试、既有采集与独立 migration 升降级。
+- 最终数据库前缀 `m3_01_20261011_1557_d040ec`，后缀分别 `_stocks_test`、`_prices_test`、`_jobs_test`、`_migration_test`、`_query_api_test`。首次前缀 `m3_01_20261011_1555_8cd9f7` 一轮为 355 passed/1 failed：既有 `test_partial_then_all_failure_preserves_commits` 连续采集获得 `collection_busy`。ownership 现有 finally 物理断开而不显式 unlock，可能存在 PostgreSQL 端异步断连释放窗口；这是待调查假设，本轮未改采集代码。换全新空库复跑全部通过，不隐去首次失败；两个批次测试库保留，不复用或删除。
+- `.venv/bin/ruff check backend`、`.venv/bin/ruff format --check backend`（58 files）、`.venv/bin/python -m pip check` 通过。前端未修改，未重复前端构建/测试。
+- 真实本机 HTTP：8000 健康/空列表 200、详情/无本地股票日线 404、反向日期 422；5173 代理空列表 200；OpenAPI 精确四项 GET 路径。开发库仍 `0001_initial_schema`、四张业务表均 0 行；db/api/web healthy，仅绑定 loopback，原卷保留。
+- 收尾文档链接/围栏/Mermaid 结构、敏感信息检查、`git diff --check` 通过。无新 revision、实时行情请求、开发库模拟数据写入或公网部署。
+
+以下为历史验收记录：
 
 最新同步检查（2026-10-11）：
 
@@ -277,7 +296,8 @@ M1-02 当时未运行前端、数据库连接或 migration 升降级测试；后
 - 当前没有已确认的后端健康接口、Provider/Validator、基础信息或日线持久化 Bug；真实上游尚未验收。
 - Docker daemon 已启动，提升权限后可达；沙箱 socket 权限受限。daemon 直接拉取 Docker Hub 仍超时；本次通过用户态代理下载并导入官方镜像完成验收，系统 daemon 代理问题未作全局修改。
 - 外部环境设置了 `NODE_TLS_REJECT_UNAUTHORIZED=0`；该配置会关闭 Node TLS 校验。本次已通过临时取消变量的 Registry ping 和 `npm ci` 验证正常 TLS 可用，后续安装不得依赖该不安全变量。
-- 这不代表系统无缺陷；完整日历、独立调度、股票 HTTP API 和前端业务功能尚未实现。
+- 首轮全量既有采集锁测试出现一次 collection_busy，换新库复跑通过；物理断连后锁释放窗口为待调查假设，未在 M3-01 修改采集互斥实现。
+- 这不代表系统无缺陷；完整日历、独立调度和前端业务功能尚未实现。
 
 ## 8. 未解决的技术风险
 
@@ -306,6 +326,7 @@ M1-02 当时未运行前端、数据库连接或 migration 升降级测试；后
 - 远程 `feature/m1-06-runtime-foundation` 保持 `b0c4fe641513aa4c663e4c0b7749bf1b414b7836`，未删除或改写；m1-04/m1-05 未单独建立远程分支，其提交已随完整 M1 进入远程 main。
 - 三个本地 M1 功能分支已在确认同步成功且全部合并后，以 `git branch -d` 安全删除；没有强制删除、删除代码、重写历史、创建 PR/Release 或发布公网。
 - 未执行强制推送、版本发布或远程分支删除。
+- M3-01 在 feature/m3-01-stock-query-api 形成本地提交，尚未合并/推送；main 及 origin/main 仍为 6858931。
 - 后续每个验收通过的功能形成逻辑提交；只有获得当次授权后才执行 push。
 
 ## 11. 下一个 Codex 会话的具体任务
@@ -313,11 +334,11 @@ M1-02 当时未运行前端、数据库连接或 migration 升降级测试；后
 可直接复制以下指令：
 
 ```text
-继续开发 /home/crazychen/myprojects/StockInsight，只执行 M3-01：股票列表、详情和行情查询 API。
+继续开发 /home/crazychen/myprojects/StockInsight，只执行 M3-02：统一前端 API 客户端、路由和页面框架。
 
-依次阅读 AGENTS.md、PROJECT_PLAN.md、TASKS.md、SESSION_HANDOFF.md、docs/DECISIONS.md、docs/DEPLOYMENT.md、docs/STOCK_PERSISTENCE.md、docs/DAILY_PRICE_PERSISTENCE.md、docs/COLLECTION_CLI.md；检查 Git 状态、最近提交、远程和环境。
+依次阅读 AGENTS.md、PROJECT_PLAN.md、TASKS.md、SESSION_HANDOFF.md、docs/DECISIONS.md、docs/DEPLOYMENT.md、docs/STOCK_QUERY_API.md 及前端源代码/测试；检查 Git 状态、最近提交、远程和环境。
 
-核验 main 已包含 M2 交付 ca50c94 且与 origin/main 同步，从干净 main 创建 feature/m3-01-stock-query-api；保留现有功能分支，未经授权不合并或 push。复用 Service/Repository、统一配置/日志/错误、Pydantic 和 Provider DTO/Validator 边界，实现本地数据库只读股票列表/搜索、详情、显式区间日线查询 API；明确分页/上限、代码与日期校验、空/不存在语义、单位/不复权、来源和更新时间。请求不访问 Provider、不触发采集或计算；stocks 当前无逐行来源/更新时间，不能编造或擅自新增 Schema，先审查既有设计，必要时提出 Proposed 决策等待确认。覆盖契约/分页/排序/非法参数/404/空数据/安全错误和来源元数据，固定模拟值与全新独立 PostgreSQL 测试库，完整 migration 回归另用新空 *_migration_test；保留开发库 stockinsight 和原卷。不提前实现前端、指标、调度、HTTP 采集或公网部署。完成测试、文档、逻辑提交，未经授权不 push、不合并 main、不删卷。
+核验 feature/m3-01-stock-query-api 的验收提交，基于该提交创建 feature/m3-02-frontend-api-framework（若所有者已授权并完成 main 合并同步，则从该 main 创建）。保护原有分支/改动，不自行合并或 push。实现统一前端 API 客户端、类型化股票/日线/错误契约、路由与页面框架；复用 Vite /api 代理、统一 request_id/错误响应，正确处理 Decimal 字符串、null 来源时间、空响应和请求失败；无密钥。按实际需要引入规划内依赖并维护锁文件，使用 Node 22、正常 TLS。M3-03 搜索到详情业务主路径和 Dashboard 数据展示、M3-04 K线图、M4 指标/调度不提前实现。运行前端类型/组件测试/构建及适当代理冒烟，后端变更才跑相关回归。保留开发库、卷和三服务，不触发真实采集或部署公网。完成文档和本地逻辑提交，未经授权不 push、不合并 main、不删卷。
 ```
 
 ## 12. 是否达到购买云服务器条件
@@ -327,6 +348,6 @@ M1-02 当时未运行前端、数据库连接或 migration 升降级测试；后
 ## 13. 当前可见的本地页面
 
 - 首页：`http://127.0.0.1:5173/`，基础应用壳与免责声明，无搜索/行情/K 线。
-- API 文档：`http://127.0.0.1:8000/docs`，当前只有健康业务接口。
+- API 文档：`http://127.0.0.1:8000/docs`，当前包含健康、股票列表/搜索、详情和日线四项 GET 路径。
 - 健康：`http://127.0.0.1:8000/api/v1/health`，也可通过 5173 同路径代理。
 - 三服务保持运行，仅本机可访问；在开发电脑浏览器打开。若会话后重启电脑，先执行 `docker compose up --detach --no-build --wait --wait-timeout 120`。实际浏览器交互/Windows 网络透传未单独验收。

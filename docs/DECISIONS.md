@@ -448,3 +448,20 @@ StockService 在数据库事务前完成 fetch/validate，StockRepository 只处
 - 至少一次重放；不证明交易日完整或上游就绪。股票工作项计数不冒充行数/尝试数，stocks 失败且总量未知时 status=failed 且计数均为 0。
 - 持久父子批次/尝试审计、分布式 fencing、直接 Service 调用互斥、来源版本防护不在此实现；如需要另行确认设计。
 - 细节、copyable CLI 与确定性验证见[本地采集专题](COLLECTION_CLI.md)。
+
+## ADR-017：M3-01 本地只读查询与可证明元数据
+
+- 日期：2026-10-11
+- 状态：Accepted（已批准 M3-01 范围内的实现细化，无核心架构、Schema、单位或部署变化）
+
+### 背景与备选
+
+stocks 没有逐行 source/fetched_at。以最新采集任务或日线来源代替会错误归属基础信息；新增持久列需要另行设计迁移。数据库 Decimal 转 float 会损失精度，无上限日线响应则不利于可控查询。
+
+### 决策
+
+股票来源/获取时间明确 null，日线逐行返回已保存元数据，UTC 规范化；金额/价格按 Pydantic Decimal 字符串契约返回。复用现有搜索与 Validator，详情和显式日期闭区间日线通过新查询 Service 组合 Repository。列表分页最大 100，日线默认 250/最大 1000 并以额外一行给出 has_more，按日期升序。不存在股票 404，存在但无行情 200 空列表。
+
+### 影响与边界
+
+同步路由在线程池使用同步 SQLAlchemy；每应用延迟创建只读事务工厂，lifespan 关闭 Engine。列表计数/条目、日线存在性/数据分别使用同一 REPEATABLE READ 快照。健康不访问数据库；查询不调用 Provider、触发采集或计算。无 Schema/依赖变化；跨请求分页不保证同一快照，空结果不证明区间完整。生产数据库权限与来源字段扩展另行评估。详见[接口专题](STOCK_QUERY_API.md)。

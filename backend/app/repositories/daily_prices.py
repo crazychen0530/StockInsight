@@ -1,8 +1,10 @@
 """PostgreSQL daily-price UPSERT; the caller validates and owns the transaction."""
 
+from collections.abc import Sequence
 from dataclasses import asdict
+from datetime import date
 
-from sqlalchemy import or_
+from sqlalchemy import or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -13,6 +15,21 @@ from app.models import DailyPrice
 class DailyPriceRepository:
     def __init__(self, session: Session) -> None:
         self.session = session
+
+    def query(
+        self, symbol: str, start_date: date, end_date: date, limit: int
+    ) -> Sequence[DailyPrice]:
+        """Return bounded rows in date order; ORM objects remain inside the service session."""
+        return self.session.scalars(
+            select(DailyPrice)
+            .where(
+                DailyPrice.symbol == symbol,
+                DailyPrice.trade_date >= start_date,
+                DailyPrice.trade_date <= end_date,
+            )
+            .order_by(DailyPrice.trade_date)
+            .limit(limit)
+        ).all()
 
     def upsert(self, batch: MarketDataBatch[DailyBar]) -> int:
         """Count inserted/changed rows; identical values preserve their original receipt time."""

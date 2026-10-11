@@ -148,7 +148,12 @@ async def test_concurrent_requests_keep_distinct_context(error_routes, client: A
 
 async def test_test_only_routes_are_not_in_production_app(client: AsyncClient) -> None:
     document = (await client.get("/openapi.json")).json()
-    assert set(document["paths"]) == {"/api/v1/health"}
+    assert set(document["paths"]) == {
+        "/api/v1/health",
+        "/api/v1/stocks",
+        "/api/v1/stocks/{symbol}",
+        "/api/v1/stocks/{symbol}/prices",
+    }
     assert "ErrorResponse" in document["components"]["schemas"]
 
 

@@ -191,7 +191,7 @@ erDiagram
 | GET | `/api/v1/stocks/{symbol}/indicators` | MA5/20/60、计算版本和计算时间 |
 | GET | `/api/v1/system/data-status` | 最近任务、数据水位和脱敏错误摘要 |
 
-示例统一错误结构（M1-06 已形成正式 Pydantic 模型；示例业务错误码仅作后续规划，当前只提供健康接口）：
+示例统一错误结构（M1-06 已形成正式 Pydantic 模型；示例业务错误码仅作后续规划，当前提供健康与股票查询接口）：
 
 ```json
 {
@@ -235,3 +235,7 @@ M1-06 已实现环境配置、HTTP 请求关联 ID、统一错误和 JSON 脱敏
 ## M2-05 当前实现补充
 
 `app.jobs.cli -> CollectionRunner -> StockService/DailyPriceService -> Provider/Validator/Repository` 已实现本地采集。SyncJobRepository 用短事务更新现有 DataSyncJob，以专用 AUTOCOMMIT 会话锁串行化协作采集入口；网络和退避不占业务事务。每股独立任务、提交后 checkpoint、恢复按原范围重放，详见 [COLLECTION_CLI.md](COLLECTION_CLI.md)。基础信息仍整批原子写入；无新 Schema/依赖、HTTP 采集、前端或独立调度进程。上方未来架构图仍不代表 Scheduler/Analysis/公网部署已实现。
+
+## M3-01 当前实现补充
+
+[股票查询 API](STOCK_QUERY_API.md) 已实现列表/搜索、详情与显式区间日线。Router -> StockQueryService -> Repository -> PostgreSQL，列表复用 StockService.search；同步数据库操作通过同步路由线程池运行。每应用按需初始化只读 Engine/Session，关闭时释放；列表计数/条目、日线存在性/数据分别使用同一 REPEATABLE READ 快照。股票来源/获取时间因缺少持久列明确 null；日线逐行返回实际保存来源/UTC 时间，Decimal 以字符串编码。无 Provider、采集、指标计算或自动 migration；Schema、三服务部署与前端边界不变。

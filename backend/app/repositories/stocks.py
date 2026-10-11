@@ -17,6 +17,12 @@ class StockRepository:
     def exists(self, symbol: str) -> bool:
         return self.session.scalar(select(Stock.symbol).where(Stock.symbol == symbol)) is not None
 
+    def get(self, symbol: str) -> StockInfo | None:
+        row = self.session.get(Stock, symbol)
+        if row is None:
+            return None
+        return StockInfo(row.symbol, row.name, row.exchange, row.list_date, row.status)
+
     def upsert(self, records: tuple[StockInfo, ...]) -> int:
         """Return changed rows (inserted or updated), not the number of new securities."""
         changed = 0
