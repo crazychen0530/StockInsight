@@ -44,6 +44,8 @@
   - 验收：开发/测试配置隔离，日志脱敏，错误模型有测试。
   - 验收结果（2026-10-11）：环境白名单与独立测试 URL、JSON 脱敏日志、统一错误模型、服务端请求 ID 和共享 fixture 已实现，无新增依赖/数据库结构。宿主机 37 个非 PostgreSQL 测试通过；Compose 独立新空库完整后端 38 passed 无跳过，包含 Alembic 升降级后日志仍可用；Ruff/格式/pip check、前端类型/2 个测试/构建、真实首页/API 文档/健康/404/代理/日志检查通过。M1 六项全部完成；后续进入 M2。
 
+M1 集成记录（2026-10-11）：经用户授权，`feature/m1-06-runtime-foundation` 已通过 `git merge --ff-only` 合并至本地 `main`，无冲突且代码树不变。合并后 Ruff/格式、37 个非 PostgreSQL 后端测试、前端类型/2 个测试和文档/健康 HTTP 检查通过。本轮未重跑数据库升降级；先前完整 38 项验收保留为历史证据。本地 main 尚未推送；M2-01 改从本地 main 创建功能分支。
+
 ## Milestone 2：股票基础信息与行情采集
 
 - TODO M2-01 定义 `MarketDataProvider` 契约和 `AkShareProvider`。

@@ -14,11 +14,11 @@
 
 ## 2. 当前 Git 状态
 
-- 当前分支：`feature/m1-06-runtime-foundation`，跟踪 `origin/feature/m1-06-runtime-foundation`（基于 M1-05，包含 M1 全部实现）
-- 基线：本次会话开始时 HEAD 为 `f5f0f36 feat: add local Docker Compose development stack`；本地 `main` 仍保留原状态，未合并功能分支
-- 本次功能提交：`08071e8 feat: establish isolated configuration and safe API runtime`；后续同步记录提交的实际 SHA 以 `git log` 为准，避免自引用提交哈希
+- 当前分支：`main`，跟踪 `origin/main`；完整 M1 已合并至本地 main
+- 合并前基线：本地 main 为 `3820583`，已验收功能分支为 `b0c4fe6`；本轮经用户授权执行 `git switch main`、`git merge --ff-only feature/m1-06-runtime-foundation`，快进至 `b0c4fe6`，无冲突且代码树完全一致
+- M1-06 功能提交：`08071e8`；已推送的功能分支最新提交 `b0c4fe6`。本轮交接更新提交为 `docs: record M1 integration into local main`，实际 SHA 以 `git log` 为准
 - 远程仓库：`git@github.com:crazychen0530/StockInsight.git`
-- GitHub 推送：用户已明确授权本次 push；当前功能分支已成功推送并建立上游，包含 M1 全部实现；没有合并或改写 main。实际同步结果见第 10 节
+- GitHub：完整 M1 功能分支已在上一开发会话推送；本轮只授权合并，没有执行 push。远程 main 仍为 `97a83a0`，本地 main（含本轮文档提交）比 origin/main 超前 8 个提交，待用户手动同步或另行授权
 
 新会话不得只依赖上述快照，必须执行：
 
@@ -84,7 +84,16 @@ M1 已完成；本次结束保持三服务运行。暂无正在实施的业务�
 
 ## 6. 最近一次实际测试及结果
 
-最新：M1-06 实际验证结果（2026-10-11），下方 M1-02 至 M1-05 为历史记录：
+最新：M1 合并后复核（2026-10-11）：
+
+- `git merge --ff-only feature/m1-06-runtime-foundation`：成功，无冲突；`git diff --exit-code feature/m1-06-runtime-foundation HEAD`：通过（更新本轮文档前，合并后的代码树完全相同）。没有改业务代码、依赖、数据库或运行容器。
+- `.venv/bin/ruff check backend`、`.venv/bin/ruff format --check backend`：通过；`.venv/bin/python -m pytest backend -m 'not postgres' -q`：37 passed、1 deselected。
+- `docker compose exec -T web sh -c 'npm run typecheck && npm test'`：类型检查通过、2 tests passed；`docker compose ps`：三服务 healthy。
+- 真实 HTTP `/docs`：200，确认为 Swagger UI；`/openapi.json` 仅列出 `/api/v1/health`；健康接口 200，精确返回现有状态/版本契约。
+- `git ls-remote --heads origin main feature/m1-06-runtime-foundation`：远程 main 为 `97a83a0`、功能分支为 `b0c4fe6`。本轮未执行 push。
+- 本轮没有重复数据库升降级和前端构建：无代码树变化，保留前一次完整验收结果，不能将其描述为本轮重新执行。
+
+此前 M1-06 实际验证结果（2026-10-11）：
 
 - `.venv/bin/ruff check backend`、`.venv/bin/ruff format --check backend`：通过；`.venv/bin/python -m pytest backend -m 'not postgres' -q`：37 passed、1 deselected（明确排除 PostgreSQL 用例）。
 - `docker compose build api`：成功，沿用官方镜像和已有依赖，无新增包；`docker compose up --detach --no-build --wait --wait-timeout 120`：三服务 healthy，开发库和原数据卷保留。
@@ -189,8 +198,9 @@ M1-02 当时未运行前端、数据库连接或 migration 升降级测试；后
 
 - 已配置私有远程仓库 `origin`：`git@github.com:crazychen0530/StockInsight.git`。
 - 本地 `main` 已首次推送并设置跟踪 `origin/main`；推送前已确认远程没有既有分支，未覆盖远程历史。
-- 用户本轮明确授权 push；`git push --set-upstream origin feature/m1-06-runtime-foundation` 成功，远程分支创建并设置上游，包含 M1 全部代码/文档。已通过 `git ls-remote --heads origin feature/m1-06-runtime-foundation` 核验功能提交 `08071e81685477a6a895285d5ce9391a1cf1b9a6` 在远程。
-- 本段作为后续文档提交同步同一分支，结束时再次核验远程 HEAD 与本地一致；最新 SHA 以实际 Git 为准。没有合并 main、创建 PR/Release 或发布公网。远程 main 在本轮开始核验仍为 `97a83a0`，本地 main 为 `3820583`，未改动。
+- 上一 M1-06 开发会话已获 push 授权并成功推送完整 M1 功能分支，当前远程 `feature/m1-06-runtime-foundation` 为 `b0c4fe641513aa4c663e4c0b7749bf1b414b7836`（本轮只读核验）。
+- 本轮经授权将该功能分支快进合并至本地 main，保留功能分支；没有执行 push。远程 main 仍为 `97a83a0fe61f3a5d3253646234428277ec000ae1`。本地 main 含本轮文档提交共超前 8 个提交，工作区状态以收尾 Git 检查为准。
+- 若用户自己同步，工作区干净时运行 `git switch main`、`git fetch origin`，确认 `git merge-base --is-ancestor origin/main main` 成功后执行 `git push origin main`。若远程已有分叉或推送被拒绝，先检查历史，不得 force push。未创建 PR/Release 或发布公网。
 - 未执行强制推送、版本发布或远程分支删除。
 - 后续每个验收通过的功能形成逻辑提交；只有获得当次授权后才执行 push。
 
@@ -203,7 +213,7 @@ M1-02 当时未运行前端、数据库连接或 migration 升降级测试；后
 
 开始前依次阅读 AGENTS.md、PROJECT_PLAN.md、TASKS.md、SESSION_HANDOFF.md、docs/DECISIONS.md、docs/DEPLOYMENT.md，并检查 git status、最近提交和远程配置。
 
-以已包含完整 M1 的 feature/m1-06-runtime-foundation 为基线创建 feature/m2-01-market-data-provider，先核验环境、Compose 与远程同步，不从尚未合并 M1 的 main 直接开发。保留开发库 stockinsight 与 stockinsight-local_postgres_data 卷。阅读 Provider 规划和 AKShare 官方接口文档，明确基础信息/不复权日线契约、代码/日期/来源/获取时间/单位边界；外部字段只留在适配层。只实现 Provider 抽象、AKShare 适配与 mock/fixture 契约测试，覆盖成功、空结果、超时和字段漂移；默认测试不依赖实时网络、不虚构行情，真实联网样本与授权另行注明。M2-02 详细 Validator、Repository 持久化、采集 CLI、调度及业务网页留给后续任务；如依赖或接口设计超出当前基线先报告。复用 M1-06 配置/错误/安全日志，不改变健康成功契约或新增数据库结构。运行相关测试；完整 migration 回归仅用新独立空 *_migration_test 库。更新任务、交接、变更和决策文档，验收后形成逻辑提交；未经本轮授权不 push、不合并 main、不删卷、不部署公网。报告下一任务和是否需服务器。
+以已合并完整 M1 的本地 main 为基线创建 feature/m2-01-market-data-provider，先核验环境、Compose 与远程同步；本地 main 尚待推送，不能用旧的 origin/main 替代。保留开发库 stockinsight 与 stockinsight-local_postgres_data 卷。阅读 Provider 规划和 AKShare 官方接口文档，明确基础信息/不复权日线契约、代码/日期/来源/获取时间/单位边界；外部字段只留在适配层。只实现 Provider 抽象、AKShare 适配与 mock/fixture 契约测试，覆盖成功、空结果、超时和字段漂移；默认测试不依赖实时网络、不虚构行情，真实联网样本与授权另行注明。M2-02 详细 Validator、Repository 持久化、采集 CLI、调度及业务网页留给后续任务；如依赖或接口设计超出当前基线先报告。复用 M1-06 配置/错误/安全日志，不改变健康成功契约或新增数据库结构。运行相关测试；完整 migration 回归仅用新独立空 *_migration_test 库。更新任务、交接、变更和决策文档，验收后形成逻辑提交；未经本轮授权不 push、不合并 main、不删卷、不部署公网。报告下一任务和是否需服务器。
 ```
 
 ## 12. 是否达到购买云服务器条件

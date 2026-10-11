@@ -177,6 +177,8 @@ curl --noproxy '*' http://127.0.0.1:8000/api/v1/health
 
 该响应只证明 API 进程能够处理请求，不声明 PostgreSQL、数据采集器、Docker 或外部数据源健康。
 
+浏览器访问 `http://127.0.0.1:8000/docs` 可使用自动生成的 Swagger UI：查看已实现接口的方法、路径、参数、响应模型，并通过 `Try it out` / `Execute` 发送真实请求。当前只有健康业务接口；文档不是股票业务页面，也不是完整自动化测试。未来带写入/管理能力的接口会真实修改状态，不能把文档按钮当成模拟操作。
+
 运行质量检查和测试：
 
 ```bash
@@ -282,3 +284,28 @@ curl --noproxy '*' http://127.0.0.1:4173/
 ## GitHub 与部署
 
 项目所有者已提供 GitHub 私有仓库，当前 `main` 跟踪 `origin/main`。后续 push、标签或 Release 仍需明确授权；不会自行创建公开仓库、购买服务器或部署公网。完成 M5 且满足安全、授权、备份恢复和用户公网访问需求后，才评估 M6。
+
+### 本地功能分支合并示例
+
+以下命令适用于工作区干净、任务验收通过、功能分支包含目标 main 全部历史且未分叉的情形。当前 M1 已按此方式合并到本地 main，再次执行会提示已是最新；实际同步状态见交接文档。
+
+```bash
+git status --short --branch
+# 有未提交修改时先停下，妥善提交或保存，不要直接覆盖。
+git switch main
+git merge --ff-only feature/m1-06-runtime-foundation
+# 按任务范围复核测试及更新 TASKS.md / SESSION_HANDOFF.md，再提交文档。
+git log -5 --oneline --decorate
+```
+
+`--ff-only` 只允许快进，不产生额外 merge commit，也不会重写原提交；分叉时会拒绝合并，应先检查历史。合并与 push 不同：前者更新本地主分支，后者同步 GitHub。项目所有者自行决定推送时：
+
+```bash
+git fetch origin
+# 必须成功；失败表示远程 main 不在本地 main 历史中，先检查，不要强推。
+git merge-base --is-ancestor origin/main main
+git push origin main
+git status --short --branch
+```
+
+确认 main 已包含完整基础工程后，下一任务从 main 新建 `feature/m2-01-market-data-provider`。本地合并不等于部署，也不会自动执行数据库 migration。
