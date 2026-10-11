@@ -6,6 +6,9 @@
 
 ### Added
 
+- M2-03：新增股票基础信息同步服务和 PostgreSQL Repository，复用 Provider/Validator；幂等 UPSERT 保留已知状态/上市日期，快照缺席不删，提交后返回来源/时间与处理/实际变更计数。
+- 新增代码/名称字面搜索、稳定分页及同快照 total/items；固定模拟 Provider 与真实隔离数据库覆盖事务回滚、并发幂等和搜索一致性，无业务 API/CLI 或 Schema 变化。
+
 - M2-02：新增纯函数 Validator，复用 Provider DTO 校验 SH/SZ 代码、日期区间/重复、OHLCV、单位/口径、来源与 UTC 时间，排序且保留原始输入。
 - 新增精确 Decimal/BigInt 存储边界、显式交易日历参数与不回显原始值的错误诊断；固定模拟值与 Provider fixture 组合测试覆盖边界，金额不舍入、成交量不重复换算。
 
@@ -46,7 +49,7 @@
 
 ### Known limitations
 
-- Milestone 1 与 M2-01/M2-02 已完成；Provider/Validator 仅离线验收，日历来源与市场统计异常阈值尚未确认，尚无股票业务 API、持久化采集或行情页面。
+- Milestone 1 与 M2-01 至 M2-03 已完成；基础信息持久化经模拟来源/真实隔离数据库验收，真实上游、日线持久化、业务 API 与行情页面尚未验收或实现。
 - 本地 Compose 已验收；生产部署、全新 Linux 环境验证和备份恢复仍待完成。
 - 当前唯一 Alembic head 为 `0001_initial_schema`，本地持久开发库已升级；不包含真实或模拟行情数据。
 - 当前 daemon 直接拉取 Docker Hub 超时；已通过用户态工具经既有代理下载官方镜像并导入，未变更系统 daemon 配置。后端依赖和基础镜像 digest 尚未完全锁定。

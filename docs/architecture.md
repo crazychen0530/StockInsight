@@ -110,6 +110,8 @@ M2-01 已实现 Provider Protocol、不可变记录与批次契约；来源、�
 
 M2-02 已实现[独立 Validator](MARKET_DATA_VALIDATOR.md)：复用 DTO，以纯函数校验代码、日期、OHLCV、单位/口径与存储范围，拒绝重复和非法行，通过后返回排序的新批次。交易日历显式注入；未提供时不能声明完整交易日验收。无网络/Web/ORM/SDK 依赖，不新增数据库结构；实际任务编排、持久化和缺日/部分失败处理仍待后续任务。
 
+M2-03 已实现[基础信息同步与本地搜索](STOCK_PERSISTENCE.md)：StockService 在事务前完成 Provider/Validator，再通过 StockRepository 幂等 UPSERT；查询只读本地库，同快照统计/分页，返回内部 DTO。unknown/None 不覆盖已知信息，缺席不删除；整批基础信息失败回滚。不新增 Schema/API/CLI，来源与获取时间在同步收据返回；现有 stocks 表不具备逐行来源/版本审计列。日线与任务编排仍待 M2-04/M2-05。
+
 Validator 至少检查：
 
 - 股票代码能无歧义映射至 SH/SZ，格式转换后仍与请求标的一致。

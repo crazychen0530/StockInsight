@@ -56,8 +56,9 @@ M1 同步/清理记录（2026-10-11）：后续已获用户明确授权，main �
 - DONE M2-02 实现股票代码、日期、OHLCV、单位和异常值校验。
   - 验收：SH/SZ 正常及非法代码、空/异常行情和字段换算测试通过。
   - 验收结果（2026-10-11）：新增独立纯函数 Validator，覆盖显式 SH/SZ 支持代码段、日期区间/重复/乱序、空与非有限值、OHLC、负量、Decimal/BigInt 精确存储范围、元数据/单位/UTC 与显式交易日历；不重复手转股、不舍入、不修改输入。新增 143 项固定模拟测试，完整非 PostgreSQL 后端回归 233 passed、1 deselected；Ruff/格式/pip check 与独立导入检查通过。无新依赖、模型或 migration 变化，未运行本轮数据库升降级和前端测试。未提供日历时不声明完整交易日验收；详见 docs/MARKET_DATA_VALIDATOR.md、ADR-013。
-- TODO M2-03 实现股票基础信息同步与搜索持久化。
+- DONE M2-03 实现股票基础信息同步与搜索持久化。
   - 验收：重复同步幂等；名称/代码搜索和状态字段测试通过。
+  - 验收结果（2026-10-11）：StockService -> StockRepository -> PostgreSQL 已实现，复用 Provider/Validator；UPSERT 保护 unknown/None，缺席不删，重复不改写，RETURNING 精确统计变更。搜索字面匹配代码/名称，稳定分页及 REPEATABLE READ 一致快照。新增 16 单元/6 PostgreSQL 集成测试；非 PostgreSQL 249 passed、7 deselected，新空隔离双库完整回归 256 passed 无 skip，含 migration 升降级。Ruff/格式/pip check 通过；无 Schema、业务 API、CLI 或前端变更。开发库与卷保留，详见 docs/STOCK_PERSISTENCE.md。
 - TODO M2-04 实现日线采集、日期区间补采和 UPSERT。
   - 验收：重复采集不新增重复行；日期过滤、部分失败和事务边界测试通过。
 - TODO M2-05 实现受控本地采集 CLI 与同步任务记录。
