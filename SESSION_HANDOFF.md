@@ -8,17 +8,17 @@
 
 - 目标版本：`v0.1.0`
 - 当前完成阶段：Milestone 0；Milestone 1 正在实施
-- 当前完成任务：M1-01（环境）、M1-02（后端基础）、M1-03（前端基础）、M1-04（ORM 与初始 migration）
-- 下一任务：M1-05（本地 Docker Compose 基础工程）
-- 当前交付性质：API 健康接口、前端应用壳和初始数据库结构已验收；尚无股票查询或行情采集
+- 当前完成任务：M1-01（环境）、M1-02（后端基础）、M1-03（前端基础）、M1-04（ORM 与初始 migration）、M1-05（本地 Docker Compose）
+- 下一任务：M1-06（统一配置、日志、异常和测试 fixture）
+- 当前交付性质：本地三服务、健康接口、前端壳和持久数据库迁移已验收；尚无股票查询或行情采集
 
 ## 2. 当前 Git 状态
 
-- 当前分支：`feature/m1-04-initial-schema`（无上游，按 AGENTS.md 使用功能分支）
-- 基线：`main` 跟踪 `origin/main`；本次会话开始时 HEAD 为 `3820583 feat: initialize Vue frontend foundation`
-- 本次逻辑提交：`feat: add initial PostgreSQL schema`；实际 SHA 以 `git log` 为准，避免在提交自身文档中虚构 SHA
+- 当前分支：`feature/m1-05-local-compose`（无上游，包含 M1-04 提交）
+- 基线：`main` 跟踪 `origin/main`；本次会话开始时 HEAD 为 `761a515 feat: add initial PostgreSQL schema`
+- 本次逻辑提交：`feat: add local Docker Compose development stack`；实际 SHA 以 `git log` 为准，避免自引用提交哈希
 - 远程仓库：`git@github.com:crazychen0530/StockInsight.git`
-- GitHub 推送：本地跟踪引用 `origin/main` 停留在 `97a83a0`；`main` 超前 3 个提交，本次功能提交后功能分支比该引用超前 4 个提交。没有 fetch/push，远端实时状态未重新核验
+- GitHub 推送：本地跟踪引用 `origin/main` 停留在 `97a83a0`；`main` 超前 3 个提交，M1-05 本次提交后功能分支比该引用超前 5 个提交。没有 fetch/push，远端实时状态未重新核验
 
 新会话不得只依赖上述快照，必须执行：
 
@@ -30,7 +30,7 @@ git remote -v
 
 ## 3. 已完成功能
 
-完成范围包括 M0 和已验收的 M1-01 至 M1-04：
+完成范围包括 M0 和已验收的 M1-01 至 M1-05：
 
 - 建立 `PROJECT_PLAN.md` 产品、架构、数据和安全基线。
 - 建立 `AGENTS.md` 长期开发约束和交付规则。
@@ -55,19 +55,24 @@ git remote -v
 - 建立 `Stock`、`DailyPrice`、`TechnicalIndicator`、`DataSyncJob` 四张 ORM 模型，首个 revision 为 `0001_initial_schema`。
 - 完成 psycopg 3 同步驱动配置、任务范围/计数/恢复游标和同范围活动任务防重索引。
 - 在真实 PostgreSQL 16.15 验收升级、主外键/检查约束、防重、降级/再升级和模型无差异检查。
+- 新增 `compose.yaml`，提供 `db`、`api`、`web` 本地服务、项目独立持久卷和本机端口绑定。
+- 新增非 root 开发 Dockerfile 与 `.dockerignore`，源码只读挂载支持热更新。
+- 新增 `scripts/init_local_env.py`，生成随机本地密码、0600 `.env` 且拒绝覆盖已有文件。
+- 新增 Vite `/api` 代理并验证直连、代理和前端 HTTP 链路。
+- 本地持久开发库已显式升级至 `0001_initial_schema`，模型无差异；停止/恢复后四张业务表和 revision 保留。
 
 尚未实现股票业务 API、Repository、行情采集、指标计算、定时任务或行情业务页面。
 
 ## 4. 正在开发的功能
 
-M1-04 已完成验收；本次收尾形成一个本地功能提交。下一会话先核验 Git 状态，再开始 M1-05。
+M1-05 已完成；本次结束保持三服务运行。暂无正在实施的业务功能，M1-06 待下一任务启动。
 
 ## 5. 未完成任务
 
 下一阶段优先任务来自 `TASKS.md`：
 
-1. M1-05：解决 Docker 镜像获取问题，建立本地 Compose 并验证 API、前端开发入口和 PostgreSQL 互通。
-2. M1-06：统一配置、日志、异常和测试 fixture。
+1. M1-06：统一配置、日志、异常和测试 fixture，保持 Compose/libpq 环境变量兼容与健康接口语义。
+2. M1 全阶段验收与 GitHub 同步提醒；未经用户授权不推送或合并分支。
 
 不得跳过 M1 直接实现实时行情、AI 预测、自动交易或其他后续范围。
 
@@ -113,16 +118,36 @@ M1-02 当时未运行前端、数据库连接或 migration 升降级测试；后
 - 唯一 head：`0001_initial_schema`；测试完成后降级回 base，仅剩空 `alembic_version`。隔离 PostgreSQL 实例在收尾停止，临时下载/集群目录保留用于复核，没有持久开发/生产库。
 - 收尾单独运行 Alembic CLI `upgrade head`、`current`、`check`、`downgrade base` 均通过（额外一轮升降级），`current` 返回 `0001_initial_schema (head)`，`check` 返回 `No new upgrade operations detected.`。
 
+本次 M1-05 实际验证结果（2026-10-11）：
+
+- `./scripts/check_environment.sh`：沙箱内 Docker socket 权限项失败；提升权限后全部通过，daemon 可达。
+- daemon 直接 `docker pull postgres:16-bookworm` 超时；从 Ubuntu 官方包仅提取 skopeo 和依赖到 `/tmp/stockinsight-m1-05-tools.9yTIBO`，经已有 shell 代理下载 Docker Hub 官方 postgres/Python/Node 镜像后 `docker load` 成功。下载中曾出现 EOF，工具续传后成功；未修改系统 Docker 配置、未关闭 TLS。
+- `docker compose config --quiet` 通过；缺少密码时拒绝配置解析。JSON 检查确认三个服务、服务名 DNS、健康依赖、本机端口与项目隔离卷。
+- `python3 scripts/init_local_env.py` 创建被 Git 忽略的 0600 `.env`；再次执行拒绝覆盖，校验和保持不变。密码不输出、不进入提交。
+- `docker compose build web` 和 `docker compose build api` 成功；Compose 提示 buildx 未安装，内置 builder 仍完成构建。镜像版本为 Node.js 22.23.3、Python 3.12.15、PostgreSQL 16.15。
+- 宿主机 Ruff 与 8 个非 PostgreSQL 后端测试通过；前端类型检查、2 个测试和构建通过。
+- `docker compose run --rm --no-deps web sh -c 'node --version && npm run typecheck && npm test && npm run build'` 全部通过（2 tests，31 modules）。容器 `npm ci` 报告 0 vulnerabilities。
+- 后端容器的 `pip check`、Ruff、格式检查、8 个非数据库测试通过；非 root 用户与只读挂载可用。
+- `docker compose up --detach --no-build --wait --wait-timeout 120`：db/API/web 均 healthy；实际端口分别为 `127.0.0.1:5432`、`:8000`、`:5173`。
+- `docker compose exec -T api alembic upgrade head/current/check`：达到 `0001_initial_schema (head)`，`No new upgrade operations detected.`。
+- API 容器通过 SQLAlchemy/libpq 实际连接 `db:5432` 的 `stockinsight` 库；确认 PostgreSQL 16.15 和四张业务表。
+- loopback HTTP：8000 直连与 5173 `/api/v1/health` 代理均 HTTP 200 且精确返回健康契约；5173 首页、入口模块和 Vue 源模块均 HTTP 200。
+- 新建独立 `m1_05_20261011_migration_test` 库，`docker compose exec -T -e TEST_DATABASE_URL=postgresql+psycopg:///m1_05_20261011_migration_test api python -m pytest tests -o cache_dir=/tmp/pytest-cache`：9 passed，无 skip；仅该测试库执行破坏性升降级，开发库不受影响。
+- `docker compose stop` 后，首次 `start --wait` 因当前版本不支持该参数失败；已修正文档并以 `up --detach --no-build --wait --wait-timeout 120` 恢复。恢复后 revision 和四张业务表仍在，`daily_prices` 行数为 0。
+- 文档链接/围栏、`git diff --check`、敏感信息与构建上下文检查通过；本轮不增加业务表或新的 migration。
+
+本次验收是基础设施与已有功能回归，不等于股票数据端到端业务验收或全新 Linux 环境部署验收。
+
 ## 7. 当前已知 Bug
 
 - 当前没有已确认的后端健康接口 Bug。
-- Docker daemon 已启动，提升权限后可达；沙箱 socket 权限受限。Docker Hub 拉取镜像连接失败，M1-05 需解决镜像获取问题。
+- Docker daemon 已启动，提升权限后可达；沙箱 socket 权限受限。daemon 直接拉取 Docker Hub 仍超时；本次通过用户态代理下载并导入官方镜像完成验收，系统 daemon 代理问题未作全局修改。
 - 外部环境设置了 `NODE_TLS_REJECT_UNAUTHORIZED=0`；该配置会关闭 Node TLS 校验。本次已通过临时取消变量的 Registry ping 和 `npm ci` 验证正常 TLS 可用，后续安装不得依赖该不安全变量。
 - 这不代表系统无缺陷；股票 API、采集和前端业务功能尚未实现。
 
 ## 8. 未解决的技术风险
 
-- 尚未创建 Compose 文件或验证 PostgreSQL 容器及应用服务链路，镜像获取受网络限制。
+- 本地 Compose 已验收；全新环境复现、生产部署、备份恢复和依赖/镜像完全锁定仍待 M5/M6。新镜像获取可能需要代理或官方镜像导入。
 - AKShare 及其上游接口的稳定性、限流、字段变化和公开/商业使用授权仍需确认。
 - 交易日历来源及盘后数据就绪判定尚未选定。
 - 股票状态、退市证券和 SH/SZ 代码映射边界尚未形成测试矩阵。
@@ -135,12 +160,14 @@ M1-02 当时未运行前端、数据库连接或 migration 升降级测试；后
 - 唯一 Alembic revision/head 为 `0001_initial_schema`，已在真实 PostgreSQL 16.15 验收。
 - SQLAlchemy `Base.metadata` 当前包含 `stocks`、`daily_prices`、`technical_indicators`、`data_sync_jobs` 四张表。
 - 已执行两轮升级/降级及无差异检查；临时测试库最终为 base（空版本表），未创建持久开发库。降级会删除四张业务表的数据，只用于一次性库。
+- 上一条为 M1-04 历史状态。M1-05 当前持久开发库 `stockinsight` 已达到 head，四张业务表为空；卷为 `stockinsight-local_postgres_data`，本次没有删除数据卷。
+- M1-05 独立测试库 `m1_05_20261011_migration_test` 完整验收后为 base（仅空版本表）；重复测试须创建新的空 `*_migration_test` 库，不能指向开发库或删卷重置。
 
 ## 10. GitHub 同步状态
 
 - 已配置私有远程仓库 `origin`：`git@github.com:crazychen0530/StockInsight.git`。
 - 本地 `main` 已首次推送并设置跟踪 `origin/main`；推送前已确认远程没有既有分支，未覆盖远程历史。
-- `main` 比本地 `origin/main` 引用超前 3 个提交；本次功能提交在 `feature/m1-04-initial-schema`，完成后比该引用超前 4 个提交，未合并到 main。本次没有 push 授权，因此保持本地未同步。
+- `main` 比本地 `origin/main` 引用超前 3 个提交；本次功能提交在 `feature/m1-05-local-compose`，包含 M1-04，完成后比该引用超前 5 个提交，未合并到 main。本次没有 push 授权，因此保持本地未同步。
 - 未执行强制推送、版本发布或远程分支删除。
 - 后续每个验收通过的功能形成逻辑提交；只有获得当次授权后才执行 push。
 
@@ -149,11 +176,11 @@ M1-02 当时未运行前端、数据库连接或 migration 升降级测试；后
 可直接复制以下指令：
 
 ```text
-继续开发 /home/crazychen/myprojects/StockInsight，只执行 Milestone 1 的 M1-05：本地 Docker Compose 基础工程。
+继续开发 /home/crazychen/myprojects/StockInsight，只执行 Milestone 1 的 M1-06：统一配置、日志、异常和测试 fixture。
 
 开始前依次阅读 AGENTS.md、PROJECT_PLAN.md、TASKS.md、SESSION_HANDOFF.md、docs/DECISIONS.md、docs/DEPLOYMENT.md，并检查 git status、最近提交和远程配置。
 
-先运行 ./scripts/check_environment.sh，确认 M1-04 提交所在 feature/m1-04-initial-schema（尚未合并 main），以包含该提交的功能分支继续。提升权限后 Docker daemon 可达，但 Docker Hub 镜像下载此前失败，先验证并解决镜像获取；不得把无镜像/未启动写成通过。仅实现 API、Vue 开发入口、PostgreSQL 16 的本地 Compose 基础工程和必要 Dockerfile，数据库端口只绑定本机，使用隔离持久卷和环境变量，不提交真实密码。显式执行 Alembic upgrade head，不在应用启动时隐式迁移。实际验证 Compose 配置、启动/健康、容器网络数据库连接、健康接口、前端 HTTP 和 migration 状态；运行涉及的回归测试、Ruff、文档/敏感信息和 Git 检查。不要实现采集、股票 API、Worker/Scheduler 业务或提前执行 M1-06。更新 TASKS.md、SESSION_HANDOFF.md、CHANGELOG.md、README.md 和部署文档；全部通过后形成逻辑本地提交，未经授权不 push、不删除已有数据卷、不部署公网。
+以包含 M1-05 提交的功能分支继续，先核验 ./scripts/check_environment.sh 与 docker compose ps。当前本地三服务运行，开发库 stockinsight 与 stockinsight-local_postgres_data 卷必须保留。仅实现开发/测试配置隔离、结构化脱敏日志、统一 API 错误模型、请求关联 ID 和可复用测试 fixture；保持 /api/v1/health 的现有成功契约，不增加股票业务、采集、Worker/Scheduler 或新的数据库结构。配置须兼容 Compose 的 PG* 变量和无密码 DATABASE_URL，不在 API 启动时隐式迁移，不回显 .env、容器环境或完整连接串。覆盖正常/边界/异常及脱敏测试，运行后端、受影响前端与 Compose 回归；migration 测试仅使用新建独立空 *_migration_test 库。更新 TASKS.md、SESSION_HANDOFF.md、CHANGELOG.md 和受影响文档，验收通过后形成逻辑本地提交；未经授权不 push、不合并 main、不删除数据卷、不部署公网。报告 M1 阶段状态、GitHub 同步建议及服务器购买条件。
 ```
 
 ## 12. 是否达到购买云服务器条件

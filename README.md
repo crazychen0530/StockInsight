@@ -7,9 +7,10 @@ StockInsight 是面向个人投资研究的中国 A 股行情与风险分析 Web
 ## 当前状态
 
 - 目标版本：v0.1.0
-- 当前阶段：Milestone 0、M1-01 至 M1-04 已完成；下一任务为 M1-05
+- 当前阶段：Milestone 0、M1-01 至 M1-05 已完成；下一任务为 M1-06
 - 已建立：项目基线、开发环境、FastAPI 健康接口、四张 ORM 模型和初始 migration、Vue/Vite 前端壳及测试入口
-- 未实现：股票业务 API、行情采集、行情页面和 Compose 服务
+- 已新增：本地 `db`、`api`、`web` Compose 配置及开发镜像
+- 未实现：股票业务 API、行情采集和行情页面
 
 ## v0.1.0 计划范围
 
@@ -74,7 +75,9 @@ source .venv/bin/activate
 ./scripts/check_environment.sh
 ```
 
-M1-04 验证环境：Node.js 22.23.1、Python 3.12.3 `.venv`、Docker Engine 29.1.3、Compose 2.40.3、PostgreSQL 16.15。Docker daemon 已由所有者启动，提升权限后可达；当前沙箱内 socket 访问仍受限，Docker Hub 镜像拉取连接失败。migration 使用从 Ubuntu 软件源下载、解压到 `/tmp` 的隔离 PostgreSQL 16.15 实例完成验收。M1-05 仍需验证镜像下载及 Compose 链路。系统 Node.js 18.19.1 仍保留。
+宿主机环境：Node.js 22.23.1、Python 3.12.3 `.venv`、Docker Engine 29.1.3、Compose 2.40.3、PostgreSQL 客户端 16.15。系统 Node.js 18.19.1 仍保留。Codex 沙箱内 Docker socket 访问受限，提升权限后环境检查全部通过。
+
+M1-05 已在官方镜像中验证 Node.js 22.23.3、Python 3.12.15 和 PostgreSQL 16.15。本机 daemon 未配置代理，直接 pull 超时；本次使用从 Ubuntu 官方包提取到 `/tmp` 的 skopeo，经既有 shell 代理下载 Docker Hub 官方镜像并 `docker load` 导入，没有改动系统 daemon 配置或关闭 TLS。前后端构建通过，三服务及容器网络、显式 migration 和 HTTP 链路已验收；后续全新环境验证仍属于 M5。
 
 ## 开发入口
 
@@ -87,6 +90,63 @@ M1-04 验证环境：Node.js 22.23.1、Python 3.12.3 `.venv`、Docker Engine 29.
 5. [docs/DECISIONS.md](docs/DECISIONS.md)：长期技术决策及变更流程
 6. [docs/architecture.md](docs/architecture.md)：系统边界与数据流
 7. [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)：本地、生产、备份、发布和回滚规划
+
+## 本地 Docker Compose
+
+从仓库根目录执行。首次下载官方 `postgres:16-bookworm`、`python:3.12-slim-bookworm` 和 `node:22-bookworm-slim` 镜像需要 Docker daemon 能访问 Registry；宿主机 shell 的代理不会自动成为 daemon 的代理配置。镜像获取受阻时先解决网络或导入来源可验证的官方镜像，不能跳过启动验收。
+
+```bash
+# 仅首次创建 .env：随机本地密码，权限 0600，不覆盖已有文件
+python3 scripts/init_local_env.py
+docker compose config --quiet
+docker compose up --build --detach --wait --wait-timeout 120
+
+# 显式迁移；API 启动不会创建/修改表
+docker compose exec -T api alembic upgrade head
+docker compose exec -T api alembic current
+docker compose exec -T api alembic check
+
+docker compose ps
+curl --noproxy '*' --fail http://127.0.0.1:8000/api/v1/health
+curl --noproxy '*' --fail http://127.0.0.1:5173/api/v1/health
+curl --noproxy '*' --fail http://127.0.0.1:5173/
+```
+
+预期：三个服务均 healthy，migration 为 `0001_initial_schema (head)` 且无模型差异；8000 和经过 Vite 代理的 5173 健康响应均为 `{"status":"ok","version":"0.1.0"}`；首页 HTTP 200。浏览器访问 `http://127.0.0.1:5173/`。API 健康接口仍只表示进程存活，数据库需单独验证。
+
+Compose 使用服务名 `db:5432` 进行容器内部连接；`DATABASE_URL` 不包含密码，通过 `PGUSER`/`PGPASSWORD` 等变量供 psycopg 读取。可在 API 容器验证实际 SQLAlchemy 网络连接：
+
+```bash
+docker compose exec -T api python -c 'import os; from sqlalchemy import text; from app.core.database import create_database_engine; engine = create_database_engine(os.environ["DATABASE_URL"]); connection = engine.connect(); print(connection.execute(text("SELECT current_database(), current_user")).one()); connection.close(); engine.dispose()'
+```
+
+所有宿主机端口仅绑定 `127.0.0.1`，默认 db/API/web 为 5432/8000/5173；如已被占用，在 `.env` 修改 `POSTGRES_PORT`、`APP_PORT`、`WEB_PORT` 并调整上述 URL。容器内部端口保持 5432/8000/5173。默认项目名为 `stockinsight-local`，数据库卷为 `stockinsight-local_postgres_data`；使用 `docker compose -p <独立项目名>` 时会创建独立网络、容器和卷，相关命令必须保持同一项目名。
+
+后端源码和前端 `src/`、`tests/`、入口及 Vite 配置以只读挂载支持热更新；依赖变更后重新 build。容器采用非 root 应用用户，开发镜像包含测试依赖，不应直接当作生产镜像。Vite 将 `/api` 转发至 `http://api:8000`；宿主机原生 Vite 默认转发至 `http://127.0.0.1:8000`，可用 `API_PROXY_TARGET` 覆盖。页面壳尚不调用 API，代理验证只证明 HTTP 转发链路。
+
+隔离 migration 回归（每次使用新的空库名；不会操作开发库）：
+
+```bash
+# 首次可用该名称；重复运行请为数据库名增加唯一前缀，并保持 _migration_test 后缀
+docker compose exec -T db sh -c 'createdb -U "$POSTGRES_USER" compose_migration_test'
+docker compose exec -T -e TEST_DATABASE_URL=postgresql+psycopg:///compose_migration_test api python -m pytest tests -o cache_dir=/tmp/pytest-cache
+docker compose exec -T api ruff check app tests
+docker compose exec -T web npm run typecheck
+docker compose exec -T web npm test
+```
+
+预期后端 9 passed、无 skip，前端 2 个测试通过。migration 测试会删除其专用测试库内的业务表，不能改用开发库名称。
+
+停止和恢复（保留数据库卷）：
+
+```bash
+docker compose stop
+docker compose up --detach --no-build --wait --wait-timeout 120
+# 移除本项目容器与网络时仍保留卷
+docker compose down
+```
+
+不要执行 `down -v`、`volume prune` 或删除已有数据卷。首次初始化后改变 `.env` 中 PostgreSQL 用户/密码不会修改卷内既有账户；需要按数据库权限流程处理，不能通过删除卷规避。不要将包含凭据的完整 `docker compose config`、容器环境或 `.env` 输出贴入报告。
 
 ## 后端安装、运行和验证
 
@@ -132,7 +192,7 @@ curl --noproxy '*' http://127.0.0.1:8000/api/v1/health
 
 使用 PostgreSQL 16 和已随后端安装的 `psycopg[binary]`；SQLAlchemy URL 的驱动必须为 `postgresql+psycopg`。应用启动不隐式创建表，健康接口也不连接数据库。
 
-以下命令假设本机已有 PostgreSQL 16、`stockinsight` 用户及开发库，用户具备目标库 migration 权限（创建验收库还需 CREATEDB 权限）。M1-05 将提供 Compose 启动方式。数据库密码由 libpq 的 `PGPASSWORD` 读取，不写入 URL、命令历史或仓库：
+以下原生命令假设本机已有 PostgreSQL 16、`stockinsight` 用户及开发库，用户具备目标库 migration 权限（创建验收库还需 CREATEDB 权限）。使用 Compose 的用户优先执行上节容器命令，无需把密码复制到宿主机 shell。原生命令的密码由 libpq 的 `PGPASSWORD` 读取，不写入 URL、命令历史或仓库：
 
 ```bash
 export PGHOST=127.0.0.1

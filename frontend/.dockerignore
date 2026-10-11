@@ -1,0 +1,8 @@
+.env
+.env.*
+node_modules
+dist
+*.tsbuildinfo
+.git
+*.key
+*.pem

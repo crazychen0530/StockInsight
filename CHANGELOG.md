@@ -28,9 +28,14 @@
 - 新增四张 SQLAlchemy 2 模型及 `0001_initial_schema` Alembic migration，包含主外键、OHLC/单位/复权约束和查询索引。
 - 补齐同步任务目标范围、股票工作项计数、恢复游标和同范围活动任务部分唯一索引；使用 psycopg 3 连接 PostgreSQL。
 - 新增 metadata 和真实 PostgreSQL migration 验收，覆盖空库升级、约束、防重、降级/再升级及 ORM 无差异检查。
+- 新增 `compose.yaml`、Python/Node 开发 Dockerfile 和构建上下文忽略规则；提供本机绑定的 PostgreSQL 16、API 与 Vite 三服务。
+- 新增随机本地 `.env` 初始化入口，设置 0600 权限并拒绝覆盖已有文件；数据库连接密码通过 libpq 环境变量传入。
+- 新增 Vite `/api` 开发代理，保留原生开发默认目标；开发镜像采用非 root 应用用户和只读源码挂载。
+- 完成本地 Compose 构建、健康、网络数据库连接、显式 migration、HTTP、隔离库全后端回归、容器前端测试及持久卷停止/恢复验收。
 
 ### Known limitations
 
 - Milestone 1 正在进行；前后端基础壳和初始数据库结构已验收，尚无股票业务 API、采集或行情页面。
-- 当前尚未创建或验证项目 Docker Compose 服务、PostgreSQL 容器和应用运行链路。
-- 当前唯一 Alembic head 为 `0001_initial_schema`；已用隔离 PostgreSQL 16.15 验收，尚无持久开发/生产实例。
+- 本地 Compose 已验收；生产部署、全新 Linux 环境验证、备份恢复和 M1-06 统一配置/日志/异常仍待完成。
+- 当前唯一 Alembic head 为 `0001_initial_schema`，本地持久开发库已升级；不包含真实或模拟行情数据。
+- 当前 daemon 直接拉取 Docker Hub 超时；已通过用户态工具经既有代理下载官方镜像并导入，未变更系统 daemon 配置。后端依赖和基础镜像 digest 尚未完全锁定。

@@ -1,25 +1,39 @@
 # StockInsight 部署规划
 
-> 状态：规划文档，尚未完成部署验证
+> 状态：M1-05 本地 Compose 已验收；生产部分仍为规划
 >
 > 当前阶段：Milestone 1；开发早期不购买服务器
 
 ## 1. 本地开发部署方式
 
-M1 计划支持两种本地方式，具体命令只能在工程实际建立并验证后写入 README：
+M1 支持两种本地方式，具体命令见 [README.md](../README.md#本地-docker-compose)：
 
 1. 混合开发：Docker Compose 运行 PostgreSQL，后端和前端使用宿主机开发服务器，以便调试和热更新。
-2. 全容器验证：使用 Docker Compose 运行前端、API、独立 Worker/调度入口和 PostgreSQL，用于验证接近部署环境的集成链路。
+2. 全容器开发：使用根目录 `compose.yaml` 运行 `db`、`api`、`web`。M1-05 不创建 Worker/Scheduler 业务入口，待对应任务实现后再加入独立进程。
 
 本地配置从 `.env.example` 派生到不进入 Git 的 `.env`。数据库 migration 必须由明确的 Alembic 命令执行，不允许应用启动时隐式修改 Schema。测试数据库与开发数据库隔离。
 
 M1-01 已验收：Python 3.12.3 在仓库内 `.venv` 隔离；Node.js 22.23.1 通过 NVM 并行安装且由 `.nvmrc` 固定，系统 Node.js 18.19.1 未替换；Docker Engine 29.1.3、Docker Compose 2.40.3 和 PostgreSQL 客户端 16.15 已安装。当时的 systemd、Docker service、用户组权限和 `./scripts/check_environment.sh` 全部通过。M1-02 会话再次执行脚本时，Docker daemon 报告不可达或当前进程无权限；开始 M1-05 前必须重新验证并定位，不能沿用旧结果。
 
-以上只证明开发工具与 daemon 可用。项目尚未创建 Compose 文件、PostgreSQL 容器或应用服务，因此不能视为本地部署链路已通过。
+M1-05 复核确认 daemon 在提升权限后可达；官方 Registry 经现有 shell 代理可访问，但 daemon 未配置代理，直接 pull 超时。本次从 Ubuntu 包仅解压 skopeo 及依赖到 `/tmp`，经既有代理下载 Docker Hub 官方镜像并导入 daemon；没有系统安装或修改 daemon 配置。镜像导入后构建和三服务运行验收通过，详细结果见 `SESSION_HANDOFF.md`。
+
+### 1.1 本地实现边界
+
+- PostgreSQL 使用官方 `postgres:16-bookworm`；后端与前端分别基于官方 Python 3.12 和 Node.js 22 Debian 镜像。
+- 默认项目名 `stockinsight-local`，卷名由 Compose 项目隔离，不声明 external 卷或固定容器名。
+- PostgreSQL/API/Vite 端口全部只绑定 `127.0.0.1`；数据库服务名固定为 `db`，容器间使用 5432。
+- `api` 等待数据库健康，`web` 等待 API 进程健康；健康检查不会执行 migration。
+- `scripts/init_local_env.py` 只在 `.env` 不存在时创建随机本地密码和 0600 文件，现有文件不会覆盖。
+- Alembic 必须由运维显式执行 `docker compose exec -T api alembic upgrade head`；账户密码经环境变量传入，不写进 URL。
+- API 与 web 使用非 root 应用用户；开发镜像包含测试工具，源码只读挂载支持热更新。
+- Vite `/api` 代理只提供本地前后端联通入口，尚未增加页面业务调用。
+- `stop`、`start`、`down` 都保留数据卷；没有自动清库逻辑。不得未经授权执行 `down -v`。
+
+实现参考 Docker 官方文档：[依赖启动与健康检查](https://docs.docker.com/compose/how-tos/startup-order/)、[Compose 网络与服务发现](https://docs.docker.com/compose/how-tos/networking/)。
 
 ## 2. Docker Compose 服务说明
 
-M1-M5 计划定义以下服务：
+M1-05 已定义前三个服务，其余服务只作 M2-M6 规划：
 
 | 服务 | 职责 | 暴露策略 |
 | --- | --- | --- |
@@ -73,7 +87,7 @@ M5 后必须用实际股票数量、历史区间、数据库体积、采集耗�
 6. PostgreSQL 备份与独立恢复演练通过。
 7. 项目所有者明确决定需要公网访问并批准预算和部署。
 
-当前完成 M0 及 M1-01 至 M1-04，仍不满足购买条件。
+当前完成 M0 及 M1-01 至 M1-05，仍不满足购买条件。
 
 ## 6. 域名与 HTTPS 配置方案
 
@@ -133,8 +147,9 @@ M5 后必须用实际股票数量、历史区间、数据库体积、采集耗�
 
 - 未购买云服务器。
 - 未配置域名、TLS、生产 Compose、CI/CD 或 Registry。
-- M1-04 已在一次性 PostgreSQL 16.15 实例完成 migration 升降级和约束测试；未建立持久开发/生产实例，备份或恢复演练仍待执行。
-- Docker daemon 在提升权限后可达；Docker Hub 拉取镜像连接失败，M1-05 必须先解决镜像获取并验证 Compose 服务。当前没有 Compose 实现。
+- 已建立本地 Compose PostgreSQL 16.15 持久开发库，达到 `0001_initial_schema`，四张业务表为空；隔离测试库完成后端 9 个测试，无跳过。
+- 三服务均 healthy，API 连接数据库、直连与代理健康接口、Vite 页面和停止/恢复持久性均通过；本次结束保持服务运行。
+- 本机直接 pull 仍超时，官方镜像经用户态代理下载并导入；未创建生产实例，备份恢复演练仍待执行。
 - 已配置 GitHub 私有远程仓库并完成 `main` 首次同步，但尚未建立 CI/CD 发布流程。
 
-所有部署章节目前都是后续实施与验收依据，不是完成声明。
+本地完成状态仅适用于本次开发机验收；生产章节仍是后续实施与验收依据。全新 Linux 环境部署、采集稳定性和生产安全验收不能由本次基础工程验收替代。

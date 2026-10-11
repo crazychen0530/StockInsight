@@ -37,8 +37,9 @@
 - DONE M1-04 定义首版 ORM 模型并创建初始 Alembic migration。
   - 验收：四张核心表的主外键、约束、索引和单位语义与规划一致；空库升级测试通过。
   - 验收结果（2026-10-11）：四张 ORM 模型、psycopg 3 驱动和 `0001_initial_schema` 已实现；真实隔离 PostgreSQL 16.15 上空库升级、主外键/检查约束、活动任务防重、降级/再升级和 Alembic 无差异检查通过；后端 9 个测试全通过，Ruff 通过。
-- TODO M1-05 创建本地 Docker Compose 基础工程。
+- DONE M1-05 创建本地 Docker Compose 基础工程。
   - 验收：API、前端开发入口和 PostgreSQL 可在本地互通；数据库不对非本机公开。
+  - 验收结果（2026-10-11）：三服务构建和 healthy 检查通过；实际端口仅绑定 127.0.0.1；API 容器 SQLAlchemy 连接 PostgreSQL 16.15、显式 Alembic upgrade/current/check、API 直连/Vite 代理/前端 HTTP 均通过；独立空库后端 9 passed 无跳过，容器前端类型检查/2 个测试/构建通过；停止后恢复验证 revision 和表保留，未删除数据卷。本机 daemon 直连 Registry 超时，经用户态代理下载官方镜像并导入完成验收。
 - TODO M1-06 建立统一配置、日志、异常和测试 fixture。
   - 验收：开发/测试配置隔离，日志脱敏，错误模型有测试。
 
