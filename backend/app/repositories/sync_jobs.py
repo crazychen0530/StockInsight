@@ -64,15 +64,20 @@ class SyncJobRepository:
         # Coarse, database-wide CLI mutex also serializes overlapping scopes and job types.
         # No business transaction is held during provider calls or retry delays.
         with self.engine.connect().execution_options(isolation_level="AUTOCOMMIT") as connection:
+            locked = False
             try:
-                if not connection.scalar(text("SELECT pg_try_advisory_lock(7348190501)")):
+                locked = bool(connection.scalar(text("SELECT pg_try_advisory_lock(7348190501)")))
+                if not locked:
                     raise ApplicationError(
                         "collection_busy", "Another collector owns the database", 409
                     )
                 yield
             finally:
-                # Physically close this dedicated session, never return a held lock to the pool.
-                connection.invalidate()
+                try:
+                    if locked:
+                        connection.execute(text("SELECT pg_advisory_unlock(7348190501)"))
+                finally:
+                    connection.invalidate()
 
     def create(self, scope: JobScope) -> JobView:
         try:

@@ -4,7 +4,7 @@ from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date
-from decimal import ROUND_HALF_UP, Decimal, localcontext
+from decimal import ROUND_HALF_UP, Context, Decimal, localcontext
 
 from app.collectors.validator import normalize_symbol
 
@@ -29,8 +29,7 @@ class MovingAverage:
 
 
 def _fits_scale(value: Decimal) -> bool:
-    with localcontext() as context:
-        context.prec = 40
+    with localcontext(Context(prec=40, rounding=ROUND_HALF_UP)):
         return value == value.quantize(Decimal("0.0001"))
 
 
@@ -56,8 +55,7 @@ def calculate_moving_averages(points: Iterable[ClosePoint]) -> tuple[MovingAvera
         groups[symbol].append(point)
     output = []
     # Explicit context makes results independent of the calling thread's Decimal context.
-    with localcontext() as context:
-        context.prec, context.rounding = 40, ROUND_HALF_UP
+    with localcontext(Context(prec=40, rounding=ROUND_HALF_UP)):
         for symbol, rows in sorted(groups.items()):
             rows.sort(key=lambda row: row.trade_date)
             sums = {5: Decimal(0), 20: Decimal(0), 60: Decimal(0)}

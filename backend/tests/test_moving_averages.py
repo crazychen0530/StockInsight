@@ -1,7 +1,7 @@
 """Fixed simulated closes, including boundaries and prefix invariance."""
 
 from datetime import date, timedelta
-from decimal import Decimal, localcontext
+from decimal import Decimal, Inexact, localcontext
 
 import pytest
 
@@ -63,5 +63,6 @@ def test_rounding_and_decimal_context_independence():
     expected = calculate_moving_averages(data)
     with localcontext() as context:
         context.prec = 6
+        context.traps[Inexact] = True
         assert calculate_moving_averages(data) == expected
     assert expected[-1].ma60 == Decimal("99999999999999.9999")

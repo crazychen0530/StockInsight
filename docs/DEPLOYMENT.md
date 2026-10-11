@@ -166,3 +166,7 @@ M5 后必须用实际股票数量、历史区间、数据库体积、采集耗�
 ## M3 前端本地入口
 
 本地 web 已使用 Axios `/api/v1` 查询并通过既有 `/api` 代理转发；概览、搜索/详情、K 线和成交量见[前端专题](FRONTEND_MARKET.md)。新增前端依赖后需 `docker compose build web` 再 `docker compose up --detach --no-deps --no-build --wait --wait-timeout 120 web`，只更新 web，保留 db/API/卷。本轮已完成此操作，仍仅本机 5173 可访问。生产静态托管必须配置 Vue history 路由回退和同源 `/api` 反向代理，留待 M5/M6；Vite Preview 不替代生产部署。
+
+## M4 本地分析与调度入口
+
+M4 已完成均线、指标/任务状态只读 API、详情均线与 `/data-status`、独立宿主机调度 CLI。调度沿用独立进程设计；默认 Compose 仍仅 db/api/web，原卷保留，不自动启动网络采集。无需新依赖、数据库迁移或服务器。参见[均线](MOVING_AVERAGES.md)、[调度](SCHEDULER.md)和[运维操作](OPERATIONS.md)。生产进程监督、账号权限、真实日历/上游验收、全新 Linux、备份恢复仍属于 M5/M6，不能用本地测试替代。
