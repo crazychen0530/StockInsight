@@ -6,6 +6,10 @@
 
 ### Added
 
+- M2-01：定义可替换 MarketDataProvider、不可变基础信息/日线/批次契约与 AkShareProvider，隔离外部字段，明确 SH/SZ、不复权、UTC 时间和 CNY/股单位。
+- 新增 AKShare 1.19.1 可选 market-data extra、环境可配置总超时与单次 SDK 子进程隔离，复用安全日志及公开错误契约；新增明确标记的模拟 fixture、mock Provider 和离线子进程测试。
+- 新增 Provider 字段映射、空结果/漂移/超时边界及真实上游尚未验收的专题文档。
+
 - M1-06：通过现有 Pydantic 建立环境白名单配置及开发/测试数据库隔离，兼容无密码 URL 与 libpq PG*，配置加载不连接/迁移数据库。
 - 新增服务端请求关联 ID、Pydantic 统一错误响应、HTTP/校验/应用/未知异常处理和安全 JSON 日志；禁用 Uvicorn 原始 access log。
 - 新增共享应用/客户端/一次性数据库 fixture 与配置、错误、脱敏、并发关联 ID 和日志输出失败测试。
@@ -39,7 +43,7 @@
 
 ### Known limitations
 
-- Milestone 1 已完成；前后端基础壳和初始数据库结构已验收，尚无股票业务 API、采集或行情页面。
+- Milestone 1 与 M2-01 已完成；Provider 仅离线验收，尚无股票业务 API、持久化采集或行情页面。
 - 本地 Compose 已验收；生产部署、全新 Linux 环境验证和备份恢复仍待完成。
 - 当前唯一 Alembic head 为 `0001_initial_schema`，本地持久开发库已升级；不包含真实或模拟行情数据。
 - 当前 daemon 直接拉取 Docker Hub 超时；已通过用户态工具经既有代理下载官方镜像并导入，未变更系统 daemon 配置。后端依赖和基础镜像 digest 尚未完全锁定。

@@ -20,6 +20,7 @@ class Settings(BaseModel):
     app_env: Literal["development", "test", "production"] = "development"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     app_timezone: str = "Asia/Shanghai"
+    market_data_timeout_seconds: float = 30.0
     database_url: SecretStr | None = None
     test_database_url: SecretStr | None = None
     pg_host: str | None = None
@@ -27,6 +28,13 @@ class Settings(BaseModel):
     pg_database: str | None = None
     pg_user: str | None = None
     pg_password: SecretStr | None = None
+
+    @field_validator("market_data_timeout_seconds")
+    @classmethod
+    def validate_provider_timeout(cls, value: float) -> float:
+        if not 0 < value <= 300:
+            raise ValueError("Invalid market data timeout")
+        return value
 
     @field_validator("pg_port")
     @classmethod
@@ -102,6 +110,7 @@ def load_settings(environ: Mapping[str, str] | None = None) -> Settings:
         "APP_ENV": "app_env",
         "LOG_LEVEL": "log_level",
         "APP_TIMEZONE": "app_timezone",
+        "MARKET_DATA_TIMEOUT_SECONDS": "market_data_timeout_seconds",
         "DATABASE_URL": "database_url",
         "TEST_DATABASE_URL": "test_database_url",
         "PGHOST": "pg_host",

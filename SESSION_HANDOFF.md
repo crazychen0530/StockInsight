@@ -7,27 +7,18 @@
 ## 1. 当前版本与里程碑
 
 - 目标版本：`v0.1.0`
-- 当前完成阶段：Milestone 0 与 Milestone 1（六项全部 DONE）
-- 当前完成任务：M1-01 环境、M1-02 后端、M1-03 前端、M1-04 ORM/migration、M1-05 Compose、M1-06 配置/日志/异常/fixture
-- 下一任务：M2-01（MarketDataProvider 契约与 AkShareProvider）
-- 当前交付性质：基础工程已验收，不等于 v0.1.0 MVP 完成；尚无股票查询、行情采集、K 线或均线业务
+- 当前完成阶段：Milestone 0、Milestone 1（六项全部 DONE）与 M2-01
+- 当前完成任务：M1-01 环境、M1-02 后端、M1-03 前端、M1-04 ORM/migration、M1-05 Compose、M1-06 配置/日志/异常/fixture，以及 M2-01 Provider 契约与 AKShare 适配
+- 下一任务：M2-02（代码、日期、OHLCV、单位与异常值 Validator）
+- 当前交付性质：基础工程已验收，不等于 v0.1.0 MVP 完成；Provider 已离线验收，尚无股票查询、持久化采集、K 线或均线业务
 
 ## 2. 当前 Git 状态
 
-- 当前分支：`main`，跟踪 `origin/main`；完整 M1 已合并并推送至 GitHub
-- 历史集成：本地 main 从 `3820583` 快进至 `b0c4fe6`，无冲突；上一会话交接提交为 `733e63d docs: record M1 integration into local main`
-- M1-06 功能提交：`08071e8`；保留的远程功能分支最新提交 `b0c4fe6`。本轮交接提交为 `docs: record main synchronization and local branch cleanup`，实际 SHA 以 `git log` 为准
-- 远程仓库：`git@github.com:crazychen0530/StockInsight.git`
-- GitHub：本轮获明确授权，`git push origin main` 成功，将远程 main 从 `97a83a0` 更新到 `733e63d`；`git ls-remote` 核验与本地 SHA 一致后才执行本地分支清理。本轮交接记录继续同步 main，结束时再次核验本地/远程一致
-- 本地分支：仅保留 main；已删除三个已合并分支 `feature/m1-04-initial-schema`（`761a515`）、`feature/m1-05-local-compose`（`f5f0f36`）、`feature/m1-06-runtime-foundation`（`b0c4fe6`）。只删除分支引用，提交仍在 main 历史中，可通过对应 SHA 恢复分支；远程功能分支未删除
-
-新会话不得只依赖上述快照，必须执行：
-
-```bash
-git status --short --branch
-git log -3 --oneline --decorate
-git remote -v
-```
+- 当前分支：`feature/m2-01-market-data-provider`，从干净且同步的 main `19c6ba41ee7404ec89782c29b2d3aac76ebe2eb6` 创建。
+- 本轮开始实际执行 `git ls-remote --heads origin main`，确认 GitHub main 与本地基线一致；远程为 `git@github.com:crazychen0530/StockInsight.git`。
+- 本轮 M2-01 代码、测试与文档形成一个本地逻辑提交 `feat: add market data provider contract and AKShare adapter`；提交后的准确 SHA 与状态以 `git log -3 --oneline --decorate`、`git status --short --branch` 为准。
+- 未 push、未合并 main、未删除分支或卷；main 与 origin/main 仍保留 `19c6ba4`。本地 M1 旧分支已在此前清理，远程 M1 功能分支仍保留。
+- 下一会话必须重新检查 Git 状态、最近提交和远程配置；本地功能分支尚需审阅并在获得授权后同步 GitHub。
 
 ## 3. 已完成功能
 
@@ -66,24 +57,43 @@ git remote -v
 - 建立应用 JSON 日志与脱敏；只记录路由模板和安全上下文，不输出原始请求、异常消息或内部堆栈；未知异常仅记录类型和单一源位置。
 - 建立共享应用/客户端/独立数据库 fixture，增加配置、错误、脱敏、并发和日志输出失败测试；完整后端测试 38 项。
 
-尚未实现股票业务 API、Repository、行情采集、指标计算、定时任务或行情业务页面。
+M2-01 新增：
+
+- `MarketDataProvider` Protocol、不可变 StockInfo/DailyBar/MarketDataBatch，批次保留来源、接口、UTC 获取时间、不复权和 CNY/股单位。
+- AkShareProvider 基础信息与日线映射；基础列表显式排除北京市场，未知上市日期/状态保留 None/unknown；日线手转股、Decimal 和请求闭区间相关性检查。
+- `market-data` 可选 extra 固定 AKShare 1.19.1；Settings 支持 MARKET_DATA_TIMEOUT_SECONDS（默认 30 秒）。私有 SDK 子进程限制整次调用并在超时后终止回收，复用公开错误与安全日志。
+- 明确标记的模拟 fixture、可替换 mock Provider 与真实子进程离线测试；详见 [Provider 专题](docs/MARKET_DATA_PROVIDER.md)、ADR-012。
+
+尚未实现完整业务 Validator、股票业务 API、Repository、持久化采集、指标计算、定时任务或行情业务页面。Provider 成功不表示业务校验或存储成功。
 
 ## 4. 正在开发的功能
 
-M1 已完成；本次结束保持三服务运行。暂无正在实施的业务功能，M2-01 待下一任务启动。
+M2-01 已完成并本地提交；本次结束保持原有三服务运行。M2-02 待下一任务启动。
 
 ## 5. 未完成任务
 
 下一阶段优先任务来自 `TASKS.md`：
 
-1. M2-01：提供者契约与 AKShare 适配，优先固定 fixture/mock，覆盖成功、空结果、超时和字段漂移。
-2. M2-02：代码、日期、OHLCV、单位与异常值校验。
-3. M2-03 至 M2-05：基础信息同步/持久化、日线幂等采集、本地 CLI 和任务记录。
-4. M3：股票查询 API、搜索/详情页、K 线与成交量；M4：均线和自动更新；M5：完整 MVP 验收。
+1. M2-02：代码、日期、OHLCV、单位与异常值校验；复用已完成 Provider 契约。
+2. M2-03 至 M2-05：基础信息同步/持久化、日线幂等采集、本地 CLI 和任务记录。
+3. M3：股票查询 API、搜索/详情页、K 线与成交量；M4：均线和自动更新；M5：完整 MVP 验收。
 
 按里程碑推进，不提前实现实时行情、AI 预测、自动交易或其他未批准范围。
 
 ## 6. 最近一次实际测试及结果
+
+最新：M2-01 Provider 离线验收（2026-10-11）：
+
+- `./scripts/check_environment.sh`：沙箱内 Docker socket 项受限；提升权限后全部通过。`git ls-remote --heads origin main` 与本地基线 `19c6ba4` 一致；`docker compose ps` 开始与结束均为三服务 healthy。
+- `.venv/bin/python -m pip install --editable 'backend[dev,market-data]'`：成功，安装 AKShare 1.19.1、Pandas 3.0.6、NumPy 2.5.4 等到项目 venv；未变更系统 Python 或 API 镜像。`pip check`：No broken requirements found。
+- 本地只导入 AKShare 并使用 inspect.signature 核验基础信息与日线签名，符合官方文档；未调用真实行情接口。
+- `.venv/bin/ruff check backend`：通过；`.venv/bin/ruff format --check backend`：35 files already formatted。
+- `.venv/bin/python -m pytest backend -m 'not postgres' -q`：**90 passed、1 deselected**，包含新增 53 项离线测试及已有 37 项回归；不依赖实时网络。DataFrame 日期序列化与 fake SDK 真子进程调用、超时实际终止/回收、输出与异常脱敏均通过。
+- 测试过程：新增 HTTP 错误 fixture 最初使用同步路由，在沙箱线程执行处停滞；改成异步 fixture 后完整回归通过。两个旧测试进程经精确 PID 确认后已终止，未操作 Compose 服务。
+- 真实 HTTP 8000 直连与 5173 代理健康接口均为 200，成功契约保持 status/version，X-Request-ID 为 32 位；OpenAPI 仅 `/api/v1/health`。
+- 无数据库模型、migration、前端或 Compose 实现变化；未运行本轮 PostgreSQL 升降级/前端测试，原开发库与卷保留。现有 API 镜像未装可选 SDK；未来 Worker 镜像需显式安装 extra。
+- 文档链接/代码围栏、敏感信息与生成物排除、`git diff --check`、最终 Git 状态检查通过，代码/测试/文档形成本地逻辑提交；未 push。
+
 
 最新：main 同步与本地分支清理复核（2026-10-11）：
 
@@ -180,10 +190,10 @@ M1-02 当时未运行前端、数据库连接或 migration 升降级测试；后
 
 ## 7. 当前已知 Bug
 
-- 当前没有已确认的后端健康接口 Bug。
+- 当前没有已确认的后端健康接口或 Provider 离线契约 Bug；真实上游尚未验收。
 - Docker daemon 已启动，提升权限后可达；沙箱 socket 权限受限。daemon 直接拉取 Docker Hub 仍超时；本次通过用户态代理下载并导入官方镜像完成验收，系统 daemon 代理问题未作全局修改。
 - 外部环境设置了 `NODE_TLS_REJECT_UNAUTHORIZED=0`；该配置会关闭 Node TLS 校验。本次已通过临时取消变量的 Registry ping 和 `npm ci` 验证正常 TLS 可用，后续安装不得依赖该不安全变量。
-- 这不代表系统无缺陷；股票 API、采集和前端业务功能尚未实现。
+- 这不代表系统无缺陷；完整 Validator、股票 API、持久化采集和前端业务功能尚未实现。
 
 ## 8. 未解决的技术风险
 
@@ -208,7 +218,7 @@ M1-02 当时未运行前端、数据库连接或 migration 升降级测试；后
 
 - 已配置私有远程仓库 `origin`：`git@github.com:crazychen0530/StockInsight.git`。
 - 本地 `main` 已首次推送并设置跟踪 `origin/main`；推送前已确认远程没有既有分支，未覆盖远程历史。
-- 当前 main 已完成完整 M1 同步；本轮先推送 `733e63d` 并核验，再清理本地分支，最后把本轮交接记录提交并推送同一 main。最终远程 HEAD 与本地 HEAD 须一致，不再有待推送提交。
+- 当前 main 已完成完整 M1 同步，最终基线 `19c6ba4` 已在本轮开始重新核验；此前同步/清理已结束。本轮 M2-01 位于本地功能分支，尚未同步 GitHub。
 - 远程 `feature/m1-06-runtime-foundation` 保持 `b0c4fe641513aa4c663e4c0b7749bf1b414b7836`，未删除或改写；m1-04/m1-05 未单独建立远程分支，其提交已随完整 M1 进入远程 main。
 - 三个本地 M1 功能分支已在确认同步成功且全部合并后，以 `git branch -d` 安全删除；没有强制删除、删除代码、重写历史、创建 PR/Release 或发布公网。
 - 未执行强制推送、版本发布或远程分支删除。
@@ -219,16 +229,16 @@ M1-02 当时未运行前端、数据库连接或 migration 升降级测试；后
 可直接复制以下指令：
 
 ```text
-继续开发 /home/crazychen/myprojects/StockInsight，只执行 Milestone 2 的 M2-01：定义 MarketDataProvider 契约与 AkShareProvider。
+继续开发 /home/crazychen/myprojects/StockInsight，只执行 M2-02：实现代码、日期、OHLCV、单位与异常值 Validator。
 
-开始前依次阅读 AGENTS.md、PROJECT_PLAN.md、TASKS.md、SESSION_HANDOFF.md、docs/DECISIONS.md、docs/DEPLOYMENT.md，并检查 git status、最近提交和远程配置。
+依次阅读 AGENTS.md、PROJECT_PLAN.md、TASKS.md、SESSION_HANDOFF.md、docs/DECISIONS.md、docs/DEPLOYMENT.md 和 docs/MARKET_DATA_PROVIDER.md；检查 Git 状态、最近提交和远程配置。
 
-以已合并完整 M1 且已同步 GitHub 的 main 为基线创建 feature/m2-01-market-data-provider，先核验环境、Compose 与远程同步；旧的三个本地 M1 功能分支已清理，不再依赖这些分支名。保留开发库 stockinsight 与 stockinsight-local_postgres_data 卷。阅读 Provider 规划和 AKShare 官方接口文档，明确基础信息/不复权日线契约、代码/日期/来源/获取时间/单位边界；外部字段只留在适配层。只实现 Provider 抽象、AKShare 适配与 mock/fixture 契约测试，覆盖成功、空结果、超时和字段漂移；默认测试不依赖实时网络、不虚构行情，真实联网样本与授权另行注明。M2-02 详细 Validator、Repository 持久化、采集 CLI、调度及业务网页留给后续任务；如依赖或接口设计超出当前基线先报告。复用 M1-06 配置/错误/安全日志，不改变健康成功契约或新增数据库结构。运行相关测试；完整 migration 回归仅用新独立空 *_migration_test 库。更新任务、交接、变更和决策文档，验收后形成逻辑提交；未经本轮授权不 push、不合并 main、不删卷、不部署公网。报告下一任务和是否需服务器。
+核验本地 feature/m2-01-market-data-provider 已验收提交，若尚未合并 main，则以该本地提交创建 feature/m2-02-market-data-validator，保留 main，不擅自合并或 push。复用不可变 Provider DTO/批次元数据与明确标记的模拟 fixture，只实现独立确定性 Validator，不引入 Repository、采集 CLI、调度或业务网页。覆盖 SH/SZ/未知市场与非法代码、日期范围/重复/乱序、空与非有限值、OHLC 关系、负量、单位/精度和数据库可表示范围；清晰区分适配转换与业务校验，不能重复乘 100 或静默修补异常行情。来源/UTC 获取时间/不复权元数据须保留，unknown 状态不得猜测。继续保留开发库 stockinsight 及原卷，不修改 Schema；如确需变更架构或数据口径，先记录 Proposed 决策等待确认。默认测试不联网，完整 migration 回归只用新建独立空 *_migration_test 库。完成测试、任务/交接/变更文档和逻辑提交；未经授权不 push、不合并 main、不删卷、不部署公网。报告下一任务与服务器需求。
 ```
 
 ## 12. 是否达到购买云服务器条件
 
-未达到。M1 本地基础工程和容器验证已完成，但 M2-M5 尚未完成；没有可验收的完整 MVP、采集稳定性证据、访问控制、数据授权确认或备份恢复演练，也未决定需要公网访问。当前继续本地开发，不购买服务器、不部署公网。
+未达到。M1 本地基础工程和容器验证、M2-01 离线契约已完成，但 M2 其余任务及 M3-M5 尚未完成；没有可验收的完整 MVP、采集稳定性证据、访问控制、数据授权确认或备份恢复演练，也未决定需要公网访问。当前继续本地开发，不购买服务器、不部署公网。
 
 ## 13. 当前可见的本地页面
 
