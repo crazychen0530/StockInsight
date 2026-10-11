@@ -25,9 +25,12 @@
 - 初始化 Vue 3、TypeScript、Vite 和 Vue Router 前端基础工程，新增首页应用壳、404 路由及移动端基础样式。
 - 新增 Vitest 与 Vue Test Utils 组件/路由测试、类型检查、生产构建、Preview 和可复现 `npm ci` 入口。
 - 固定经审计的前端构建工具版本并生成 `package-lock.json`；当前 npm 审计为 0 个已知漏洞。
+- 新增四张 SQLAlchemy 2 模型及 `0001_initial_schema` Alembic migration，包含主外键、OHLC/单位/复权约束和查询索引。
+- 补齐同步任务目标范围、股票工作项计数、恢复游标和同范围活动任务部分唯一索引；使用 psycopg 3 连接 PostgreSQL。
+- 新增 metadata 和真实 PostgreSQL migration 验收，覆盖空库升级、约束、防重、降级/再升级及 ORM 无差异检查。
 
 ### Known limitations
 
-- Milestone 1 正在进行；前后端基础壳可运行，但尚无股票业务 API、业务模型、数据库表或行情页面。
+- Milestone 1 正在进行；前后端基础壳和初始数据库结构已验收，尚无股票业务 API、采集或行情页面。
 - 当前尚未创建或验证项目 Docker Compose 服务、PostgreSQL 容器和应用运行链路。
-- Alembic 已初始化但 revision 数为 0；首个业务 migration 属于 M1-04。
+- 当前唯一 Alembic head 为 `0001_initial_schema`；已用隔离 PostgreSQL 16.15 验收，尚无持久开发/生产实例。

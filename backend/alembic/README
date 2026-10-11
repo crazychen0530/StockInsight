@@ -1,4 +1,13 @@
 Alembic migration environment for StockInsight.
 
-No business migration exists yet. M1-04 will create the first revision after the
-database model and constraints are approved.
+Initial revision: 0001_initial_schema (stocks, daily_prices,
+technical_indicators, data_sync_jobs).
+
+Use PostgreSQL 16 and DATABASE_URL with the postgresql+psycopg driver.
+From the repository root:
+  .venv/bin/alembic -c backend/alembic.ini upgrade head
+  .venv/bin/alembic -c backend/alembic.ini current
+  .venv/bin/alembic -c backend/alembic.ini check
+
+The base downgrade drops all four tables and their data. Run it only on
+disposable test databases. See README.md for isolated acceptance commands.

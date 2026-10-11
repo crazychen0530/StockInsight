@@ -7,9 +7,9 @@ StockInsight 是面向个人投资研究的中国 A 股行情与风险分析 Web
 ## 当前状态
 
 - 目标版本：v0.1.0
-- 当前阶段：Milestone 0、M1-01、M1-02、M1-03 已完成；下一任务为 M1-04
-- 已建立：项目基线、开发环境、FastAPI 健康接口、SQLAlchemy/Alembic 基础配置、Vue/Vite 前端壳及前后端测试入口
-- 未实现：股票业务 API、数据库业务模型与 migration、行情采集、行情页面和 Compose 服务
+- 当前阶段：Milestone 0、M1-01 至 M1-04 已完成；下一任务为 M1-05
+- 已建立：项目基线、开发环境、FastAPI 健康接口、四张 ORM 模型和初始 migration、Vue/Vite 前端壳及测试入口
+- 未实现：股票业务 API、行情采集、行情页面和 Compose 服务
 
 ## v0.1.0 计划范围
 
@@ -33,7 +33,7 @@ AI 涨跌预测、自动交易、券商连接、财报估值、自选股、组�
 
 ```text
 StockInsight/
-├── backend/alembic/              # migration 环境；当前没有 revision
+├── backend/alembic/              # 初始 revision：0001_initial_schema
 ├── backend/app/{api,core,models,schemas,repositories,services,collectors,analysis,jobs}/
 ├── backend/tests/
 ├── backend/pyproject.toml
@@ -74,7 +74,7 @@ source .venv/bin/activate
 ./scripts/check_environment.sh
 ```
 
-M1-01 曾完整验证 Node.js 22.23.1、Python 3.12 `.venv`、Docker Engine 29.1.3、Docker Compose 2.40.3、Docker daemon 和 PostgreSQL 客户端 16.15。当前 M1-02 会话再次检查时 Docker daemon 不可达或当前进程权限不足；这不影响无数据库依赖的健康接口，但开始 M1-05 前必须重新排查。系统 Node.js 18.19.1 仍保留，不要用全局 Node 升级替代 NVM 项目选择。
+M1-04 验证环境：Node.js 22.23.1、Python 3.12.3 `.venv`、Docker Engine 29.1.3、Compose 2.40.3、PostgreSQL 16.15。Docker daemon 已由所有者启动，提升权限后可达；当前沙箱内 socket 访问仍受限，Docker Hub 镜像拉取连接失败。migration 使用从 Ubuntu 软件源下载、解压到 `/tmp` 的隔离 PostgreSQL 16.15 实例完成验收。M1-05 仍需验证镜像下载及 Compose 链路。系统 Node.js 18.19.1 仍保留。
 
 ## 开发入口
 
@@ -121,12 +121,43 @@ curl --noproxy '*' http://127.0.0.1:8000/api/v1/health
 
 ```bash
 .venv/bin/ruff check backend
-.venv/bin/python -m pytest backend
+.venv/bin/python -m pytest backend -m 'not postgres'
 .venv/bin/python -c "from app.main import app; print(app.title, app.version)"
 .venv/bin/alembic -c backend/alembic.ini heads
 ```
 
-最后一条命令当前应成功且不输出 revision。Alembic 环境已初始化，但 M1-04 前不得创建股票业务 migration；实际执行 migration 时还需要通过环境变量提供 `DATABASE_URL` 和安装获批的 PostgreSQL 驱动。
+最后一条命令应输出 `0001_initial_schema (head)`。上述 Pytest 命令只运行 8 个健康接口和 metadata 测试；真实 PostgreSQL migration 测试需要按下节单独配置，不能以 metadata 测试代替。
+
+## 数据库迁移与隔离验收
+
+使用 PostgreSQL 16 和已随后端安装的 `psycopg[binary]`；SQLAlchemy URL 的驱动必须为 `postgresql+psycopg`。应用启动不隐式创建表，健康接口也不连接数据库。
+
+以下命令假设本机已有 PostgreSQL 16、`stockinsight` 用户及开发库，用户具备目标库 migration 权限（创建验收库还需 CREATEDB 权限）。M1-05 将提供 Compose 启动方式。数据库密码由 libpq 的 `PGPASSWORD` 读取，不写入 URL、命令历史或仓库：
+
+```bash
+export PGHOST=127.0.0.1
+export PGPORT=5432
+export PGUSER=stockinsight
+read -r -s -p 'Local PostgreSQL password: ' PGPASSWORD
+export PGPASSWORD
+export DATABASE_URL='postgresql+psycopg://stockinsight@127.0.0.1:5432/stockinsight'
+.venv/bin/alembic -c backend/alembic.ini upgrade head
+.venv/bin/alembic -c backend/alembic.ini current
+.venv/bin/alembic -c backend/alembic.ini check
+```
+
+预期：revision 为 `0001_initial_schema`，`check` 报告无新增升级操作；创建 `stocks`、`daily_prices`、`technical_indicators`、`data_sync_jobs` 四张表。价格/成交额采用定点人民币元，成交量为股，时间戳带时区；字段语义见 [数据字典](PROJECT_PLAN.md#8-数据库设计与数据字典)。活动同步任务索引使用 PostgreSQL 15+ 的 `NULLS NOT DISTINCT`，测试基线为 16。
+
+完整后端验收必须使用独立空库，名称以 `_migration_test` 结尾。以下测试会插入明确标记的 fixture，并执行删除四张表的降级，绝不能指向开发/生产数据：
+
+```bash
+createdb stockinsight_migration_test
+export TEST_DATABASE_URL='postgresql+psycopg://stockinsight@127.0.0.1:5432/stockinsight_migration_test'
+.venv/bin/python -m pytest backend
+unset TEST_DATABASE_URL DATABASE_URL PGPASSWORD
+```
+
+预期为 9 passed、无跳过；覆盖空库升级、约束、防重、降级/再升级及模型差异。测试拒绝包含既有表的数据库；运行后留下空 `alembic_version` 表，再次验收需要另建一个空的 `*_migration_test` 库。未配置 `TEST_DATABASE_URL` 时 PostgreSQL 用例会明确 skip，不能视为完整验收通过。`downgrade base` 会删除业务表及全部数据，只能用于一次性验收库。
 
 ## 前端安装、运行和验证
 

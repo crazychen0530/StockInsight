@@ -155,6 +155,14 @@ erDiagram
         uuid id PK
         varchar source
         varchar job_type
+        varchar target_symbol
+        date target_start_date
+        date target_end_date
+        integer total_count
+        integer success_count
+        integer failure_count
+        varchar checkpoint_symbol
+        date checkpoint_date
         timestamptz started_at
         timestamptz finished_at
         varchar status
@@ -162,13 +170,13 @@ erDiagram
     }
 ```
 
-精度、索引和检查约束的基线见 `PROJECT_PLAN.md` 第 8 节。`data_sync_jobs` 后续需要可查询的目标范围、计数和断点信息，但应在 M1 migration 前结合执行模型定稿；当前不创建会立即漂移的数据库实现。
+精度、索引和检查约束见 `PROJECT_PLAN.md` 第 8 节。M1-04 已实现四张表和 `0001_initial_schema` migration；同步任务范围、股票工作项计数和恢复游标已定稿。同范围活动任务通过 PostgreSQL 部分唯一索引防重；实际采集、断点恢复及重叠范围调度锁在后续任务实现。
 
 ## 6. API 草案
 
 | 方法 | 路径 | 主要响应 |
 | --- | --- | --- |
-| GET | `/api/v1/health` | 服务与必要依赖的健康状态 |
+| GET | `/api/v1/health` | API 进程存活状态与版本，不声明依赖健康 |
 | GET | `/api/v1/stocks` | 分页股票摘要、查询条件和数据更新时间 |
 | GET | `/api/v1/stocks/{symbol}` | 股票基础信息 |
 | GET | `/api/v1/stocks/{symbol}/prices` | 有上限的日期区间 OHLCV、来源和口径 |

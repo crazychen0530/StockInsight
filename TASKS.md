@@ -34,8 +34,9 @@
 - DONE M1-03 初始化 Vue 3 + TypeScript + Vite 前端。
   - 验收：开发构建可启动，类型检查和基础组件测试通过。
   - 验收结果：Node.js 22 下建立 Vue 3、TypeScript、Vite 与 Vue Router 基础工程；首页壳和 404 路由不展示行情；锁文件全新安装、类型检查、2 个组件/路由测试、生产构建、Preview HTTP 冒烟和 npm 0 漏洞审计通过。
-- TODO M1-04 定义首版 ORM 模型并创建初始 Alembic migration。
+- DONE M1-04 定义首版 ORM 模型并创建初始 Alembic migration。
   - 验收：四张核心表的主外键、约束、索引和单位语义与规划一致；空库升级测试通过。
+  - 验收结果（2026-10-11）：四张 ORM 模型、psycopg 3 驱动和 `0001_initial_schema` 已实现；真实隔离 PostgreSQL 16.15 上空库升级、主外键/检查约束、活动任务防重、降级/再升级和 Alembic 无差异检查通过；后端 9 个测试全通过，Ruff 通过。
 - TODO M1-05 创建本地 Docker Compose 基础工程。
   - 验收：API、前端开发入口和 PostgreSQL 可在本地互通；数据库不对非本机公开。
 - TODO M1-06 建立统一配置、日志、异常和测试 fixture。

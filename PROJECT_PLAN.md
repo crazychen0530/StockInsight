@@ -4,7 +4,7 @@
 >
 > 目标版本：v0.1.0
 >
-> 最后更新：2026-10-10
+> 最后更新：2026-10-11
 >
 > 时区基准：Asia/Shanghai
 
@@ -161,12 +161,19 @@ Analysis Service -> Repository -> Indicator Calculator -> Database
 | --- | --- | --- |
 | `id` | uuid | 主键 |
 | `source` | varchar(32) | 非空 |
-| `job_type` | varchar(32) | 全量、增量或补采 |
+| `job_type` | varchar(32) | `full` / `incremental` / `backfill` |
+| `target_symbol` | varchar(16) | 可空；空表示全部股票；规范代码，无外键以允许首次同步 |
+| `target_start_date/target_end_date` | date | 同时为空表示未限定日期；否则均必填且开始不晚于结束（闭区间） |
+| `total_count` | integer | 非负，计划处理的股票工作项总数，默认 0 |
+| `success_count/failure_count` | integer | 非负，已完成的成功/失败股票工作项数，默认 0；两者之和不大于总数 |
+| `checkpoint_symbol/checkpoint_date` | varchar(16) / date | 可空，最后已持久化的恢复游标；遍历和失败重试逻辑在 M2 实现 |
 | `started_at/finished_at` | timestamptz | 开始必填；运行中结束时间可空 |
 | `status` | varchar(24) | pending/running/succeeded/partial/failed |
 | `error_message` | text | 可空；脱敏的摘要，不保存密钥 |
 
-实现阶段需补充目标区间、成功/失败计数和断点字段；具体列在创建首个 migration 前确认，避免当前文档和 migration 漂移。
+`started_at` 表示本次尝试的登记/启动时间（pending 也必须提供）。pending/running 的 `finished_at` 必须为空；succeeded/partial/failed 必须有结束时间且不早于开始时间。状态计数之间更细的完成语义由 M2 服务层验证。
+
+索引包括 `(status, started_at)`、`(source, started_at)`，以及仅覆盖 pending/running 的同范围唯一索引：`(source, job_type, target_symbol, target_start_date, target_end_date)`。该索引使用 PostgreSQL 15+ 的 `NULLS NOT DISTINCT`，项目验证基线为 PostgreSQL 16。它阻止完全相同范围的活动任务，不阻止不同范围的重叠任务；调度锁、过期 running 任务恢复和重试仍属于后续任务。
 
 未来财务数据必须区分报告期、公告日、获取日与数据版本，以避免未来信息泄漏。
 
@@ -178,7 +185,7 @@ Analysis Service -> Repository -> Indicator Calculator -> Database
 
 | 方法与路径 | 用途 | 关键参数/约束 |
 | --- | --- | --- |
-| `GET /api/v1/health` | 存活与依赖健康 | 不泄漏配置或凭据 |
+| `GET /api/v1/health` | API 进程存活 | 仅状态与版本，不声明依赖健康、不泄漏配置或凭据 |
 | `GET /api/v1/stocks` | 代码/名称搜索 | `query`、`page`、`page_size` |
 | `GET /api/v1/stocks/{symbol}` | 股票详情 | 规范代码校验 |
 | `GET /api/v1/stocks/{symbol}/prices` | 日线行情 | `start_date`、`end_date`、`limit` |
@@ -262,7 +269,7 @@ AKShare 是面向开源量化与学术研究的数据接口聚合工具，并非
 | 批次部分失败和重复调度 | 任务状态、唯一约束、UPSERT、断点与防重锁 |
 | 复权与公司行动 | 首版只存不复权；其他口径不得混入同一主键语义 |
 | Node 与 Docker 本地前置条件 | 当前开发机已用 NVM 隔离 Node 22.23.1，并验证 Docker 29.1.3、Compose 2.40.3 与 daemon；新开发机仍须执行环境检查 |
-| `data_sync_jobs` 断点字段尚未定稿 | M1 migration 设计时结合任务执行模型确认 |
+| 同步任务恢复和重叠范围并发 | M1-04 已定义范围/计数/断点及同范围防重；M2/M4 验证重试、过期任务恢复与调度锁 |
 
 ## 18. 后续扩展方向
 

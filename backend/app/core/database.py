@@ -8,7 +8,7 @@ from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 
 class Base(DeclarativeBase):
-    """Declarative base for future Alembic-managed models."""
+    """Declarative base for Alembic-managed persistence models."""
 
 
 def create_database_engine(database_url: str) -> Engine:
