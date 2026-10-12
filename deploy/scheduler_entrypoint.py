@@ -21,6 +21,9 @@ def arguments(path="/config/scheduler.json"):
     ):
         raise ValueError("Invalid production stock universe")
     date.fromisoformat(value["initial_start"])
+    halts = value.get("stock_halts_file")
+    if halts is not None and halts != "/config/calendars/stock_halts.json":
+        raise ValueError("Invalid reviewed stock halt file")
     return [
         "python",
         "-m",
@@ -30,6 +33,7 @@ def arguments(path="/config/scheduler.json"):
         "--initial-start",
         value["initial_start"],
         "--catch-up",
+        *(["--stock-halts", halts] if halts else []),
         *[part for symbol in symbols for part in ("--symbol", symbol)],
     ]
 

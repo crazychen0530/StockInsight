@@ -137,3 +137,66 @@ def test_remote_checksum_mismatch_never_promotes_archive(monkeypatch, tmp_path):
     assert len(commands) == 2
     assert not any("mv -n" in str(part) for command in commands for part in command)
     monkeypatch.setattr(operations.shutil, "copyfile", original)
+
+
+def test_freshness_keeps_missing_history_and_unreviewed_dates_stale(tmp_path):
+    from app.jobs.trading_halts import TradingHalts
+
+    # Explicit simulated notice; this test makes no external requests.
+    path = tmp_path / "halts.json"
+    path.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "records": [
+                    {
+                        "symbol": "000001.SZ",
+                        "start": "2026-09-29",
+                        "confirmed_through": "2026-09-30",
+                        "source_url": "https://www.szse.cn/simulated-notice.pdf",
+                        "published_at": "2026-09-28",
+                        "verified_at": "2026-09-28",
+                    }
+                ],
+            }
+        )
+    )
+    halts = TradingHalts.load(path)
+    calendar = {
+        "trading_dates": ["2026-09-28", "2026-09-29", "2026-09-30", "2026-10-09"]
+    }
+    rows = [
+        {"symbol": "000001.SZ", "latest": "2026-09-28"},
+        {"symbol": "000002.SZ", "latest": "2026-09-28"},
+    ]
+    assert operations.stale_symbols(rows, "2026-09-30", calendar) == [
+        "000001.SZ",
+        "000002.SZ",
+    ]
+    assert operations.stale_symbols(rows, "2026-09-30", calendar, halts) == [
+        "000002.SZ"
+    ]
+    assert operations.stale_symbols(rows, "2026-10-09", calendar, halts) == [
+        "000001.SZ",
+        "000002.SZ",
+    ]
+    rows[0]["latest"] = None
+    assert "000001.SZ" in operations.stale_symbols(rows, "2026-09-30", calendar, halts)
+
+
+def test_scheduler_halt_option_is_explicit_and_rejects_arbitrary_paths(tmp_path):
+    path = tmp_path / "scheduler.json"
+    value = {
+        "symbols": ["600519.SH"],
+        "initial_start": "2026-01-05",
+        "stock_halts_file": "/config/calendars/stock_halts.json",
+    }
+    path.write_text(json.dumps(value))
+    assert (
+        arguments(path)[arguments(path).index("--stock-halts") + 1]
+        == value["stock_halts_file"]
+    )
+    value["stock_halts_file"] = "/run/secrets/db_password"
+    path.write_text(json.dumps(value))
+    with pytest.raises(ValueError):
+        arguments(path)

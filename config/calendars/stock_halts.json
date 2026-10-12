@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "records": [
+    {
+      "symbol": "000016.SZ",
+      "start": "2026-09-04",
+      "confirmed_through": "2026-10-13",
+      "source_url": "https://disc.static.szse.cn/download/disc/disk03/finalpage/2026-09-28/28069408-51ea-40c2-b87a-9e12d0126af4.PDF",
+      "published_at": "2026-09-28",
+      "verified_at": "2026-10-12"
+    }
+  ]
+}

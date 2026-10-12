@@ -22,6 +22,7 @@ from app.core.errors import ApplicationError
 from app.core.logging import configure_logging
 from app.jobs.cli import SafeParser, UsageError, _emit, _terminate
 from app.jobs.collection import CollectionRunner, RetryPolicy
+from app.jobs.trading_halts import TradingHalts
 from app.repositories.scheduling import ScheduleRepository
 from app.repositories.sync_jobs import SyncJobRepository
 from app.services.daily_prices import DailyPriceService
@@ -111,7 +112,17 @@ class ReadyProvider:
 
 
 class AfterCloseScheduler:
-    def __init__(self, repository, runner, calendar, symbols, initial_start, *, at=daytime(17, 30)):
+    def __init__(
+        self,
+        repository,
+        runner,
+        calendar,
+        symbols,
+        initial_start,
+        *,
+        at=daytime(17, 30),
+        halts=None,
+    ):
         self.repository, self.runner, self.calendar = repository, runner, calendar
         self.symbols = tuple(normalize_symbol(symbol) for symbol in symbols)
         if (
@@ -126,6 +137,7 @@ class AfterCloseScheduler:
         ):
             raise ValueError("Invalid scheduler configuration")
         self.initial_start, self.at = initial_start, at
+        self.halts = halts
 
     def tick(self, now, *, catch_up=False):
         day = self.calendar.target_day(now, self.at, catch_up=catch_up)
@@ -136,7 +148,29 @@ class AfterCloseScheduler:
         results, failures, skipped = [], 0, 0
         with self.repository.ownership():
             for symbol in self.symbols:
-                scope, resume_id, complete = self.repository.scope(symbol, day, self.initial_start)
+                expected = (
+                    self.halts.expected_day(symbol, day, self.calendar.days) if self.halts else day
+                )
+                if expected != day:
+                    logger.info(
+                        "Confirmed non-trading interval",
+                        extra={
+                            "event_data": {
+                                "symbol": symbol,
+                                "target_date": day.isoformat(),
+                                "expected_trade_date": expected.isoformat() if expected else None,
+                                "reason": "reviewed_exchange_halt",
+                            }
+                        },
+                    )
+                if expected is None or expected < self.initial_start:
+                    skipped += 1
+                    continue
+                # Use the last confirmed eligible session as a new scope. Earlier failed
+                # scopes remain untouched; neither bars nor checkpoints are fabricated.
+                scope, resume_id, complete = self.repository.scope(
+                    symbol, expected, self.initial_start
+                )
                 if complete:
                     skipped += 1
                     continue
@@ -168,6 +202,7 @@ class AfterCloseScheduler:
 def parser():
     result = SafeParser(description="Independent Asia/Shanghai after-close scheduler")
     result.add_argument("--calendar", required=True)
+    result.add_argument("--stock-halts", help="Optional reviewed finite exchange halt registry")
     result.add_argument("--symbol", action="append", required=True)
     result.add_argument("--initial-start", type=date.fromisoformat, required=True)
     result.add_argument("--at", type=daytime.fromisoformat, default=daytime(17, 30))
@@ -185,9 +220,12 @@ def main(argv=None):
     try:
         args = parser().parse_args(argv)
         calendar = TradingCalendar.load(args.calendar)
+        halts = TradingHalts.load(args.stock_halts) if args.stock_halts else None
         retry = RetryPolicy(args.max_attempts, args.retry_delay)
         # Validate all scope/calendar/time parameters before touching the database or provider.
-        AfterCloseScheduler(None, None, calendar, args.symbol, args.initial_start, at=args.at)
+        AfterCloseScheduler(
+            None, None, calendar, args.symbol, args.initial_start, at=args.at, halts=halts
+        )
         calendar.due(datetime.now(UTC), args.at)
         settings = load_settings()
         configure_logging(settings)
@@ -212,6 +250,7 @@ def main(argv=None):
             args.symbol,
             args.initial_start,
             at=args.at,
+            halts=halts,
         )
         attempted = None
         while True:

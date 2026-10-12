@@ -15,10 +15,12 @@ import subprocess
 import tempfile
 import time
 import urllib.request
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from uuid import uuid4
 from zoneinfo import ZoneInfo
+
+from app.jobs.trading_halts import TradingHalts
 
 
 def emit(event, **fields):
@@ -329,6 +331,25 @@ def traffic_metrics(path, now):
     }
 
 
+def stale_symbols(rows, target, calendar, halts=None):
+    """Require actual bars through the eligible session, including reviewed finite halts."""
+    if not target:
+        return []
+    day = date.fromisoformat(target)
+    days = frozenset(date.fromisoformat(value) for value in calendar["trading_dates"])
+    stale = []
+    for row in rows:
+        expected = halts.expected_day(row["symbol"], day, days) if halts else day
+        # Missing history is still stale; a halt never fabricates a data watermark.
+        if (
+            not row["latest"]
+            or expected is None
+            or date.fromisoformat(row["latest"]) < expected
+        ):
+            stale.append(row["symbol"])
+    return stale
+
+
 def monitor():
     now = datetime.now(UTC)
     alerts = []
@@ -352,9 +373,14 @@ def monitor():
         ).days
         if days_left < 30:
             alerts.append("calendar_expiring")
-        symbols = json.loads(
+        scheduling = json.loads(
             Path(os.environ.get("SCHEDULER_FILE", "/config/scheduler.json")).read_text()
-        )["symbols"]
+        )
+        symbols = scheduling["symbols"]
+        halt_path = scheduling.get("stock_halts_file")
+        if halt_path is not None and halt_path != "/config/calendars/stock_halts.json":
+            raise ValueError("Invalid reviewed stock halt file")
+        halts = TradingHalts.load(halt_path) if halt_path else None
         if (
             not symbols
             or len(symbols) > 100
@@ -370,7 +396,7 @@ def monitor():
         if (
             os.environ.get("CHECK_FRESHNESS", "true") == "true"
             and target
-            and any(not row["latest"] or row["latest"] < target for row in rows)
+            and stale_symbols(rows, target, calendar, halts)
         ):
             alerts.append("market_data_stale")
     except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError):

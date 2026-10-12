@@ -1,0 +1,11 @@
+# Candidate overlay only. Do not apply to existing services without targeted approval.
+services:
+  scheduler:
+    image: ${HALT_APP_IMAGE:?Set reviewed immutable candidate app image ID}
+    volumes:
+      - ${HALT_SCHEDULER_CONFIG:?Set separate reviewed scheduler configuration}:/config/scheduler.json:ro
+  monitor:
+    image: ${HALT_OPS_IMAGE:?Set reviewed immutable candidate operations image ID}
+    volumes:
+      - ./config/calendars:/config/calendars:ro
+      - ${HALT_SCHEDULER_CONFIG:?Set separate reviewed scheduler configuration}:/config/scheduler.json:ro

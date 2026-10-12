@@ -404,3 +404,77 @@ raise SystemExit(scheduler.main())
     assert len(snapshot(engine)) == 2
     with engine.connect() as conn:
         assert conn.scalar(sa.select(sa.func.count()).select_from(DataSyncJob)) == 2
+
+
+def test_confirmed_halt_collects_prior_session_and_preserves_failed_evidence(market):
+    from dataclasses import replace
+    from datetime import UTC, datetime
+
+    from app.jobs.collection import CollectionRunner, RetryPolicy
+    from app.jobs.scheduler import AfterCloseScheduler, ReadyProvider, TradingCalendar
+    from app.jobs.trading_halts import TradingHalt, TradingHalts
+    from app.repositories.scheduling import ScheduleRepository
+    from app.repositories.sync_jobs import SyncJobRepository
+    from app.services.stocks import StockService
+
+    engine, service = market
+    prior, target = date(2026, 9, 28), date(2026, 9, 29)
+    calendar = TradingCalendar(
+        "fixture_simulated", prior, date(2026, 9, 30), frozenset({prior, target})
+    )
+    calls = []
+
+    class Provider:
+        def fetch_daily_prices(self, symbol, start, end):
+            calls.append(end)
+            return replace(
+                FixtureDailyProvider({symbol: (bar(day=prior),)}).fetch_daily_prices(
+                    symbol, start, end
+                ),
+                source="akshare",
+            )
+
+    runner = CollectionRunner(
+        SyncJobRepository(engine),
+        StockService(create_session_factory(engine)),
+        service,
+        ReadyProvider(Provider(), calendar),
+        retry=RetryPolicy(1, 0),
+    )
+    repository = ScheduleRepository(engine)
+    now = datetime(2026, 9, 29, 9, 30, tzinfo=UTC)
+    original = AfterCloseScheduler(repository, runner, calendar, ["000001.SZ"], prior)
+    assert original.tick(now)["failed_jobs"] == 1
+    with engine.connect() as c:
+        failed = dict(c.execute(sa.select(DataSyncJob.__table__)).mappings().one())
+    halts = TradingHalts(
+        (
+            TradingHalt(
+                "000001.SZ",
+                target,
+                target,
+                "https://www.szse.cn/fixture-simulated.pdf",
+                prior,
+                prior,
+            ),
+        )
+    )
+    fixed = AfterCloseScheduler(repository, runner, calendar, ["000001.SZ"], prior, halts=halts)
+    assert fixed.tick(now)["failed_jobs"] == 0
+    with engine.connect() as c:
+        jobs = c.execute(sa.select(DataSyncJob.__table__)).mappings().all()
+        assert next(dict(job) for job in jobs if job["id"] == failed["id"]) == failed
+        fresh = next(job for job in jobs if job["id"] != failed["id"])
+        assert fresh["status"] == "succeeded" and fresh["checkpoint_date"] == prior
+        assert fresh["target_end_date"] == prior
+        assert (
+            c.scalar(
+                sa.select(sa.func.count())
+                .select_from(DailyPrice)
+                .where(DailyPrice.trade_date == target)
+            )
+            == 0
+        )
+    before_calls = len(calls)
+    assert fixed.tick(now)["skipped_jobs"] == 1
+    assert len(calls) == before_calls
