@@ -1,0 +1,25 @@
+# Use as second -f ONLY during local acceptance. Paths resolve from root Compose directory.
+services:
+  backup-target:
+    image: stockinsight-m6-transport:local
+    mem_limit: 128m
+    cpuset: ${PRODUCTION_CPUSET:-}
+    volumes:
+      - ${TRANSPORT_KEYS_DIR:?Set acceptance-only private key directory}:/test-keys:ro
+      - transport_archive:/backup
+    networks: [outbound]
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+  monitor:
+    environment:
+      SSL_CERT_FILE: /test-ca/alert.crt
+    volumes:
+      - ${TRANSPORT_KEYS_DIR}/alert.crt:/test-ca/alert.crt:ro
+  backup:
+    environment:
+      SSL_CERT_FILE: /test-ca/alert.crt
+    volumes:
+      - ${TRANSPORT_KEYS_DIR}/alert.crt:/test-ca/alert.crt:ro
+volumes:
+  transport_archive: {}

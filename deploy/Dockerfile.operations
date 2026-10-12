@@ -1,0 +1,15 @@
+FROM python:3.12-slim-bookworm AS trust
+FROM postgres:16-bookworm
+COPY --from=trust /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+RUN --mount=type=secret,id=build_proxy \
+    if [ -f /run/secrets/build_proxy ]; then export https_proxy="$(cat /run/secrets/build_proxy)"; export http_proxy="$https_proxy"; fi; \
+    sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources; \
+    sed -i 's|http://apt.postgresql.org|https://apt.postgresql.org|g' /etc/apt/sources.list.d/pgdg.list; \
+    apt-get -o Acquire::Retries=3 update && apt-get install -y --no-install-recommends python3 openssh-client ca-certificates gnupg \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --uid 10001 --create-home app
+COPY deploy/operations.py deploy/entrypoint.py /opt/
+USER app
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+ENTRYPOINT ["python3", "/opt/entrypoint.py"]
+CMD ["python3", "/opt/operations.py", "monitor"]

@@ -2,7 +2,7 @@
 
 更新时间：2026-10-12，Asia/Shanghai。当前工作目录 `/home/crazychen/myprojects/StockInsight`。
 
-> 当前状态以第12节为准：M6-01需求与容量评估完成，首期2–10名受邀用户/约100股。当前分支feature/m6-capacity-assessment，基于f67b011（包含尚未合并main的两轮页面/来源功能）；M6-02～04未实施，无采购/公网部署/合并/push授权。下文M6未启动的描述是历史时点。
+> 当前状态以第13节为准：用户已授权整个M6，确认暂无公网资源；M6-01～03实现与本地演练完成，M6-04公网部署TODO。分支feature/m6-production-deployment，基于157c01c（保留两轮尚未合并main的前端/来源功能）。无采购、合并、push或Release；下文早期状态为历史时点。
 
 ## 1. 本轮授权与范围
 
@@ -124,3 +124,36 @@ API可写、scheduler只读共享data/source-settings；配置不存在默认pre
 ```text
 继续 /home/crazychen/myprojects/StockInsight，按AGENTS依次读项目规划/任务/交接/决策及docs/M6_CAPACITY_ASSESSMENT.md，检查Git和实际服务。M6-01完成，首期2–10名受邀用户/约100股；当前仍原4股库。先核对用户对ADR-022及预算/地域/域名、名单/历史起点、数据用途许可和恢复目标的决定；获确认后开展M6-02/03的本地可审阅生产配置与隔离演练。保护原卷/备份，不采购或公网部署、不扩大名单、不合并/push，除非另获明确授权。当前feature/m6-capacity-assessment包含尚未合并main的两轮页面/来源改动，保持完整历史。
 ```
+
+
+## 13. M6生产实现与本地完整运维演练（2026-10-12，当前）
+
+用户要求“把整个m6运行完毕”，授权ADR-022方案实施；询问公网部署所需服务器、域名、异地目标和数据展示授权时，用户回复“暂无”。已完成全部可独立推进的本地生产实现与演练；M6-01/02/03 DONE，M6-04公网部署仍TODO，不宣称整个M6完成。无采购、创建资源、公开部署、merge、push、tag或Release。
+
+当前feature/m6-production-deployment基于157c01c，保留22249f5/f67b011前端与来源功能；main与本地origin/main仍2cf6ff7，本轮没有fetch/远程核验。实现提交标题`feat: add production deployment and operational acceptance`，完整SHA以git log为准。原开发stockinsight-local/原卷保留，不扩采开发库。
+
+生产文件：compose.production.yaml独立项目，deploy/Dockerfile.{backend,proxy,operations}，Caddy HTTPS/静态SPA/逐人Basic Auth/所有API认证/禁写/脱敏轮转；DB bootstrap四类最小权限角色；应用非root/只读根目录/资源上限；scheduler配置转换复用既有CLI；operations.py实现GPG流式加密、严格SSH传输/远端哈希、每日备份/7日4周本地保留、独立空库恢复、监控/HTTPS告警。scripts含私有初始化、邀请管理、显式发布/回滚、严格HTTPS检查和并发测试。生产前端构建仅只读，开发管理功能仍存在。没有业务Schema、核心栈、价格/单位/指标算法变化。
+
+本机项目stockinsight-m6，仅127.0.0.1:18080/18443；入口https://localhost:18443，凭据secrets/production/preview_password，不在报告中给值。浏览器需信任演练CA，严格验证脚本使用secrets/production/local-ca.crt。APP镜像m6-local、PROXY镜像m6-validated、OPS镜像m6-final，最终不可变ID在data/releases/20261012T032825Z-0358b258.json，completed；生产外发应重建/标记实际提交SHA。生产API/DB无宿主端口。全部M6服务cpuset0,1，单容器内存上限，不等价独立4GiB主机；当前宿主7.76GiB有开发服务竞争。
+
+真实100股容量样本config/universe/preview-100.json（原4股+目录升序96股），复制到私有配置。初始只读复制开发目录/行情/指标，未复制开发任务；随后新库串行采集5分50.378819秒，99成功/1失败000016.SZ daily_data_not_ready，日线/指标各18106，目录5223，任务100，revision0001_initial_schema；源库15,875,095bytes。未猜测失败股票停牌/上市原因。scheduler常驻，启动跳过99成功股并重试失败股仍失败；不声称未来17:30触发已验证。开发库保持原4股732/732。
+
+最终验证：backend scripts/test_postgres.py六新库399passed/13.33s；frontend Node22类型/39tests/镜像内生产build通过；deploy/tests 18passed；Ruff/格式通过。严格CA/主机名与HTTP301正确HTTPS端口、认证/SPA/只读共11项通过。新增colleague认证200，撤销后401而preview仍200。API实际UPDATE被拒绝；api/worker/backup权限与si_owner表owner已核验。browser-production.mjs真实搜索/K线/均线/失败任务/只读设置/教程，桌面和390px手机通过，0pageerror，截图目视检查，无横向溢出。UI浏览器仅本地context允许测试证书，证书可信性证明来自独立Python严格校验。
+
+15分钟混合维护负载：901.02秒/26019请求/51失败0.196%/成功请求p95 19.52ms；期间采集、备份和邀请撤销/proxy重建，严格零错误脚本退出1，如实保留失败结果。最终60秒稳定复验60.92秒/1725请求/0失败/p95 38.64ms，退出0；不冒充15分钟零错误。容量只为本机演练，非VPS承诺。
+
+备份接收器deploy/acceptance/transport.compose.yaml为同机无发布端口的独立SSH/HTTPS容器和卷；严格known_hosts与专用证书/密钥，绝非真实异地。最终100股备份658732bytes/1.681s，remote_verified true只证明传输哈希。新建stockinsight_capacity_restore恢复0.422s；deploy/acceptance/verify_database.py四表5223/18106/18106/100逐行SHA256完全一致。原4股快照另恢复stockinsight_m6_restore，三表哈希一致。两恢复库均保留，不覆盖原库。密钥/归档分开保管，RPO24h/RTO2h仍为需目标主机实演的目标。
+
+错误备份密码实际退出1，旧成功回执不变、0partial，HTTPS接收端收到backup_failed。monitor --once当前预期退出1：market_data_stale和tls_monitor_unconfigured，接收端实际收到。最终monitor样本p95 11.93ms/5xx0、磁盘16.86%、宿主内存64.43%；无公网域名不能关闭告警假装通过。日历覆盖到2026-12-31，提前30天提示更新。
+
+实际发布故障：专用overlay把M6 API命令改为退出1，rollback根据data/releases/20261012T032539Z-72bc6985.json的旧镜像ID恢复，核心查询及原10项HTTPS检查通过；之后重新发布最终镜像并启用scheduler/backup常驻。schema变化拒绝回退有单测，不做隐式downgrade/清卷。测试overlay为monitor/backup增加测试告警CA；正常release不自动加载overlay，后续本地复验需两个-f，避免测试自签回调失去信任。
+
+证据data/acceptance/m6-production/与data/releases/均Git忽略；secrets/production/、secrets/m6-transport/和真实.env.production不进Git。Docker volumes保留备份/生产/SSH测试接收器状态。运行手册docs/M6_PRODUCTION_RUNBOOK.md与报告docs/M6_ACCEPTANCE.md为后续入口。构建临时DOCKER_CONFIG=/tmp/stockinsight-m6/docker-config，官方Buildx0.38.0 SHA256已核验，Caddy官方registry manifest/blob校验后导入；没有系统安装/daemon配置修改。Python/apt直连官方HTTPS构建，npm可用BuildKit代理secret；不关闭TLS验证，不输出代理或口令。临时工具失效时按标准安装路径另行准备。
+
+下一会话可复制：
+
+```text
+继续 /home/crazychen/myprojects/StockInsight 的M6-04。按AGENTS顺序读取规划/任务/交接/ADR，再读docs/M6_PRODUCTION_RUNBOOK.md和docs/M6_ACCEPTANCE.md，检查Git及两个独立Compose项目。当前M6-01～03已实现/本地演练，M6-04暂无服务器/域名/异地目标与行情展示用途确认。保留原开发库及全部演练/恢复卷、失败任务和加密备份；先核对用户新提供的目标资源，按预检→备份→显式migration→发布→真实公网HTTPS/邀请撤销/100股/持续并发→真实异地恢复→回滚验收推进。不得把同机SSH副本当异地或本机资源测试当实际VPS验证；采购、merge/push及Release仅按新的明确授权执行。
+```
+
+是否购买服务器：本地演练无需新增资源；要完成M6-04需已有或经用户批准购买的Linux主机、域名与真正异地备份。是否同步GitHub：需要，当前只本地提交，等用户明确授权merge/push。

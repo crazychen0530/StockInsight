@@ -1,0 +1,8 @@
+# Acceptance only: a same-host SSH destination/HTTPS alert receiver is NOT real offsite storage.
+FROM stockinsight-production-ops:m6-local
+USER root
+RUN apt-get -o Acquire::Retries=3 update && apt-get install -y --no-install-recommends openssh-server \
+    && rm -rf /var/lib/apt/lists/* && mkdir -p /run/sshd /home/app/.ssh \
+    && usermod -p x app
+COPY deploy/acceptance/transport_server.py /opt/transport_server.py
+ENTRYPOINT ["python3", "/opt/transport_server.py"]

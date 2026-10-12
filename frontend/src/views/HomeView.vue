@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const readOnly = import.meta.env.VITE_READ_ONLY_DEPLOYMENT === 'true'
 import { onMounted } from 'vue'
 import { stocksApi } from '@/api/stocks'
 import type { StockList } from '@/api/types'
@@ -32,7 +33,8 @@ onMounted(load)
     </div>
     <div class="panel">
       <h2>默认行情采集范围</h2>
-      <p>自动更新默认覆盖以下 4 只股票；股票目录中的其他股票需要先补采行情。日线在收盘后更新。</p>
+      <p v-if="readOnly">本环境更新运维配置名单内的股票；实际行情覆盖以股票详情和数据状态为准。下面提供常用股票入口。</p>
+      <p v-else>自动更新默认覆盖以下 4 只股票；股票目录中的其他股票需要先补采行情。日线在收盘后更新。</p>
       <p><RouterLink to="/stocks/000001.SZ">平安银行</RouterLink> ·
         <RouterLink to="/stocks/600519.SH">贵州茅台</RouterLink> ·
         <RouterLink to="/stocks/300750.SZ">宁德时代</RouterLink> ·

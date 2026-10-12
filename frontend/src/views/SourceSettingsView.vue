@@ -8,6 +8,7 @@ import RequestState from '@/components/RequestState.vue'
 const { data, loading, error, run } = useRequest<SourcePolicy>()
 const mode = ref<SourceMode>('prefer_eastmoney')
 const token = ref('')
+const readOnly = import.meta.env.VITE_READ_ONLY_DEPLOYMENT === 'true'
 const saving = ref(false)
 const message = ref('')
 const saveError = ref('')
@@ -17,7 +18,7 @@ async function load() {
   if (data.value) mode.value = data.value.mode
 }
 async function save() {
-  if (!data.value || saving.value) return
+  if (readOnly || !data.value || saving.value) return
   saving.value = true; message.value = ''; saveError.value = ''
   try {
     data.value = await sourcePolicyApi.save(mode.value, data.value.revision, token.value)
@@ -37,7 +38,8 @@ onMounted(load)
         <template v-if="data">
           <p>当前策略：<strong>{{ sourceModes.find(item => item.value === data?.mode)?.label }}</strong></p>
           <p v-if="data.updated_at" class="muted">设置保存时间：{{ shanghaiTime(data.updated_at) }}</p>
-          <form @submit.prevent="save">
+          <p v-if="readOnly" role="status">当前为受邀只读环境，采集策略由运维人员维护。</p>
+          <form v-else @submit.prevent="save">
             <fieldset :disabled="saving">
               <legend>选择采集策略</legend>
               <label v-for="item in sourceModes" :key="item.value" class="source-option">
@@ -62,7 +64,7 @@ onMounted(load)
       <p>保存后无需重启；下一次股票采集读取新策略。正在采集的股票继续完成原请求。</p>
       <p>切换来源不会立即采集、重写历史行情或扩大股票范围。已经成功的更新不会重复执行；页面仍显示每条行情的实际来源。</p>
       <p>自动模式下，东方财富返回空数据、无效行情或收盘日数据尚未就绪时，也会尝试腾讯。两者均失败时，在数据状态保留失败结果。</p>
-      <p>本地管理口令用于保护设置，不会保存在浏览器中。<RouterLink to="/guide#source-settings">查看口令获取方法和使用教程 →</RouterLink></p>
+      <p v-if="!readOnly">本地管理口令用于保护设置，不会保存在浏览器中。<RouterLink to="/guide#source-settings">查看口令获取方法和使用教程 →</RouterLink></p>
     </div>
   </section>
 </template>

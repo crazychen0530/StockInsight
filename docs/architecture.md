@@ -219,6 +219,8 @@ M0-M5 只面向本地开发。M6 必须由用户明确启动。生产候选拓�
 
 ## 9. 可观测性和错误处理
 
+2026-10-12 M6实现：独立production Compose，Caddy静态前端/HTTPS/统一逐人邀请认证→无reload API，独立scheduler→原Provider/Validator/Repository，私有PostgreSQL分离owner/api/worker/backup角色。生产来源配置由运维只读挂载，页面与HTTP均禁止管理写入；备份/监控为独立轻量运维进程，无Docker socket。无业务Schema/核心栈/指标口径变化。当前仅loopback演练，公网/异地仍待资源；见[M6运行手册](M6_PRODUCTION_RUNBOOK.md)。
+
 M1-06 已实现环境配置、HTTP 请求关联 ID、统一错误和 JSON 脱敏日志；使用已有 Pydantic 和标准 logging，不引入新依赖或数据库结构。test 模式只接受独立测试 URL，不回退开发库；应用启动不连接或迁移数据库。HTTP 日志只保存路由模板、状态、耗时和服务端 ID，不保存原始路径/查询/头/体；未知异常仅保留类型及代码位置。下述任务日志与业务分类随 M2/M4 实现。
 
 - 使用结构化日志和每请求/每任务关联 ID；记录阶段、股票、日期范围、来源、耗时和结果计数。

@@ -50,3 +50,14 @@ it('explains actual coverage, source effects and links from the tutorial', async
   expect(view.find('a[href="/source-settings"]').exists()).toBe(true)
   expect(view.find('a[href="/stocks/600519.SH"]').exists()).toBe(true)
 })
+
+it('shows policy without credential inputs or save actions in invited deployment', async () => {
+  vi.stubEnv('VITE_READ_ONLY_DEPLOYMENT', 'true')
+  try {
+    const view = await open('/source-settings')
+    expect(view.text()).toContain('当前为受邀只读环境')
+    expect(view.find('form').exists()).toBe(false)
+    expect(view.find('#admin-token').exists()).toBe(false)
+    expect(sourcePolicyApi.save).not.toHaveBeenCalled()
+  } finally { vi.unstubAllEnvs() }
+})

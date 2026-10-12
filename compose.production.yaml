@@ -1,0 +1,224 @@
+# Standalone file: do not merge with the development Compose (ports/credentials differ).
+name: ${PRODUCTION_PROJECT:-stockinsight-production}
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+x-app: &app
+  image: ${APP_IMAGE:?Set an immutable production app image tag}
+  restart: unless-stopped
+  cpuset: ${PRODUCTION_CPUSET:-}
+  read_only: true
+  tmpfs: ["/tmp:rw,noexec,nosuid,size=128m"]
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  logging: *logging
+x-database: &database
+  APP_ENV: production
+  APP_TIMEZONE: Asia/Shanghai
+  PGHOST: db
+  PGPORT: "5432"
+  PGDATABASE: stockinsight
+  PGPASSWORD_FILE: /run/secrets/db_password
+services:
+  init-state:
+    profiles: [maintenance]
+    image: ${OPS_IMAGE}
+    user: "0:0"
+    entrypoint: [python3, -c]
+    command: ["import os; os.chown('/state',10001,10001); os.chown('/backups',10001,10001); os.chmod('/state',0o700); os.chmod('/backups',0o700)"]
+    volumes: ["ops_state:/state", "backups:/backups"]
+    network_mode: none
+    cap_drop: [ALL]
+    cap_add: [CHOWN, FOWNER]
+    security_opt: [no-new-privileges:true]
+    logging: *logging
+  db:
+    image: ${POSTGRES_IMAGE:-postgres:16-bookworm}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: stockinsight
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/admin_password
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    secrets: [admin_password, owner_password, api_password, worker_password, backup_password]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./deploy/postgres/010_roles.sql:/docker-entrypoint-initdb.d/010_roles.sql:ro
+    networks: [database]
+    shm_size: 256m
+    cpuset: ${PRODUCTION_CPUSET:-}
+    mem_limit: 1g
+    cpus: "1.0"
+    logging: *logging
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U postgres -d stockinsight']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+  migrate:
+    <<: *app
+    profiles: [maintenance]
+    restart: "no"
+    environment:
+      <<: *database
+      PGUSER: si_owner
+    secrets:
+      - source: owner_password
+        target: db_password
+    command: [alembic, upgrade, head]
+    networks: [database]
+    mem_limit: 512m
+    depends_on:
+      db: {condition: service_healthy}
+  restore:
+    <<: *app
+    profiles: [maintenance]
+    image: ${OPS_IMAGE}
+    restart: "no"
+    environment:
+      <<: *database
+      PGUSER: si_owner
+      PGDATABASE: ${RESTORE_DATABASE:-stockinsight_restore}
+    secrets:
+      - source: owner_password
+        target: db_password
+      - backup_key
+    volumes: ["backups:/backups:ro"]
+    command: [python3, /opt/operations.py, restore]
+    networks: [database]
+    mem_limit: 256m
+  api:
+    <<: *app
+    environment:
+      <<: *database
+      PGUSER: si_api
+      SOURCE_POLICY_DIRECTORY: /config/source-settings
+    secrets:
+      - source: api_password
+        target: db_password
+    volumes: ["${PRODUCTION_CONFIG_DIR:?Set configuration directory}/source-settings:/config/source-settings:ro"]
+    networks: [database, ingress]
+    mem_limit: 512m
+    cpus: "0.75"
+    depends_on:
+      db: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/stocks?page_size=1', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+  scheduler:
+    <<: *app
+    profiles: [automation]
+    environment:
+      <<: *database
+      PGUSER: si_worker
+      SOURCE_POLICY_DIRECTORY: /config/source-settings
+      MARKET_DATA_TIMEOUT_SECONDS: "30"
+    secrets:
+      - source: worker_password
+        target: db_password
+    volumes:
+      - ${PRODUCTION_CONFIG_DIR}/source-settings:/config/source-settings:ro
+      - ${PRODUCTION_CONFIG_DIR}/scheduler.json:/config/scheduler.json:ro
+      - ./config/calendars:/config/calendars:ro
+    command: [python, /opt/scheduler_entrypoint.py]
+    networks: [database, outbound]
+    mem_limit: 1280m
+    cpus: "0.75"
+    depends_on:
+      db: {condition: service_healthy}
+  proxy:
+    image: ${PROXY_IMAGE:?Set immutable proxy image tag}
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?Set a domain}
+      TLS_ISSUER: ${TLS_ISSUER:-internal}
+      HTTPS_REDIRECT_PORT: ${HTTPS_PORT:-18443}
+    secrets: [invited_users]
+    ports:
+      - "${PROXY_BIND:-127.0.0.1}:${HTTP_PORT:-18080}:80"
+      - "${PROXY_BIND:-127.0.0.1}:${HTTPS_PORT:-18443}:443"
+    volumes: ["caddy_data:/data", "caddy_config:/config", "proxy_logs:/var/log/caddy"]
+    networks: [ingress]
+    cpuset: ${PRODUCTION_CPUSET:-}
+    mem_limit: 256m
+    cpus: "0.5"
+    logging: *logging
+    depends_on:
+      api: {condition: service_healthy}
+  monitor:
+    <<: *app
+    image: ${OPS_IMAGE:?Set immutable operations image tag}
+    environment:
+      <<: *database
+      PGUSER: si_backup
+      OPS_STATE: /state
+      CALENDAR_FILE: /config/calendar.json
+      SCHEDULER_FILE: /config/scheduler.json
+      CHECK_FRESHNESS: ${CHECK_FRESHNESS:-true}
+      TLS_HOST: ${TLS_HOST:-}
+      DISK_PATH: /db-volume
+    secrets:
+      - source: backup_password
+        target: db_password
+      - alert_url
+    volumes:
+      - ops_state:/state
+      - postgres_data:/db-volume:ro
+      - proxy_logs:/proxy-logs:ro
+      - ${PRODUCTION_CONFIG_DIR}/scheduler.json:/config/scheduler.json:ro
+      - ./config/calendars/sse_szse_2026.json:/config/calendar.json:ro
+    networks: [database, outbound]
+    mem_limit: 128m
+    logging: *logging
+    depends_on:
+      api: {condition: service_healthy}
+  backup:
+    <<: *app
+    profiles: [operations]
+    image: ${OPS_IMAGE}
+    environment:
+      <<: *database
+      PGUSER: si_backup
+      OPS_STATE: /state
+      BACKUP_DIRECTORY: /backups
+      BACKUP_REMOTE: ${BACKUP_REMOTE:-}
+    secrets:
+      - source: backup_password
+        target: db_password
+      - backup_key
+      - backup_ssh_key
+      - backup_known_hosts
+      - alert_url
+    volumes: ["backups:/backups", "ops_state:/state"]
+    command: [python3, /opt/operations.py, backup-loop]
+    networks: [database, outbound]
+    mem_limit: 256m
+    logging: *logging
+    depends_on:
+      db: {condition: service_healthy}
+networks:
+  database: {internal: true}
+  ingress: {}
+  outbound: {}
+volumes:
+  postgres_data: {}
+  caddy_data: {}
+  caddy_config: {}
+  ops_state: {}
+  backups: {}
+  proxy_logs: {}
+secrets:
+  admin_password: {file: "${PRODUCTION_SECRETS_DIR}/admin_password"}
+  owner_password: {file: "${PRODUCTION_SECRETS_DIR}/owner_password"}
+  api_password: {file: "${PRODUCTION_SECRETS_DIR}/api_password"}
+  worker_password: {file: "${PRODUCTION_SECRETS_DIR}/worker_password"}
+  backup_password: {file: "${PRODUCTION_SECRETS_DIR}/backup_password"}
+  invited_users: {file: "${PRODUCTION_SECRETS_DIR}/invited_users"}
+  backup_key: {file: "${PRODUCTION_SECRETS_DIR}/backup_key"}
+  backup_ssh_key: {file: "${PRODUCTION_SECRETS_DIR}/backup_ssh_key"}
+  backup_known_hosts: {file: "${PRODUCTION_SECRETS_DIR}/backup_known_hosts"}
+  alert_url: {file: "${PRODUCTION_SECRETS_DIR}/alert_url"}
