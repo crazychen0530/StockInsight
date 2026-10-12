@@ -58,3 +58,14 @@ AKShare SDK MIT不授予上游行情公开再分发许可。公开/商业数据�
 ```
 
 验收证据副本在data/acceptance/m5-20261012/（Git忽略）；临时恢复实例已停止但卷保留，原开发db/API/web/scheduler继续运行。
+
+
+## 8. 东方财富连接复核与服务恢复（2026-10-12）
+
+用户要求解决东方财富无法获取或提供替代方案。本轮东方财富直连/环境代理均HTTP200；项目原有AKShare1.19.1 Provider→Validator对600519.SH、000001.SZ各183条真实日线通过，腾讯同区间同样通过。此前失败当前不可复现，未查明历史网络根因，不将无需的SDK升级、登录Cookie或TLS降级当修复。新增scripts/diagnose_market_data.py和docs/MARKET_DATA_DIAGNOSTICS.md，提供安全只读探测、错误分类、来源显式切换及Tushare官方文档方案；Tushare未接入/未实测。
+
+另发现原db/API/web容器退出（255），scheduler反复scheduler_storage_error；已执行docker compose start db api web恢复原容器/原卷。该现象与当前行情HTTP可达性独立，未证实退出根因。常驻来源仍腾讯，不覆盖现有行情，不自动清除失败任务。后续切换来源重采会更新重叠日期来源，既有成功任务不会自动失效，详见诊断文档。
+
+本轮Provider/Transport定向测试56 passed；Ruff及诊断脚本格式检查通过。诊断仅只读网络/校验，不新增Schema、依赖或业务采集行为。M5仍DONE，M6未启动；本轮本地提交，未合并或推送。
+
+最终复核：scheduler容器内东方财富沪深两样本各183条通过；db/API/web均running/healthy，scheduler running并输出succeeded、skipped_jobs=4、failed_jobs=0、target_date=2026-10-09。诊断异常链含循环与带凭据异常的脱敏断言通过；改动文档链接、代码围栏、当前数据库密码/私钥检查和diff检查通过。
