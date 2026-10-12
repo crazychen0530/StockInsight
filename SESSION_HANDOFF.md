@@ -2,6 +2,8 @@
 
 更新时间：2026-10-12，Asia/Shanghai。当前工作目录 `/home/crazychen/myprojects/StockInsight`。
 
+> 当前状态以第12节为准：M6-01需求与容量评估完成，首期2–10名受邀用户/约100股。当前分支feature/m6-capacity-assessment，基于f67b011（包含尚未合并main的两轮页面/来源功能）；M6-02～04未实施，无采购/公网部署/合并/push授权。下文M6未启动的描述是历史时点。
+
 ## 1. 本轮授权与范围
 
 用户明确要求真实数据采集与自动更新跑通，让搜索、K 线、均线、数据状态有实际内容，并完成 M5 全部验收。M6 公网部署、服务器购买、远程推送、tag/Release 未在本轮授权。上一轮 M4 的合并与推送已完成，基线 `main/origin/main` 为 `aa3da56`，本轮在 `feature/m5-live-data-acceptance` 开发。
@@ -102,3 +104,23 @@ API可写、scheduler只读共享data/source-settings；配置不存在默认pre
 最终全新六隔离库scripts/test_postgres.py为399 passed in13.63s，无skip（最初397passed/2failed为原OpenAPI路径集合未包含新增配置接口，更新契约后完整复跑通过）；非提升权限测试因子进程/线程环境限制中断，不作为通过证据。前端typecheck、38passed、生产构建通过，保留604.26KB/gzip207.57KB详情chunk提示。实际网页管理测试browser-settings.mjs通过；原mock边界browser-smoke.mjs及真实数据browser-live.mjs复验均通过（183条、MA60 1291.0760），无浏览器异常。Ruff/78文件格式检查通过，最终文档/源码/敏感信息检查在提交前核验。
 
 当前仅本地提交，不合并/推送。管理口令由本机终端cat secrets/source-admin.token取得并粘贴网页，本轮不分享口令值。无需购买服务器或进入公网。下一会话可复制：按AGENTS读取项目文档并核对Git和服务；检查feature/source-policy-and-guide的来源设置/教程和真实来源日志。如需即时网页补采，另行评审后台任务入口、授权、防重与失败恢复，不在请求内同步执行网络采集；合并/推送按用户新授权。
+
+## 12. M6-01 部署需求与容量评估（2026-10-12，当前）
+
+用户要求进入M6部署需求与容量评估，并确认首期2–10名同时使用的受邀用户、约100股、先评估成本。已从干净的feature/source-policy-and-guide（f67b011）创建feature/m6-capacity-assessment；保留前两轮页面/来源功能，不切回main丢弃这些功能。M6-01 DONE，M6-02～04 TODO；未经授权没有扩大采集、购买、部署、合并或push。
+
+交付docs/M6_CAPACITY_ASSESSMENT.md与只读scripts/benchmark_queries.py：限定loopback、禁环境代理/重定向、四类GET、1/4/10并发各80次测量，240次成功/零错误；10并发p95为搜索200.11ms/日线210.52ms/均线200.38ms/状态192.29ms。样本为开发服务/热缓存/短时/原4股，不代表100股或2核4GiB生产容量。证据JSON在data/acceptance/m6-20261012/，Git忽略。
+
+数据库READ ONLY测量：9,247,767bytes，stocks5223、daily_prices732、indicators732、jobs14；4股日期2026-01-05～10-09，revision0001_initial_schema。空闲Docker stats四服务约572MiB，宿主4逻辑CPU/7.76GiB，未模拟候选规格。逻辑pg_dump只写内存后丢弃，92,383bytes/0.347s，未恢复/写入原库。当前db/API/web healthy、scheduler running，宿主端口仍全loopback；原卷、加密备份、来源设置保留。
+
+报告给出100股存储/串行采集/全历史指标重算模型与2核4GiB/80GiB待验证候选；官方价格参照VPS24美元/月+对象备份5美元/月，域名/税费/超额流量另计；只作预算参照，未选供应商或确定区域库存。数据许可、预算/地域/域名、名单/起点、运维与恢复目标仍待确认。ADR-022 Proposed记录Caddy/统一受邀认证/生产账户与备份运维方案，不改已批准项目基线、架构图、栈或Schema。
+
+实际验证：`.venv/bin/python scripts/benchmark_queries.py`成功；`.venv/bin/ruff check scripts/benchmark_queries.py`及`ruff format --check`通过；文档内部链接/围栏、敏感信息模式、git diff --check与提交内容检查通过。未重跑业务后端/前端/migration：本轮没有修改业务代码或Schema；上一轮399项后端及38项前端为历史证据。Docker/socket和本机网络访问在sandbox内受限，通过仅测量用途的提升权限运行；无服务/配置修改。
+
+本轮形成范围单一的本地提交（SHA以Git日志为准），不合并/push；main/origin/main的本地跟踪引用仍2cf6ff7，本轮未fetch或核验GitHub当前状态，不能声称远程实时一致。当前分支包含尚待同步的展示优化22249f5与来源功能f67b011。当前无需购买服务器，后续合并/推送须用户新授权。
+
+下一会话可复制：
+
+```text
+继续 /home/crazychen/myprojects/StockInsight，按AGENTS依次读项目规划/任务/交接/决策及docs/M6_CAPACITY_ASSESSMENT.md，检查Git和实际服务。M6-01完成，首期2–10名受邀用户/约100股；当前仍原4股库。先核对用户对ADR-022及预算/地域/域名、名单/历史起点、数据用途许可和恢复目标的决定；获确认后开展M6-02/03的本地可审阅生产配置与隔离演练。保护原卷/备份，不采购或公网部署、不扩大名单、不合并/push，除非另获明确授权。当前feature/m6-capacity-assessment包含尚未合并main的两轮页面/来源改动，保持完整历史。
+```

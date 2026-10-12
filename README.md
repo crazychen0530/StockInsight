@@ -7,7 +7,7 @@ StockInsight 是面向个人投资研究的中国 A 股行情与风险分析 Web
 ## 当前状态
 
 - 目标版本：v0.1.0
-- 当前阶段：M0–M5 全部完成，v0.1.0 RC 就绪；证据见 [M5 验收报告](docs/M5_ACCEPTANCE.md)
+- 当前阶段：M0–M5 全部完成，M6-01 部署评估完成；见 [M5 验收报告](docs/M5_ACCEPTANCE.md)和 [M6 容量评估](docs/M6_CAPACITY_ASSESSMENT.md)。生产配置/部署尚未实施。
 - 已建立：项目基线、开发环境、FastAPI 健康接口、四张 ORM 模型和初始 migration、Vue/Vite 前端壳及测试入口
 - 已新增：本地三服务 Compose、隔离配置、JSON 脱敏日志、统一错误响应和请求关联 ID
 - 已新增：[Provider 契约与 AKShare 适配](docs/MARKET_DATA_PROVIDER.md)，包含固定 fixture 离线测试；真实采集已验证；默认日线显式选择腾讯接口，来源 `akshare_tx`
