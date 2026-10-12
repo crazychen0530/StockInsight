@@ -25,3 +25,5 @@
 - git ls-remote origin refs/heads/main：实际远程main为2cf6ff7a3024a4f90fd52f88d047423121f4b8c2，未push/merge。
 
 运行说明见[本机运行指南](LOCAL_SERVER.md)。原[M6验收失败证据](M6_ACCEPTANCE.md)不覆盖。
+
+首版合并结果：功能提交ad38557已快进合并main并正常推送origin/main，远端SHA实际核验一致；工作区干净。后续交付记录同步不改变功能代码，原M6失败/未验收项保留，不发布tag或Release。

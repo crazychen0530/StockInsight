@@ -2,7 +2,7 @@
 
 更新时间：2026-10-12，Asia/Shanghai。当前工作目录 `/home/crazychen/myprojects/StockInsight`。
 
-> 当前状态以文末“剩余问题处理与匿名窗口”补记为准：用户暂不合并；明确授权8小时匿名只读试用且手机反馈正常。停牌修复解释后已获授权，仅更新scheduler/monitor并补采成功；维护零失败、真实异地备份与长期恢复未验收。
+> 最新状态：功能首版已合并main并推送origin/main（功能提交ad38557，另附交付记录提交）。用户接受当前已知限制，其他问题暂缓；8小时匿名窗口保持到23:37:08。当前环境和后续操作以文末首版合并最终记录为准。
 
 ## 1. 本轮授权与范围
 
@@ -263,3 +263,13 @@ Git继续feature/m6-production-deployment HEAD4496600，暂存为空，未commit
 用户明确“就这样吧，其他问题有使用影响再说吧，现在本地合并然后推送远程仓库main”。替代暂停合并决定：授权本地提交、合并main、正常推送origin/main；不force、不tag/Release、不采购、不扩大部署。维护连接失败、真实异地备份、WSL长期恢复及M6-04仍未验收，原证据不改。当前已有8小时匿名窗口保持至23:37:08，不自动延长或重启。
 
 只读确认/etc/wsl.conf systemd=true，systemctl docker enabled/active，Docker29.1.3；未执行WSL冷启动测试。以后现有电脑进入仓库执行./stockinsight.sh public即可自动恢复现有M6服务并启动8小时匿名入口，须保留终端/主机/网络。Docker启动尚未就绪时先稍候；确实未运行由用户执行sudo systemctl start docker。最终Git合并和远端结果以后续补记与实际Git为准。
+
+## 首版合并最终记录（2026-10-12 16:16，Asia/Shanghai）
+
+实际完成：5e5afb5（有限停牌采集/监控修复）、ad38557（限时匿名本机启动）已在feature分支提交。fetch核对远端main仍2cf6ff7后，本地main快进合并至ad38557，git push origin main成功；git ls-remote实测远端完整SHA ad38557ccfa1414387665e55466f27968df9b90c，与本地一致。工作区干净；本条交付记录另以docs提交同步main，不改功能代码。无force、tag、Release或额外部署。
+
+合并前216个仓库文件及候选文件敏感扫描通过，无真实密码/私钥/运行数据入Git；Ruff/25文件格式/bash语法/git diff检查、文档链接围栏通过，运维22passed/0.08s。此前最终后端407passed与前端39/typecheck/build、原HTTPS11/公网19/手机反馈与补采验证仍有效，本轮合并未改业务代码、不重复执行采集或重启服务。保留原M6-04/维护失败/异地与长期恢复未验收状态，用户已接受且暂缓处理，不自动继续架构改造。
+
+后续使用：当前WSL systemd=true，Docker enabled/active，进入现有仓库执行./stockinsight.sh public即可恢复现有服务并启动8小时匿名窗口，地址每次变化；当前已有窗口时不要重复启动，可status查看、public-stop提前关。主机/网络/终端需在线。WSL冷启动和断电恢复未做实测；Docker未就绪先稍候，确实未运行由用户sudo systemctl start docker。新电脑clone不含镜像/数据/私有配置，不能直接照此启动。
+
+下一会话可复制：检查StockInsight main/origin/main同步状态和当前8小时窗口实际到期清理，不自动续期；根据用户实际使用反馈处理维护连接或数据问题。先读取AGENTS/规划/任务/交接/ADR及LOCAL_SERVER/修复记录，保护现有容器、数据、配置和部署的停牌修复，保持M6原失败证据，不自动采购、开放新服务或进入M7。
