@@ -15,6 +15,12 @@ onMounted(load)
     <h1 id="page-title">研究从可信的数据链路开始</h1>
     <p class="hero-copy">搜索 A 股股票，查看已收录的历史行情和均线。</p>
     <div class="panel">
+      <h2>从这里开始</h2>
+      <p>第一次使用？跟着教程了解搜索、K 线、均线和自动更新。</p>
+      <RouterLink class="button-link" to="/guide">使用教程 →</RouterLink>
+      <p><RouterLink to="/source-settings">设置采集来源：东方财富 / 腾讯 →</RouterLink></p>
+    </div>
+    <div class="panel">
       <h2>本地股票概览</h2>
       <RequestState :loading="loading" :error="error" :empty="data?.total === 0" @retry="load">
         <template v-if="data">

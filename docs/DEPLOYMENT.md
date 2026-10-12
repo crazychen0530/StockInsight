@@ -175,3 +175,8 @@ M4 已完成均线、指标/任务状态只读 API、详情均线与 `/data-stat
 默认三服务不采集；用户显式启用 `automation` profile 后，独立 scheduler 按已核验 2026 日历与 4 只股票名单执行真实采集，带启动补齐和持久防重。所有端口仍仅 loopback，数据库卷保留。构建使用 `backend/constraints.txt` 锁定已审计 Python 3.12 依赖，前端使用 `package-lock.json`。Dockerfile 可选 BuildKit `build_proxy` secret，仅在依赖安装 RUN 中读取，禁止将带凭据代理作为 build args。
 
 详细命令见 [README](../README.md#真实采集与自动更新)，真实数据、全新 Linux、依赖审计及加密备份恢复的证据统一见 [M5 验收报告](M5_ACCEPTANCE.md)。本地开发 Compose 包含 dev 依赖及 Vite，不直接宣称满足公网生产部署；M6 的 HTTPS、认证、最小权限生产账户、告警、日志轮转与异地备份另行实施。
+
+
+## 本地网页管理增补（2026-10-12）
+
+当前development API新增来源策略读写，不再是全部只读接口；仅修改有限配置，不触发采集。LOCAL_ADMIN_TOKEN经私有.env注入API，scheduler不接收该口令。共享data/source-settings目录API可写、scheduler只读，需保证非root应用UID10001可访问；初始化命令见README。production明确拒绝此写接口，不能将本地管理机制直接当作M6公网认证。Vite代理保留本机Host，来源管理额外验证固定本机Origin和口令，阻止跨站/DNS重绑定写入。无数据库Schema、端口或公网部署变化。

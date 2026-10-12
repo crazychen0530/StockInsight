@@ -14,6 +14,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.collectors.akshare import AkShareProvider
 from app.collectors.errors import ProviderError
+from app.collectors.source_policy import PolicyProvider
 from app.collectors.validator import MarketDataValidationError, normalize_symbol
 from app.core.config import ConfigurationError, load_settings
 from app.core.database import create_configured_database_engine, create_session_factory
@@ -91,7 +92,10 @@ class ReadyProvider:
 
     def __init__(self, provider, calendar):
         self.provider, self.calendar = provider, calendar
-        self.daily_source = getattr(provider, "daily_source", "akshare")
+
+    @property
+    def daily_source(self):
+        return getattr(self.provider, "daily_source", "akshare")
 
     def fetch_daily_prices(self, symbol, start, end):
         batch = self.provider.fetch_daily_prices(symbol, start, end)
@@ -193,7 +197,12 @@ def main(argv=None):
             SyncJobRepository(engine),
             StockService(sessions),
             DailyPriceService(sessions),
-            ReadyProvider(AkShareProvider(settings), calendar),
+            ReadyProvider(
+                PolicyProvider(settings, calendar=calendar)
+                if settings.source_policy_directory
+                else AkShareProvider(settings),
+                calendar,
+            ),
             retry=retry,
         )
         scheduler = AfterCloseScheduler(

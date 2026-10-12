@@ -11,6 +11,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.analysis.moving_averages import CALCULATION_VERSION
 from app.collectors.akshare import AkShareProvider
+from app.collectors.source_policy import PolicyProvider
 from app.collectors.validator import MarketDataValidationError, normalize_symbol
 from app.core.config import ConfigurationError, load_settings
 from app.core.database import create_configured_database_engine, create_session_factory
@@ -115,7 +116,9 @@ def main(argv=None) -> int:
             jobs,
             StockService(sessions),
             DailyPriceService(sessions),
-            AkShareProvider(settings),
+            PolicyProvider(settings)
+            if settings.source_policy_directory
+            else AkShareProvider(settings),
             retry=retry,
         )
         results = []

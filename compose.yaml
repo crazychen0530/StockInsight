@@ -27,6 +27,8 @@ services:
       APP_ENV: ${APP_ENV:-development}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Shanghai}
+      SOURCE_POLICY_DIRECTORY: /workspace/source-settings
+      LOCAL_ADMIN_TOKEN: ${LOCAL_ADMIN_TOKEN:-}
       DATABASE_URL: postgresql+psycopg:///${POSTGRES_DB:-stockinsight}
       PGHOST: db
       PGPORT: "5432"
@@ -37,6 +39,7 @@ services:
       - "127.0.0.1:${APP_PORT:-8000}:8000"
     volumes:
       - ./backend:/workspace/backend:ro
+      - ./data/source-settings:/workspace/source-settings
     depends_on:
       db:
         condition: service_healthy
@@ -78,6 +81,7 @@ services:
     restart: unless-stopped
     environment:
       APP_ENV: development
+      SOURCE_POLICY_DIRECTORY: /workspace/source-settings
       DATABASE_URL: postgresql+psycopg:///${POSTGRES_DB:-stockinsight}
       PGHOST: db
       PGPORT: "5432"
@@ -88,6 +92,7 @@ services:
       MARKET_DATA_TIMEOUT_SECONDS: "120"
     volumes:
       - ./backend:/workspace/backend:ro
+      - ./data/source-settings:/workspace/source-settings:ro
       - ./config/calendars:/workspace/calendars:ro
     command: [python, -m, app.jobs.scheduler, --calendar, /workspace/calendars/sse_szse_2026.json, --symbol, "000001.SZ", --symbol, "600519.SH", --symbol, "300750.SZ", --symbol, "600036.SH", --initial-start, "2026-01-05", --catch-up]
     depends_on:

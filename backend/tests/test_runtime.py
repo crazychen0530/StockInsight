@@ -155,6 +155,7 @@ async def test_test_only_routes_are_not_in_production_app(client: AsyncClient) -
         "/api/v1/stocks/{symbol}/prices",
         "/api/v1/stocks/{symbol}/indicators",
         "/api/v1/system/data-status",
+        "/api/v1/system/source-policy",
     }
     assert "ErrorResponse" in document["components"]["schemas"]
 

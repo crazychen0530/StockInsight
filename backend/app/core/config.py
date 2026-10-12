@@ -24,6 +24,8 @@ class Settings(BaseModel):
     market_data_daily_interface: Literal["stock_zh_a_hist", "stock_zh_a_hist_tx"] = (
         "stock_zh_a_hist"
     )
+    source_policy_directory: str | None = None
+    local_admin_token: SecretStr | None = None
     database_url: SecretStr | None = None
     test_database_url: SecretStr | None = None
     pg_host: str | None = None
@@ -37,6 +39,15 @@ class Settings(BaseModel):
     def validate_provider_timeout(cls, value: float) -> float:
         if not 0 < value <= 300:
             raise ValueError("Invalid market data timeout")
+        return value
+
+    @field_validator("local_admin_token")
+    @classmethod
+    def validate_admin_token(cls, value: SecretStr | None) -> SecretStr | None:
+        if value is not None and not value.get_secret_value():
+            return None
+        if value is not None and not 32 <= len(value.get_secret_value()) <= 256:
+            raise ValueError("Management token must have at least 32 characters")
         return value
 
     @field_validator("pg_port")
@@ -95,7 +106,12 @@ class Settings(BaseModel):
 
     def secret_values(self) -> tuple[str, ...]:
         values = []
-        for value in (self.database_url, self.test_database_url, self.pg_password):
+        for value in (
+            self.database_url,
+            self.test_database_url,
+            self.pg_password,
+            self.local_admin_token,
+        ):
             if value is not None:
                 raw = value.get_secret_value()
                 values.append(raw)
@@ -115,6 +131,8 @@ def load_settings(environ: Mapping[str, str] | None = None) -> Settings:
         "APP_TIMEZONE": "app_timezone",
         "MARKET_DATA_TIMEOUT_SECONDS": "market_data_timeout_seconds",
         "MARKET_DATA_DAILY_INTERFACE": "market_data_daily_interface",
+        "SOURCE_POLICY_DIRECTORY": "source_policy_directory",
+        "LOCAL_ADMIN_TOKEN": "local_admin_token",
         "DATABASE_URL": "database_url",
         "TEST_DATABASE_URL": "test_database_url",
         "PGHOST": "pg_host",

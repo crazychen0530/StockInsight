@@ -87,3 +87,18 @@ Node22下npm run typecheck、npm test（35 passed）、npm run build-only通过�
 临时浏览器PLAYWRIGHT_BROWSERS_PATH=/tmp/stockinsight-ui-browser，LD_LIBRARY_PATH=/tmp/stockinsight-ui-libs/root/usr/lib/x86_64-linux-gnu，FONTCONFIG_FILE=/tmp/stockinsight-ui-libs/fonts.conf；只解压运行库/字体，无系统安装。新的截图副本在data/acceptance/readable-ui-20261012/（Git忽略）。原服务/卷及腾讯来源保留，刷新http://127.0.0.1:5173/可查看。本轮本地提交，未合并/推送，未启动M6、未采购。先前第9节已同步状态仅适用于2cf6ff7之前交付；本轮新功能仍待另行合并同步。
 
 下一会话可复制：核对StockInsight的AGENTS/规划/任务/交接与Git状态，检查feature/readable-stock-information的前端展示优化；保持真实基础资料缺失提示和可追溯行情说明。如用户要求补齐上市日期/状态，先设计真实基础资料采集及source/fetched_at持久化，不以网页隐藏替代数据采集完成，不根据行情猜测上市状态；M6按新授权启动。
+
+
+## 11. 网页来源策略和使用教程（2026-10-12）
+
+用户明确要求网页控制来源或东方财富优先/腾讯备用，并新增首页使用教程。当前分支feature/source-policy-and-guide，基于前轮22249f5；保留前轮展示优化，M6未启动。ADR-021记录授权范围内细化。新增本地GET/PUT /system/source-policy，Router→Service→配置文件Repository（原子替换/锁/revision），无业务DB变更。production写入403；development限定本机Origin/Host及LOCAL_ADMIN_TOKEN，自定义Web端口暂不支持管理写入。口令仅API环境注入，前端密码框提交后清空，不进构建/localStorage/日志。
+
+API可写、scheduler只读共享data/source-settings；配置不存在默认prefer_eastmoney，损坏/不可读显式失败。来源策略每股采集读取，新设置不重采历史/不清成功任务/不扩大股票名单/不立即重试当天已尝试失败。PolicyProvider处理请求/数据错误、空、调度目标未就绪时备用腾讯，真实来源传递经ReadyProvider/SourceProvider动态检查，Repository不判断上游；数据库或程序错误不触发备用。安全日志保留原因和最终来源。
+
+本地已运行scripts/init_source_settings.py，在私有.env生成LOCAL_ADMIN_TOKEN，secrets/source-admin.token为0600且Git忽略；使用现有镜像--no-build重建API/scheduler配置，原库/卷不变，仅新共享目录经容器root调整为应用UID10001可写及750。README提供新环境操作。首次初始化曾因Path.open不支持opener失败，已改为标准open并成功重跑；未输出口令。
+
+首页/guide教程按搜索/K线/均线/来源/更新说明真实4只范围，首页/source-settings设置页面支持三策略。真实浏览器验证错误口令401、三模式保存刷新持久化、口令清空/无localStorage、教程导航、桌面/390px无溢出；当前最终模式prefer_eastmoney、revision3。调度容器真实两只600519.SH/000001.SZ均先请求东方财富失败后备用腾讯，各183条2026-01-05～10-09通过日历/Validator，source akshare_tx；只读验证未覆盖原行情。自动daemon启动检查succeeded/skipped4/failed0，db/API/web healthy、scheduler running。
+
+最终全新六隔离库scripts/test_postgres.py为399 passed in13.63s，无skip（最初397passed/2failed为原OpenAPI路径集合未包含新增配置接口，更新契约后完整复跑通过）；非提升权限测试因子进程/线程环境限制中断，不作为通过证据。前端typecheck、38passed、生产构建通过，保留604.26KB/gzip207.57KB详情chunk提示。实际网页管理测试browser-settings.mjs通过；原mock边界browser-smoke.mjs及真实数据browser-live.mjs复验均通过（183条、MA60 1291.0760），无浏览器异常。Ruff/78文件格式检查通过，最终文档/源码/敏感信息检查在提交前核验。
+
+当前仅本地提交，不合并/推送。管理口令由本机终端cat secrets/source-admin.token取得并粘贴网页，本轮不分享口令值。无需购买服务器或进入公网。下一会话可复制：按AGENTS读取项目文档并核对Git和服务；检查feature/source-policy-and-guide的来源设置/教程和真实来源日志。如需即时网页补采，另行评审后台任务入口、授权、防重与失败恢复，不在请求内同步执行网络采集；合并/推送按用户新授权。

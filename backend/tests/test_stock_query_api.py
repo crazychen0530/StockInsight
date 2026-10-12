@@ -205,8 +205,14 @@ async def test_openapi_read_only_routes_required_dates_and_decimal_contract(clie
         "/api/v1/stocks/{symbol}/prices",
         "/api/v1/stocks/{symbol}/indicators",
         "/api/v1/system/data-status",
+        "/api/v1/system/source-policy",
     }
-    assert all(set(item) == {"get"} for item in document["paths"].values())
+    assert all(
+        set(item) == {"get"}
+        for path, item in document["paths"].items()
+        if path != "/api/v1/system/source-policy"
+    )
+    assert set(document["paths"]["/api/v1/system/source-policy"]) == {"get", "put"}
     params = document["paths"]["/api/v1/stocks/{symbol}/prices"]["get"]["parameters"]
     assert {p["name"] for p in params if p["required"]} == {"symbol", "start_date", "end_date"}
     schema = document["components"]["schemas"]["DailyPriceResponse"]["properties"]

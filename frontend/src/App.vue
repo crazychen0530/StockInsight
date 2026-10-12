@@ -17,6 +17,7 @@ import { RouterLink, RouterView } from 'vue-router'
         <RouterLink to="/">概览</RouterLink>
         <RouterLink to="/stocks">股票搜索</RouterLink>
         <RouterLink to="/data-status">数据状态</RouterLink>
+        <RouterLink to="/guide">使用教程</RouterLink>
       </nav>
     </header>
 

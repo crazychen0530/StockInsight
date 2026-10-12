@@ -364,3 +364,21 @@ curl --noproxy '*' --fail 'http://127.0.0.1:5173/api/v1/stocks/600519.SH/prices?
 这是预构建开发 Compose 镜像的部署路径；应用仍使用只读源码挂载。M5 在独立 Ubuntu 虚拟机、独立 Docker、零既有数据卷上按此路径验收，镜像不包含任何原库行情。常规有网络环境继续使用上文 `up --build` 路径。生产镜像、公开镜像仓库与公网部署属于 M6。
 
 M5 的全新 Linux 使用 TCG 软件模拟，采集高峰会延迟 Python/Node 健康探测进程启动。该环境额外叠加 `-f compose.acceptance.yaml`，将探测进程预算改为 30 秒、间隔 15 秒，原 HTTP 探测不变；普通本地环境不加该覆盖文件，仍使用 5 秒预算。验收同时要求真实 API 和浏览器通过，不以放宽预算代替业务验证。该配置不作为生产容量建议。
+
+
+## 网页采集来源设置与使用教程
+
+首页“使用教程”或`/guide`介绍搜索、K线、均线、数据范围与自动更新；`/source-settings`支持东方财富优先/腾讯备用、仅东方财富、仅腾讯三种策略。只影响下一次股票采集，不立即补采历史或改变已保存来源；每只股票开始请求时读取策略，无需重启调度器。
+
+首次启用本地管理（保留原.env与数据库）：
+
+```bash
+.venv/bin/python scripts/init_source_settings.py
+docker compose --profile automation up -d --no-build --no-deps api scheduler
+docker compose exec -T --user root api chown 10001:10001 /workspace/source-settings
+docker compose exec -T --user root api chmod 750 /workspace/source-settings
+```
+
+以上使用已有含market-data依赖的scheduler镜像；新环境按前文先构建。初始化仅创建私有管理口令和配置目录，不打印口令。设置页保存需要口令，在本机仓库目录执行`cat secrets/source-admin.token`读取；勿分享、截图、写进命令参数或提交Git。口令不进入浏览器持久存储，提交后清空输入。当前仅允许本机`http://localhost:5173`和`http://127.0.0.1:5173`页面管理，生产写入禁用；自定义Web端口需扩展经批准的Origin配置，不能绕过认证。
+
+API可写、scheduler只读挂载`data/source-settings`，文件为非敏感有限策略JSON；配置不存在时默认东方财富优先，配置损坏或共享目录不可读时显式失败。该目录及凭据均Git忽略，备份运维时同时保留策略、口令另行保管。原生CLI若需要同策略，显式设置`SOURCE_POLICY_DIRECTORY`指向该目录并保证读取权限；未设置时仍按`MARKET_DATA_DAILY_INTERFACE`运行。详见[Provider说明](docs/MARKET_DATA_PROVIDER.md)。

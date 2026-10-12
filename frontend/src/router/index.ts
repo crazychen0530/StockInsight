@@ -16,6 +16,8 @@ export const routes: RouteRecordRaw[] = [
     name: 'stock-detail',
     component: () => import('@/views/StockDetailView.vue'),
   },
+  { path: '/guide', name: 'guide', component: () => import('@/views/GuideView.vue') },
+  { path: '/source-settings', name: 'source-settings', component: () => import('@/views/SourceSettingsView.vue') },
   { path: '/data-status', name: 'data-status', component: () => import('@/views/DataStatusView.vue') },
   {
     path: '/:pathMatch(.*)*',
@@ -27,5 +29,5 @@ export const routes: RouteRecordRaw[] = [
 export const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
-  scrollBehavior: () => ({ top: 0 }),
+  scrollBehavior: to => to.hash ? { el: to.hash } : { top: 0 },
 })

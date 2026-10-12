@@ -60,3 +60,8 @@ docker compose restart scheduler
 # 明确停止自动更新，保留业务数据及容器
 docker compose stop scheduler
 ```
+
+
+## 网页策略增补（2026-10-12）
+
+启用SOURCE_POLICY_DIRECTORY时，调度Provider每次股票请求读取网页持久策略，优先于MARKET_DATA_DAILY_INTERFACE；无需重启。单股请求内策略不变，下只股票可读取新值。东方财富优先模式在上游失败/无效/空/目标日未就绪时尝试腾讯，两者都经过日历与ReadyProvider检查；dynamic daily_source确保SourceProvider校验实际来源。原成功范围防重与attempted交易日逻辑不变，保存策略不会立即重试当日已尝试任务；若要立即重试失败，仍通过已有明确CLI/重启操作，教程不声称保存即触发采集。当前4只覆盖和17:30时间不变，HTTP不运行采集。详见[网页策略](MARKET_DATA_PROVIDER.md#网页策略与可追溯备用2026-10-12)。

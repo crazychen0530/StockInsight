@@ -81,3 +81,14 @@ SDK DataFrame 改用 Python 最短往返数字表示，消除 Pandas `double_pre
 ## 东方财富连接复核（2026-10-12）
 
 本轮直连与环境代理均返回 HTTP 200；项目原有 AKShare 1.19.1 Provider → Validator 对贵州茅台、平安银行各取回 2026-01-05～10-09 的 183 条真实不复权日线，腾讯同区间同样通过。此前失败当前无法复现，不能认定根因是登录、封 IP 或接口失效，也不声称做了已证实的根因修复。没有修改 SDK、降低 TLS 校验、增加 Cookie 或自动换源。诊断命令、排错与替代方案见 [数据源诊断](MARKET_DATA_DIAGNOSTICS.md)。
+
+
+## 网页策略与可追溯备用（2026-10-12）
+
+用户授权新增`PolicyProvider`，在启用`SOURCE_POLICY_DIRECTORY`时优先于原`MARKET_DATA_DAILY_INTERFACE`，每次股票请求读取共享有限JSON配置。三种mode：prefer_eastmoney、eastmoney、tencent。前者在东方财富Provider错误（不含SDK缺依赖/来源不匹配）、校验错误、空响应或调度目标日缺失时尝试腾讯；程序缺陷、配置损坏和存储错误不触发换源。每次尝试保留既有超时，重试仍由CollectionRunner有界执行。固定来源失败不换源。
+
+成功批次保留实际akshare/akshare_tx和接口/UTC时间；SourceProvider及ReadyProvider读取最终动态来源，存储与指标事务不变。安全日志记录原来源、备用来源、原因码和最终来源；失败任务保留最终错误，未新增持久尝试表。调度日历校验和目标收盘日就绪检查对两个来源都执行；手动历史采集无就绪日要求，但空响应在策略模式下视为无法获取。
+
+GET/PUT /api/v1/system/source-policy经Service与专用文件Repository处理，PUT仅允许development、本机Host/Origin、管理口令认证；不在HTTP请求执行采集。JSON严格枚举和revision，文件锁、临时文件/fsync/原子替换防半写，旧revision返回409。新进程读取同文件保证持久化，损坏显式503。production写入403，API禁用目录时503。口令不返给客户端、不进入日志/构建/localStorage；访问与修改有安全应用日志。初始配置/权限与使用见[README](../README.md#网页采集来源设置与使用教程)。
+
+实际验收：网页三模式切换、错误口令拒绝、刷新持久化、口令清空、教程链接、桌面/390px手机通过，最终prefer_eastmoney。调度容器两只真实样本东方财富失败后自动腾讯返回各183条且来源akshare_tx；只读验证未覆盖原行情。配置变化不使已成功任务失效，已有行情仍可能来自腾讯。
