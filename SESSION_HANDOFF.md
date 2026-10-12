@@ -76,3 +76,14 @@ AKShare SDK MIT不授予上游行情公开再分发许可。公开/商业数据�
 用户明确授权本地合并并推送。fetch确认本地main与origin/main均为aa3da56且无分叉，工作区干净；推送内容35个源码/文档文件通过当前密码、私钥及运行数据排除检查。执行git merge --ff-only feature/m5-live-data-acceptance后，git push origin main已成功将aa3da56更新至c303d95。当前提交同步交接/任务/CHANGELOG，继续按本次授权推送；最终完整SHA以Git日志与远程核验为准。功能分支保留，无强推、标签、Release或公网部署。
 
 本次定向命令`.venv/bin/python -m pytest backend/tests/test_market_data_provider.py backend/tests/test_akshare_transport.py backend/tests/test_scheduler.py -q`为66 passed in 1.60s；`.venv/bin/ruff check backend scripts/diagnose_market_data.py scripts/backup_postgres.py`通过，整个待合并diff检查通过。快进不产生额外业务改动，未重复完整数据库/前端验收，先前388/31项及真实Linux/备份/浏览器证据保留。架构与数据库不变。目前无需购买服务器；下次仅按用户授权执行M6-01，复制任务见第7节。
+
+
+## 10. 股票信息展示优化（2026-10-12）
+
+用户反馈搜索/详情重复未知及技术文案难懂，授权优化展示。当前分支feature/readable-stock-information，基于main 2cf6ff7；仅前端展示，无API/Schema/采集/算法或架构变更。搜索按当前页是否存在已确认状态决定状态列，保留真实已知状态；详情仅展示已存在基础字段，缺失合并一条说明，不假设上市/停牌。市场/行情来源中文化，实际返回行情范围及获取时间限定当前显示数据；不复权、时间语义及原始source、均线版本/来源边界放原生details。均线表中文名称与历史不足解释，tooltip中文来源；精确数值不变。
+
+Node22下npm run typecheck、npm test（35 passed）、npm run build-only通过，保留604.23KB/gzip207.55KB详情chunk提示。npm run test:browser模拟搜索/日期/缩放/截断/空/错误/重试及手机通过；node scripts/browser-live.mjs真实贵州茅台183条、MA60 1291.0760、搜索/均线/展开说明/桌面手机/状态通过，无pageerror。截图目视复核手机布局通过。未重复后端数据库测试，因为没有后端改动；原388项证据保留。
+
+临时浏览器PLAYWRIGHT_BROWSERS_PATH=/tmp/stockinsight-ui-browser，LD_LIBRARY_PATH=/tmp/stockinsight-ui-libs/root/usr/lib/x86_64-linux-gnu，FONTCONFIG_FILE=/tmp/stockinsight-ui-libs/fonts.conf；只解压运行库/字体，无系统安装。新的截图副本在data/acceptance/readable-ui-20261012/（Git忽略）。原服务/卷及腾讯来源保留，刷新http://127.0.0.1:5173/可查看。本轮本地提交，未合并/推送，未启动M6、未采购。先前第9节已同步状态仅适用于2cf6ff7之前交付；本轮新功能仍待另行合并同步。
+
+下一会话可复制：核对StockInsight的AGENTS/规划/任务/交接与Git状态，检查feature/readable-stock-information的前端展示优化；保持真实基础资料缺失提示和可追溯行情说明。如用户要求补齐上市日期/状态，先设计真实基础资料采集及source/fetched_at持久化，不以网页隐藏替代数据采集完成，不根据行情猜测上市状态；M6按新授权启动。

@@ -25,7 +25,7 @@ describe('real ECharts SVG rendering', () => {
     expect(series[1].data[1]).toMatchObject({ itemStyle: { color: '#278261' } })
     const tooltip = option.tooltip as { formatter: (params: unknown) => string }
     expect(tooltip.formatter([{ dataIndex: 0 }])).toContain('12345678901234567890.12')
-    expect(tooltip.formatter([{ dataIndex: 0 }])).toContain('fixture_simulated')
+    expect(tooltip.formatter([{ dataIndex: 0 }])).toContain('模拟测试数据')
   })
   it('renders both panels, zooms both axes, updates data, and disposes', () => {
     const chart = init(null, undefined, { renderer: 'svg', ssr: true, width: 900, height: 480 })

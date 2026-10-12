@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { stocksApi } from '@/api/stocks'
 import type { StockList } from '@/api/types'
 import RequestState from '@/components/RequestState.vue'
 import { useRequest } from '@/composables/useRequest'
+import { marketName, stockStatus } from '@/utils/display'
 const route = useRoute()
 const router = useRouter()
 const query = ref('')
 const page = ref(1)
 const { data, error, loading, run } = useRequest<StockList>()
+const hasKnownStatus = computed(() => data.value?.items.some(stock => stock.status !== 'unknown'))
 const load = () => run(signal => stocksApi.list(typeof route.query.q === 'string' ? route.query.q.trim() : '', page.value, signal))
 watch(() => [route.query.q, route.query.page], () => {
   query.value = typeof route.query.q === 'string' ? route.query.q : ''
@@ -39,12 +41,13 @@ async function navigate(next = 1, search = false) {
         empty-text="没有匹配的本地股票。可更换关键词或通过本地采集入口准备数据。" @retry="load">
         <template v-if="data">
           <p>共 {{ data.total }} 只 · 第 {{ data.page }} 页</p>
+          <p class="muted">目录用于查找股票，部分股票尚未收录历史行情。上市状态暂未全部收录，不代表停牌或退市。</p>
           <div class="table-scroll">
             <table>
-              <thead><tr><th>股票</th><th>代码</th><th>市场</th><th>状态</th></tr></thead>
+              <thead><tr><th>股票</th><th>代码</th><th>市场</th><th v-if="hasKnownStatus">上市状态</th></tr></thead>
               <tbody><tr v-for="stock in data.items" :key="stock.symbol">
                 <td><RouterLink :to="{ name: 'stock-detail', params: { symbol: stock.symbol } }">{{ stock.name }}</RouterLink></td>
-                <td>{{ stock.symbol }}</td><td>{{ stock.exchange }}</td><td>{{ stock.status === 'unknown' ? '未知' : stock.status }}</td>
+                <td>{{ stock.symbol }}</td><td>{{ marketName(stock.exchange) }}</td><td v-if="hasKnownStatus">{{ stockStatus(stock.status) }}</td>
               </tr></tbody>
             </table>
           </div>

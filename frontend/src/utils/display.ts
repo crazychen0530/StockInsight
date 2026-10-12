@@ -15,3 +15,16 @@ export function defaultRange() {
   start.setUTCFullYear(start.getUTCFullYear() - 1)
   return { start_date: start.toISOString().slice(0, 10), end_date: today }
 }
+
+export function marketName(exchange: 'SH' | 'SZ'): string {
+  return exchange === 'SH' ? '上海证券交易所' : '深圳证券交易所'
+}
+export function stockStatus(status: string): string {
+  const labels: Record<string, string> = { listed: '上市', active: '上市', suspended: '暂停上市', delisted: '已退市', unknown: '暂未收录' }
+  return labels[status] || status
+}
+export function dailySourceName(source: string): string {
+  const labels: Record<string, string> = { akshare_tx: '腾讯财经', akshare: '东方财富' }
+  if (source.startsWith('fixture_simulated')) return '模拟测试数据'
+  return labels[source] || source
+}

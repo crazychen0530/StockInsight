@@ -46,9 +46,9 @@ describe('local query pages', () => {
     await flushPromises()
     await vi.waitFor(() => expect(router.currentRoute.value.path).toBe('/stocks/000001.SZ'))
     await flushPromises()
-    expect(wrapper.text()).toContain('基础信息来源未记录')
+    expect(wrapper.text()).toContain('基础资料更新时间暂未收录')
     expect(wrapper.text()).toContain('10.1234')
-    expect(wrapper.text()).toContain('fixture_simulated')
+    expect(wrapper.text()).toContain('模拟测试数据')
     expect(wrapper.text()).toContain('18:00:00')
   })
   it('submits new keywords at first page', async () => {
@@ -123,8 +123,8 @@ it('keeps a typed draft out of pagination and retry until search is submitted', 
 it('shows exact moving averages, null history, version and provenance', async () => {
   const { wrapper } = await open('/stocks/000001.SZ')
   expect(wrapper.text()).toContain('sma-close-v1')
-  expect(wrapper.text()).toContain('历史不足')
-  expect(wrapper.text()).toContain('整个窗口')
+  expect(wrapper.text()).toContain('历史数据不足')
+  expect(wrapper.text()).toContain('其他日期可能来自不同来源')
   expect(wrapper.text()).toContain('MA60')
   expect(wrapper.text()).toContain('10.1234')
   expect(stocksApi.indicators).toHaveBeenCalledWith('000001.SZ', expect.any(Object), expect.any(AbortSignal))
@@ -142,7 +142,7 @@ it('shows data status empty, safe errors, partial counts and refresh', async () 
   const { wrapper } = await open('/data-status')
   expect(wrapper.text()).toContain('暂无同步任务')
   vi.mocked(stocksApi.status).mockResolvedValue({ limit: 20, coverage_verified: false, items: [{
-    id: 'fixture-job', scope: { source: 'fixture_simulated', job_type: 'incremental', symbol: '000001.SZ', start_date: '2026-09-01', end_date: '2026-09-30' },
+    id: 'fixture-job', scope: { source: '模拟测试数据', job_type: 'incremental', symbol: '000001.SZ', start_date: '2026-09-01', end_date: '2026-09-30' },
     status: 'partial', total_count: 2, success_count: 1, failure_count: 1, checkpoint_symbol: '000001.SZ', checkpoint_date: '2026-09-01',
     error_code: 'provider_timeout', started_at: '2026-09-30T09:30:00Z', finished_at: '2026-09-30T09:31:00Z',
   }] })
@@ -152,4 +152,39 @@ it('shows data status empty, safe errors, partial counts and refresh', async () 
   expect(wrapper.text()).toContain('provider_timeout')
   expect(wrapper.text()).toContain('1 / 1 / 2')
   expect(wrapper.text()).toContain('17:30:00')
+})
+
+
+it('avoids a column of unknown statuses and explains missing basic information once', async () => {
+  const { wrapper } = await open('/stocks')
+  expect(wrapper.get('thead').text()).not.toContain('状态')
+  expect(wrapper.get('tbody').text()).not.toContain('未知')
+  expect(wrapper.get('tbody').text()).toContain('深圳证券交易所')
+  expect(wrapper.text()).toContain('不代表停牌或退市')
+})
+it('retains confirmed basic information and known statuses in mixed search results', async () => {
+  vi.mocked(stocksApi.list).mockResolvedValue({ ...list, items: [stock, { ...stock, symbol: '600519.SH', status: 'delisted' }] })
+  const { wrapper } = await open('/stocks')
+  expect(wrapper.get('thead').text()).toContain('上市状态')
+  expect(wrapper.get('tbody').text()).toContain('已退市')
+  expect(wrapper.get('tbody').text()).toContain('暂未收录')
+})
+it('keeps real basic values visible without replacing them with a missing-information note', async () => {
+  vi.mocked(stocksApi.detail).mockResolvedValue({ ...stock, list_date: '1991-04-03', status: 'listed', source: 'confirmed_source', fetched_at: '2026-09-01T10:00:00Z' })
+  const { wrapper } = await open('/stocks/000001.SZ')
+  expect(wrapper.get('.metadata').text()).toContain('1991-04-03')
+  expect(wrapper.get('.metadata').text()).toContain('上市')
+  expect(wrapper.get('.metadata').text()).toContain('confirmed_source')
+  expect(wrapper.text()).not.toContain('基础资料更新时间暂未收录')
+})
+it('names the data provider and keeps technical provenance available in collapsed explanations', async () => {
+  vi.mocked(stocksApi.prices).mockResolvedValue({ ...prices, items: prices.items.map(row => ({ ...row, source: 'akshare_tx' })) })
+  const { wrapper } = await open('/stocks/000001.SZ')
+  expect(wrapper.text()).toContain('行情来源：腾讯财经')
+  expect(wrapper.text()).toContain('最近 5、20、60 个交易日的平均收盘价')
+  expect(wrapper.text()).toContain('历史数据不足')
+  expect(wrapper.text()).toContain('不是交易发生的时间')
+  expect(wrapper.findAll('details').every(item => !item.attributes('open'))).toBe(true)
+  expect(wrapper.text()).toContain('原始来源标识：akshare_tx')
+  expect(wrapper.text()).toContain('sma-close-v1')
 })

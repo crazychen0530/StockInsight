@@ -1,4 +1,5 @@
 import type { EChartsOption } from 'echarts'
+import { dailySourceName } from '@/utils/display'
 import type { DailyPrice, Indicator } from '@/api/types'
 
 export function sortedBars(items: readonly DailyPrice[]): DailyPrice[] {
@@ -19,7 +20,7 @@ export function dailyPriceOption(items: readonly DailyPrice[], indicators: reado
       formatter: params => {
         const values = Array.isArray(params) ? params : [params]
         const bar = bars[values[0]?.dataIndex ?? -1]
-        return bar ? `${bar.trade_date}\n开盘 ${bar.open}  收盘 ${bar.close}\n最低 ${bar.low}  最高 ${bar.high}\n成交量 ${bar.volume_shares} 股\n成交额 ${bar.amount_cny} 元\n来源 ${bar.source}\nMA5 ${averages.get(bar.trade_date)?.ma5 ?? "—"}  MA20 ${averages.get(bar.trade_date)?.ma20 ?? "—"}  MA60 ${averages.get(bar.trade_date)?.ma60 ?? "—"}` : ''
+        return bar ? `${bar.trade_date}\n开盘 ${bar.open}  收盘 ${bar.close}\n最低 ${bar.low}  最高 ${bar.high}\n成交量 ${bar.volume_shares} 股\n成交额 ${bar.amount_cny} 元\n来源 ${dailySourceName(bar.source)}\nMA5 ${averages.get(bar.trade_date)?.ma5 ?? "—"}  MA20 ${averages.get(bar.trade_date)?.ma20 ?? "—"}  MA60 ${averages.get(bar.trade_date)?.ma60 ?? "—"}` : ''
       },
     },
     axisPointer: { link: [{ xAxisIndex: 'all' }] },
@@ -30,7 +31,7 @@ export function dailyPriceOption(items: readonly DailyPrice[], indicators: reado
       { type: 'category', gridIndex: 1, data: dates, boundaryGap: true },
     ],
     yAxis: [
-      { type: 'value', scale: true, name: '元 · 不复权' },
+      { type: 'value', scale: true, name: '股价（元）' },
       { type: 'value', min: 0, gridIndex: 1, name: '股', splitNumber: 2 },
     ],
     dataZoom: [

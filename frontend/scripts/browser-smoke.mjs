@@ -48,7 +48,10 @@ try {
   assert.equal(await page.getByRole('heading', { level: 1 }).textContent(), stock.name)
   assert((await page.locator('tbody').last().textContent()).includes('12345678901234567890.12'))
   assert((await page.locator('main').textContent()).includes('18:00:00'))
-  await page.getByText('均线版本：sma-close-v1', { exact: false }).waitFor()
+  await page.getByText('均线：看一段时间的平均价格', { exact: true }).waitFor()
+  await page.getByText('均线计算与来源说明', { exact: true }).click()
+  await page.getByText('计算版本：sma-close-v1', { exact: true }).waitFor()
+  await page.getByText('均线计算与来源说明', { exact: true }).click()
   assert((await page.locator('.chart-canvas').textContent()).includes('MA60'))
   const chart = page.locator('.chart-canvas')
   // Mouse drag on the actual ECharts slider, then inspect changed SVG geometry.

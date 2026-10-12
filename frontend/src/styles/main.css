@@ -218,3 +218,7 @@ td a { color: #24633c; font-weight: 700; }
   .query-form { align-items: stretch; }
   .query-form label { width: 100%; }
 }
+
+.data-explanation { margin: 16px 0; padding: 12px 16px; border-radius: 8px; background: #f4f7f4; color: #526057; font-size: .9rem; line-height: 1.8; overflow-wrap: anywhere; }
+.data-explanation summary { cursor: pointer; color: #24633c; font-weight: 600; }
+.data-explanation p:last-child { margin-bottom: 0; }
