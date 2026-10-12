@@ -49,7 +49,7 @@ AKShare SDK MIT不授予上游行情公开再分发许可。公开/商业数据�
 
 ## 7. 下一步与 Git
 
-**M5-01～05 全部 DONE，v0.1.0 RC 准备完成。**分支 `feature/m5-live-data-acceptance`，最终提交见Git日志；不合并main、不推送、不创建tag/Release。本轮在M5发布候选验收完成后停止，后续合并/同步或进入M6需用户明确指示；远程main已只读核验仍为aa3da561d7054adacf93c01fdff4f9fd5af09ca9。
+**M5-01～05 全部 DONE，v0.1.0 RC 准备完成。**2026-10-12 用户随后明确授权本地合并并推送；`feature/m5-live-data-acceptance` 已快进合并到本地 `main`，功能提交 `e099f20` 与数据源诊断 `c303d95` 已成功推送现有 `origin/main`。当前使用 `main`，最终文档同步提交见Git日志；功能分支保留。不创建tag/Release，M6未启动。前文与第8节“未合并/推送”描述保留为此前验收时点记录，以本节及第9节为当前Git状态。
 
 下一会话可复制任务（仅在用户明确要求公网后）：
 
@@ -69,3 +69,10 @@ AKShare SDK MIT不授予上游行情公开再分发许可。公开/商业数据�
 本轮Provider/Transport定向测试56 passed；Ruff及诊断脚本格式检查通过。诊断仅只读网络/校验，不新增Schema、依赖或业务采集行为。M5仍DONE，M6未启动；本轮本地提交，未合并或推送。
 
 最终复核：scheduler容器内东方财富沪深两样本各183条通过；db/API/web均running/healthy，scheduler running并输出succeeded、skipped_jobs=4、failed_jobs=0、target_date=2026-10-09。诊断异常链含循环与带凭据异常的脱敏断言通过；改动文档链接、代码围栏、当前数据库密码/私钥检查和diff检查通过。
+
+
+## 9. M5 合并与远程同步（2026-10-12）
+
+用户明确授权本地合并并推送。fetch确认本地main与origin/main均为aa3da56且无分叉，工作区干净；推送内容35个源码/文档文件通过当前密码、私钥及运行数据排除检查。执行git merge --ff-only feature/m5-live-data-acceptance后，git push origin main已成功将aa3da56更新至c303d95。当前提交同步交接/任务/CHANGELOG，继续按本次授权推送；最终完整SHA以Git日志与远程核验为准。功能分支保留，无强推、标签、Release或公网部署。
+
+本次定向命令`.venv/bin/python -m pytest backend/tests/test_market_data_provider.py backend/tests/test_akshare_transport.py backend/tests/test_scheduler.py -q`为66 passed in 1.60s；`.venv/bin/ruff check backend scripts/diagnose_market_data.py scripts/backup_postgres.py`通过，整个待合并diff检查通过。快进不产生额外业务改动，未重复完整数据库/前端验收，先前388/31项及真实Linux/备份/浏览器证据保留。架构与数据库不变。目前无需购买服务器；下次仅按用户授权执行M6-01，复制任务见第7节。

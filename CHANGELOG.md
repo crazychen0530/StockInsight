@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### 2026-10-12 M5 集成同步
+
+- 经用户明确授权，M5及数据源诊断功能快进合并本地main并推送现有origin/main，功能交付c303d95；下文“未推送”为此前验收时点。保留功能分支，不创建tag/Release，不启动M6。
+- 合并前Provider/Transport/Scheduler定向回归66passed、Ruff及待推送源码/凭据/生成物检查通过；无新增业务或数据库变更。
+
+
 ### 2026-10-12 数据源连接诊断
 
 - 新增只读 `scripts/diagnose_market_data.py`，对照东方财富直连/环境代理和东方财富/腾讯 Provider 校验；仅输出状态、行数和异常类型，不输出代理凭据或原始异常，不连接数据库。
