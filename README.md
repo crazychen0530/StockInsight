@@ -1,6 +1,6 @@
 # StockInsight
 
-M6生产部署实现与本地演练见[生产运行手册](docs/M6_PRODUCTION_RUNBOOK.md)和[验收记录](docs/M6_ACCEPTANCE.md)。当前M6-01～03完成，暂无服务器/域名/异地目标，公网M6-04待办；开发Compose与生产Compose独立。
+现有电脑的启动与公网访问见[本机运行指南](docs/LOCAL_SERVER.md)。搜索、K线、均线与带认证的临时公网试用已验证；匿名8小时入口已获明确授权，严格HTTPS及手机外网搜索/K线验证通过。M6长期生产验收尚未完成，已知限制见[首版交付评审](docs/V0_1_DELIVERY_REVIEW.md)。开发与生产Compose独立。
 
 StockInsight 是面向个人投资研究的中国 A 股行情与风险分析 Web 平台。已实现基础工程、真实行情采集、搜索、K 线、均线、任务状态及独立自动更新；M5 全部验收已通过，v0.1.0 发布候选准备完成。
 
@@ -9,7 +9,7 @@ StockInsight 是面向个人投资研究的中国 A 股行情与风险分析 Web
 ## 当前状态
 
 - 目标版本：v0.1.0
-- 当前阶段：M0–M5 全部完成，M6-01 部署评估完成；见 [M5 验收报告](docs/M5_ACCEPTANCE.md)和 [M6 容量评估](docs/M6_CAPACITY_ASSESSMENT.md)。生产配置/部署尚未实施。
+- 当前阶段：M0–M5 完成；M6-01～03实现及本地演练完成，带认证公网试用成功，M6-04长期公网运行/真实异地恢复仍未完成。见 [M5验收](docs/M5_ACCEPTANCE.md)、[M6验收](docs/M6_ACCEPTANCE.md)及[公网试用](docs/M6_BUSINESS_TRIAL_20261012.md)。
 - 已建立：项目基线、开发环境、FastAPI 健康接口、四张 ORM 模型和初始 migration、Vue/Vite 前端壳及测试入口
 - 已新增：本地三服务 Compose、隔离配置、JSON 脱敏日志、统一错误响应和请求关联 ID
 - 已新增：[Provider 契约与 AKShare 适配](docs/MARKET_DATA_PROVIDER.md)，包含固定 fixture 离线测试；真实采集已验证；默认日线显式选择腾讯接口，来源 `akshare_tx`

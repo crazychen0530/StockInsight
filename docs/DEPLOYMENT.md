@@ -1,8 +1,10 @@
 # StockInsight 部署规划
 
+> 2026-10-12最新：暂不购买VPS；已明确授权8小时匿名只读Quick Tunnel，程序/手机验证通过。用户暂不合并或推送，继续处理剩余问题，见[修复记录](M6_REMEDIATION_20261012.md)。原M6验收证据及部署配置保留，长期生产验收尚未完成。
+
 > 状态：M6生产部署实现与本地演练完成，公网资源尚无
 >
-> 当前阶段：M0–M5完成；M6-01～03完成，M6-04公网部署TODO。最新实施以[生产运行手册](M6_PRODUCTION_RUNBOOK.md)和[验收报告](M6_ACCEPTANCE.md)为准；下文评估/未实施描述保留历史时点。无采购或公网部署。
+> 当前阶段：M0–M5完成；M6-01～03完成，M6-04公网部署TODO。最新实施以[生产运行手册](M6_PRODUCTION_RUNBOOK.md)和[验收报告](M6_ACCEPTANCE.md)为准；下文评估/未实施描述保留历史时点。无采购；已完成授权限时公网试用，未完成长期生产部署。
 
 ## M6-01 当前评估（2026-10-12）
 
@@ -186,3 +188,29 @@ M4 已完成均线、指标/任务状态只读 API、详情均线与 `/data-stat
 ## 本地网页管理增补（2026-10-12）
 
 当前development API新增来源策略读写，不再是全部只读接口；仅修改有限配置，不触发采集。LOCAL_ADMIN_TOKEN经私有.env注入API，scheduler不接收该口令。共享data/source-settings目录API可写、scheduler只读，需保证非root应用UID10001可访问；初始化命令见README。production明确拒绝此写接口，不能将本地管理机制直接当作M6公网认证。Vite代理保留本机Host，来源管理额外验证固定本机Origin和口令，阻止跨站/DNS重绑定写入。无数据库Schema、端口或公网部署变化。
+
+
+## 限时业务公网试用补记（2026-10-12）
+
+用户明确“授权业务公网试用”，ADR-024接受仅此范围；现有主机一小时Quick Tunnel，严格校验源站HTTPS，沿用原Caddy邀请认证/只读入口。独立启动脚本deploy/acceptance/business_tunnel.py、严格TLS浏览器frontend/scripts/browser-tunnel-trial.mjs、报告docs/M6_BUSINESS_TRIAL_20261012.md。不修改原生产配置或既有容器/数据库，不注册账号/购买/安装系统软件，不commit/merge/push。原M6失败项保持。具体结果及当前URL以后续最终补记和证据state.json为准；初始三个窗口关闭且失败证据保留，第四窗口有限重试后继续门禁。
+
+
+## 当前交付评审与8小时匿名启动（2026-10-12，替代前轮下一步）
+
+用户要求检查未修复问题，若没有则合并main并推送；追加明确要求公网8小时且无需登录。当前仍有100股99/100未就绪、混合维护51失败、真实异地备份/长期运行未验收，因此不声称无问题，不根据附条件指令自动合并/推送。新增docs/V0_1_DELIVERY_REVIEW.md具体列出限制；docs/LOCAL_SERVER.md和根目录stockinsight.sh提供当前现有WSL主机启动/public/status/public-stop，默认28800秒。匿名入口采用独立临时Caddy/公开CA，只连接ingress网络、不挂生产密钥，源站TLS严格验证、写方法403、隐藏/调试/未知API404，原localhost18443认证保留。
+
+匿名公网启动经自动审批被拒绝，理由是需具体确认将业务行情/任务数据发送至运行时生成的公共目的地；没有绕过。仅执行--local-only：19项查询/禁写/路由/严格源站CA检查通过并清理本轮容器，无匿名公网URL。初始本地镜像能力与tmpfs CA复制适配失败已修正，保留NET_BIND_SERVICE及读取公开CA、不安装信任，精确owner标签清理，失败资源已清理。cloudflared复制到data/tools固定官方digest，不依赖/tmp，不系统安装。
+
+本轮完整回归399后端/39前端/18运维均通过，Node22类型/构建通过（604KB详情chunk提示保留），新脚本Ruff/bash语法通过。全新6个隔离测试库保留，原业务库不变。实际远程main通过ls-remote核验为2cf6ff7a3024a4f90fd52f88d047423121f4b8c2；本地当前feature/m6-production-deployment HEAD4496600，未提交/合并/push，本轮工作区继续保留。不购买资源。前一带认证窗口已到期，state process_stopped=true，最终失效核验补记为准。
+
+下一步等待两个明确决定：（1）是否接受docs/V0_1_DELIVERY_REVIEW.md列出的已知限制，以功能首版合并main并push origin；（2）是否允许具体行情目录、日线K线、均线、任务/来源状态通过随机trycloudflare.com地址匿名公开8小时。拿到决定后先核对本轮最新文件/审批范围，不自动把M6-04/旧失败项标DONE。未得到匿名批准时可继续本地start及local-only，不自动执行public。
+
+## 当前剩余问题处理
+
+[修复记录](M6_REMEDIATION_20261012.md)区分代码候选与运行部署：停牌修复的新app/ops镜像已隔离验证，并在用户针对性授权后仅更新scheduler/monitor应用overlay。当前匿名窗口23:37:08到期，既有本地HTTPS/认证、数据库私网及数据不变。真实异地目标和WSL恢复窗口缺失，M6-04不改判。
+
+停牌修复已获用户针对性授权，实际仅更新scheduler/monitor；带原transport告警CA overlay和独立halt配置，补采158条真实历史后100股有历史。原API/代理/DB及配置不变；stockinsight.sh start保留现有镜像。详细运行回执、快照缺证据说明及维护失败见修复记录。
+
+## 首版使用决定
+
+用户2026-10-12接受已知限制并授权合并/推送main，其他问题待实际使用反馈。只交付现有主机首版，不将M6-04改为通过。已只读核验/etc/wsl.conf的systemd=true与Docker enabled/active；日常命令见LOCAL_SERVER.md。未执行WSL关机/冷启动实测，不安装新的系统服务。

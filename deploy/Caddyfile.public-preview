@@ -1,0 +1,62 @@
+{
+ admin off
+ skip_install_trust
+ auto_https disable_redirects
+}
+https://localhost {
+ tls internal
+ encode zstd gzip
+ request_body {
+  max_size 16KB
+ }
+ header {
+  Cache-Control "no-store"
+  X-Content-Type-Options nosniff
+  Referrer-Policy no-referrer
+  X-Frame-Options DENY
+  Permissions-Policy "camera=(), microphone=(), geolocation=()"
+  Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'"
+  -Server
+ }
+ log {
+  format filter {
+   wrap json
+   fields {
+    request>headers delete
+    request>uri delete
+    request>remote_ip delete
+    request>remote_port delete
+    request>client_ip delete
+    resp_headers delete
+   }
+  }
+ }
+ route {
+  @unsafe not method GET HEAD
+  respond @unsafe "Read-only public preview" 403
+  @hidden path_regexp hidden (^|/)\.
+  respond @hidden 404
+  @debug path /docs* /redoc* /openapi.json
+  respond @debug 404
+  @query path /api/v1/health /api/v1/stocks /api/v1/stocks/* /api/v1/system/data-status /api/v1/system/source-policy
+  handle @query {
+   reverse_proxy stockinsight-m6-api-1:8000 {
+    header_up -Authorization
+    header_up -Cookie
+    header_up -X-Admin-Token
+    header_up -CF-Connecting-IP
+    header_up -True-Client-IP
+    header_up X-Forwarded-Proto https
+    header_up X-Forwarded-Host localhost
+   }
+  }
+  handle /api/* {
+   respond 404
+  }
+  handle {
+   root * /srv
+   try_files {path} /index.html
+   file_server
+  }
+ }
+}
