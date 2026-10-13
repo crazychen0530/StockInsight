@@ -20,6 +20,7 @@ StockInsight 是面向个人投资研究的中国 A 股行情与风险分析 Web
 - 已新增：[股票列表、详情与日线查询 API](docs/STOCK_QUERY_API.md)，含分页/上限、安全错误、来源时间与精确金额契约
 - 已新增：[前端 API/搜索/详情/K 线与成交量](docs/FRONTEND_MARKET.md)，含加载/空/错误、日期过滤、精确明细、来源与获取时间
 - 已新增：[版本化 MA5/20/60](docs/MOVING_AVERAGES.md)、[独立盘后调度](docs/SCHEDULER.md)和[增量/补采/恢复手册](docs/OPERATIONS.md)；2026 交易日历及本地真实调度已验证；生产验收属于 M6
+- 首版后新增：[股票入门学习中心](docs/STOCK_LEARNING.md)，首页与导航进入 `/learn`，包含六课、教学K线、术语搜索与理解测验；实际运行版本需发布对应静态构建。
 
 ## v0.1.0 计划范围
 

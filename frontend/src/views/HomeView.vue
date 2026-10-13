@@ -15,6 +15,14 @@ onMounted(load)
     <p class="eyebrow">LOCAL MARKET RESEARCH</p>
     <h1 id="page-title">研究从可信的数据链路开始</h1>
     <p class="hero-copy">搜索 A 股股票，查看已收录的历史行情和均线。</p>
+    <section class="panel learning-entry" aria-labelledby="learning-entry-title">
+      <p class="eyebrow">给第一次接触股票的你</p>
+      <h2 id="learning-entry-title">股票入门 · 从看不懂到会读图</h2>
+      <p>股票是什么？红绿 K 线怎么看？MA20 代表什么？从基础概念开始，六步了解行情、图表、交易流程和风险。</p>
+      <p class="muted">六节基础课 · 可切换的 K 线示意 · 随查术语词典 · 理解测验</p>
+      <RouterLink class="button-link" to="/learn">从零开始学习 →</RouterLink>
+      <p class="muted">先学会理解数据与风险；学习完成不代表能够盈利。</p>
+    </section>
     <div class="panel">
       <h2>从这里开始</h2>
       <p>第一次使用？跟着教程了解搜索、K 线、均线和自动更新。</p>
@@ -43,3 +51,8 @@ onMounted(load)
     </div>
   </section>
 </template>
+
+<style scoped>
+.learning-entry { background: #eef5e9; border-color: #b7cfa9; line-height: 1.8; }
+.learning-entry h2 { font-size: 1.5rem; }
+</style>

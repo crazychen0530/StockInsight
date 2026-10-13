@@ -17,6 +17,7 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/StockDetailView.vue'),
   },
   { path: '/guide', name: 'guide', component: () => import('@/views/GuideView.vue') },
+  { path: '/learn', name: 'learn', component: () => import('@/views/LearnView.vue') },
   { path: '/source-settings', name: 'source-settings', component: () => import('@/views/SourceSettingsView.vue') },
   { path: '/data-status', name: 'data-status', component: () => import('@/views/DataStatusView.vue') },
   {

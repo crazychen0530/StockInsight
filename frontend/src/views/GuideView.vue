@@ -6,6 +6,7 @@ const readOnly = import.meta.env.VITE_READ_ONLY_DEPLOYMENT === 'true'
     <RouterLink to="/">← 返回首页</RouterLink>
     <h1>使用教程</h1>
     <p>从找到股票，到查看行情、理解均线和检查更新。</p>
+    <p>还不熟悉股票概念？先去<RouterLink to="/learn">股票入门学习中心</RouterLink>，学习 K 线、均线、交易流程与风险，再回来操作。</p>
     <div class="panel">
       <h2>1. 先打开一只有行情的股票</h2>
       <p v-if="readOnly">首页提供常用股票入口，实际采集范围由本环境的运维配置决定；可在详情核对已收录行情。</p>

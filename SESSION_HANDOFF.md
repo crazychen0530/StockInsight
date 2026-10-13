@@ -1,8 +1,8 @@
 # StockInsight 会话交接
 
-更新时间：2026-10-12，Asia/Shanghai。当前工作目录 `/home/crazychen/myprojects/StockInsight`。
+更新时间：2026-10-13，Asia/Shanghai。当前工作目录 `/home/crazychen/myprojects/StockInsight`。
 
-> 最新状态：功能首版已合并main并推送origin/main（功能提交ad38557，另附交付记录提交）。用户接受当前已知限制，其他问题暂缓；8小时匿名窗口保持到23:37:08。当前环境和后续操作以文末首版合并最终记录为准。
+> 最新状态：本轮在 `feature/stock-learning-center` 增加股票入门学习中心，基线为 `51a073c`（main/origin/main），详见文末2026-10-13记录。此前匿名窗口、容器和数据库描述是2026-10-12的历史快照，本轮未确认其当前运行状态，也未自动续期或发布。原M6未验收事项保持。
 
 ## 1. 本轮授权与范围
 
@@ -273,3 +273,30 @@ Git继续feature/m6-production-deployment HEAD4496600，暂存为空，未commit
 后续使用：当前WSL systemd=true，Docker enabled/active，进入现有仓库执行./stockinsight.sh public即可恢复现有服务并启动8小时匿名窗口，地址每次变化；当前已有窗口时不要重复启动，可status查看、public-stop提前关。主机/网络/终端需在线。WSL冷启动和断电恢复未做实测；Docker未就绪先稍候，确实未运行由用户sudo systemctl start docker。新电脑clone不含镜像/数据/私有配置，不能直接照此启动。
 
 下一会话可复制：检查StockInsight main/origin/main同步状态和当前8小时窗口实际到期清理，不自动续期；根据用户实际使用反馈处理维护连接或数据问题。先读取AGENTS/规划/任务/交接/ADR及LOCAL_SERVER/修复记录，保护现有容器、数据、配置和部署的停牌修复，保持M6原失败证据，不自动采购、开放新服务或进入M7。
+
+## 股票入门学习中心（2026-10-13，最新开发记录）
+
+用户明确要求主页增加面向零基础的股票学习板块，覆盖概念、数据图表及交易知识。授权范围内新增六课、28项可搜索术语、6题纠错解释/重置、独立教学K线与读图练习；首页、导航和使用教程连接 `/learn`。原生SVG示例明确非真实行情，未接入行情API或数据库。学习完成不等于可以盈利；不推荐个股、不实现开户/下单/模拟账户，不提前实现财报或风险分析业务。
+
+### 架构、数据库与部署
+
+纯前端延迟加载扩展，无新依赖、API、Schema或migration；`0001_initial_schema`不变。本轮未连接数据库、重建原容器、使用私有凭据或重新开启公网。现有Caddy/匿名预览使用镜像内静态资源，新源码不会通过 `stockinsight.sh public` 自动发布。具体文件、来源和验收见 `docs/STOCK_LEARNING.md` 与 ADR-029。原M6-04、维护连接失败、异地备份与WSL恢复等限制保留。
+
+### 实际测试
+
+- Node22 `npm run typecheck`：通过。
+- `npm test`：6个测试文件、44项通过（原39项+新增5项学习页交互测试）。
+- `npm run build` / `npm run build-only`：通过；学习页chunk约22.26KB、gzip10.42KB，既有StockDetail约604KB警告保留。
+- 修改文档的本地链接/围栏与 `git diff --check`：通过。
+- 浏览器：隔离loopback5181与官方Chromium实测通过：首页行情离线仍可进课、六课锚点、K线切换、答错解释/纠错、词典、直接刷新、390px无横向溢出和键盘操作，无页面脚本异常。截图在 `/tmp/stockinsight-learning-*.png`。首次缺浏览器、完整下载超时、缺libnspr4/libnss3的失败记录保留；后续分段续传、完整大小/ZIP CRC校验及Ubuntu软件包临时解压后成功，未关闭TLS校验或安装系统包。
+- 最初测试环境无中文字体，截图出现方框；文泉驿字体软件包仅解压到/tmp，使用独立Fontconfig后中文桌面/手机截图及全部交互再次通过。未修改系统字体安装或应用字体依赖。
+
+### Git与下一会话
+
+会话开始本地main与origin/main跟踪一致，HEAD `51a073c`；未live fetch远端。当前工作分支 `feature/stock-learning-center`，本轮本地提交信息为 `feat: add beginner stock learning center`（最终SHA以git log为准）。EDU-01已完成，未授权本次功能合并或push，不复用此前首版的单次push授权。无需购买服务器。下一步由所有者决定是否发布现有主机的静态资源并合并/同步GitHub；源代码完成与实际运行版本发布分别验收。隔离测试Vite在验收后关闭，不影响原容器。
+
+下一会话可复制：
+
+```text
+继续StockInsight股票入门学习中心的发布准备。先按AGENTS阅读规划、任务、交接、ADR及docs/STOCK_LEARNING.md，检查feature/stock-learning-center实际Git状态、提交与测试记录。EDU-01源码及桌面/390px手机浏览器已验收。检查现有静态代理与匿名窗口，准备只更新前端资源的具体候选镜像、SPA /learn验收及回滚方案；只有在明确获准发布后更新目标服务，保护原API/数据库/scheduler/monitor及停牌配置。不自动合并、push、采购或续期开公网；如本轮用户已追加授权，以实际授权范围继续。
+```
