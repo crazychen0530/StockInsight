@@ -1,0 +1,6 @@
+# Build context: frontend/dist, built with VITE_READ_ONLY_DEPLOYMENT=true.
+# Supply the inspected, locally available previous proxy image explicitly.
+# Retain its hashed assets so already-open pages can still load old chunks.
+ARG PREVIOUS_PROXY_IMAGE
+FROM ${PREVIOUS_PROXY_IMAGE}
+COPY . /srv/

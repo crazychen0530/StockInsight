@@ -214,3 +214,20 @@ M4 已完成均线、指标/任务状态只读 API、详情均线与 `/data-stat
 ## 首版使用决定
 
 用户2026-10-12接受已知限制并授权合并/推送main，其他问题待实际使用反馈。只交付现有主机首版，不将M6-04改为通过。已只读核验/etc/wsl.conf的systemd=true与Docker enabled/active；日常命令见LOCAL_SERVER.md。未执行WSL关机/冷启动实测，不安装新的系统服务。
+
+## 学习页前端单服务更新（2026-10-13）
+
+用户明确授权更新前端、验证 `/learn` 并合并推送。本次只替换 `stockinsight-m6-proxy-1`，原CA/认证/端口/卷保留；API、DB、scheduler、monitor、backup的ID与StartedAt前后一致。无运行中匿名代理，不自动续期开窗；下次用户主动public会使用新版生产代理镜像。
+
+实际采用Node22：前端 `npm test`（44 passed）、`npm run typecheck`、`VITE_READ_ONLY_DEPLOYMENT=true npm run build-only`。构建上下文仅frontend/dist，以 `deploy/Dockerfile.frontend-update` 叠加已检查的本地原镜像 `stockinsight-production-proxy:m6-validated`，生成 `stockinsight-production-proxy:learn-20261013`（ID前缀1d0f94adc483）。本机无Buildx，使用现有legacy builder，无拉取/安装系统依赖；后续应恢复标准BuildKit。保留旧哈希资源兼容已打开页面，不无限累积历史资产，基础镜像升级仍走完整构建。
+
+仅运行：
+
+```bash
+PROXY_IMAGE=stockinsight-production-proxy:learn-20261013 docker compose --env-file .env.production -f compose.production.yaml -p stockinsight-m6 up -d --no-deps --no-build --pull never proxy
+python3 scripts/verify_production.py
+```
+
+首次启动即刻探测出现ConnectionResetError，随后11项全部通过；不宣称零停机。实际生产浏览器 `/learn` 与真实图表通过，TLS信任方式详见学习专题。已忽略的 `.env.production` 仅PROXY_IMAGE改为新标签。
+
+回滚：把上面命令的PROXY_IMAGE恢复 `stockinsight-production-proxy:m6-validated`，只重建proxy，再运行验证；同步私有env标签防止下次部署反向覆盖。旧镜像保留，数据库不回滚。此回滚路径未在本次实际执行，不伪记为演练通过。无需购买服务器，M6-04原遗留事项不改判。

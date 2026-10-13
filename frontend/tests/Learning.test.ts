@@ -51,10 +51,12 @@ describe('stock learning center', () => {
       await wrapper.get(`#${lesson.id}`).findAll('input[type="radio"]')[lesson.answer]!.setValue()
     }
     expect(wrapper.get('.learning-outline [role="status"]').text()).toContain('6 / 6')
+    expect(wrapper.get('.learning-outline').text()).toContain('基础测验已完成')
     await wrapper.get('.learning-outline button').trigger('click')
     expect(wrapper.get('.learning-outline [role="status"]').text()).toContain('0 / 6')
     expect(wrapper.find('input:checked').exists()).toBe(false)
     expect(wrapper.find('.learning-quiz [role="status"]').exists()).toBe(false)
+    expect(wrapper.get('.learning-outline').text()).not.toContain('基础测验已完成')
   })
 
   it('filters terms case-insensitively and recovers from no matches', async () => {
@@ -64,7 +66,8 @@ describe('stock learning center', () => {
     expect(wrapper.get('.learning-terms dt').text()).toContain('市盈率')
     await wrapper.get('#term-search').setValue('不存在的教学术语')
     expect(wrapper.get('#glossary').text()).toContain('没有匹配')
-    await wrapper.get('#term-search').setValue('  ')
+    await wrapper.get('#glossary button').trigger('click')
+    expect(wrapper.get<HTMLInputElement>('#term-search').element.value).toBe('')
     expect(wrapper.findAll('.learning-terms dt').length).toBeGreaterThan(20)
   })
 

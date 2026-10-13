@@ -20,7 +20,7 @@ const filteredTerms = computed(() => {
     <p class="hero-copy">先认识股票，再读懂图表，最后了解交易流程与风险。按顺序学，也可以随时查一个不懂的词。</p>
     <p class="notice">学习目标：能解释行情数字和图表，知道下单前要核对什么。学完不等于具备盈利能力；本课不推荐具体股票，不提供个性化买卖结论。</p>
 
-    <nav class="panel learning-outline" aria-label="学习目录">
+    <nav id="learning-outline" class="panel learning-outline" aria-label="学习目录">
       <h2>六步学习路线</h2>
       <ol>
         <li v-for="(lesson, index) in lessons" :key="lesson.id">
@@ -30,6 +30,7 @@ const filteredTerms = computed(() => {
       </ol>
       <a href="#glossary">查术语词典 →</a>
       <p role="status" aria-live="polite">已答对 {{ correctCount }} / {{ lessons.length }} 题。进度仅在本页停留期间保留，刷新后重置。</p>
+      <p v-if="correctCount === lessons.length" class="notice">基础测验已完成！接下来用真实图表检查理解；答对测验不代表能够盈利。</p>
       <button type="button" @click="answers = {}">重新练习</button>
     </nav>
 
@@ -54,6 +55,7 @@ const filteredTerms = computed(() => {
         </p>
       </fieldset>
       <a class="text-link" :href="index + 1 < lessons.length ? `#${lessons[index + 1]!.id}` : '#practice'">{{ index + 1 < lessons.length ? '继续下一课 ↓' : '开始读图练习 ↓' }}</a>
+      <a class="outline-return" href="#learning-outline">返回学习目录 ↑</a>
     </article>
 
     <section id="practice" class="panel" aria-labelledby="practice-title">
@@ -75,6 +77,7 @@ const filteredTerms = computed(() => {
       <h2 id="glossary-title">随查术语词典</h2>
       <label for="term-search">搜索术语或解释（如 MA、PE、成交量）</label>
       <input id="term-search" v-model="keyword" type="search" placeholder="输入你不懂的词" />
+      <button v-if="keyword" type="button" @click="keyword = ''">清空搜索</button>
       <p role="status">找到 {{ filteredTerms.length }} 项</p>
       <p v-if="filteredTerms.length === 0">没有匹配的术语，试试更短的关键词或清空搜索。</p>
       <dl class="learning-terms">
@@ -100,7 +103,8 @@ const filteredTerms = computed(() => {
 .learning-outline li { padding: 16px; background: #f4f7f4; border-radius: 10px; }
 .learning-outline li a { font-weight: 700; color: #24633c; }
 .learning-outline li span { display: block; font-size: .9rem; }
-.learning-lesson, #glossary, #practice { scroll-margin-top: 24px; }
+.learning-lesson, #glossary, #practice, #learning-outline { scroll-margin-top: 24px; }
+.outline-return { display: inline-block; margin: 12px 0 0 20px; }
 .learning-goal { padding-left: 12px; border-left: 3px solid #83b46a; }
 .learning-quiz { margin-top: 24px; padding: 16px; }
 .learning-quiz legend { padding: 0 8px; font-weight: 600; }

@@ -2,7 +2,7 @@
 
 更新时间：2026-10-13，Asia/Shanghai。当前工作目录 `/home/crazychen/myprojects/StockInsight`。
 
-> 最新状态：本轮在 `feature/stock-learning-center` 增加股票入门学习中心，基线为 `51a073c`（main/origin/main），详见文末2026-10-13记录。此前匿名窗口、容器和数据库描述是2026-10-12的历史快照，本轮未确认其当前运行状态，也未自动续期或发布。原M6未验收事项保持。
+> 最新状态：2026-10-13 已获授权更新前端并合并推送，学习页部署为 `stockinsight-production-proxy:learn-20261013`，实际入口 `https://localhost:18443/learn`（原邀请认证不变），生产浏览器验收通过。Git交付结果见文末最新记录。无运行中匿名代理，不自动开启公网窗口。原M6未验收事项保持。
 
 ## 1. 本轮授权与范围
 
@@ -299,4 +299,22 @@ Git继续feature/m6-production-deployment HEAD4496600，暂存为空，未commit
 
 ```text
 继续StockInsight股票入门学习中心的发布准备。先按AGENTS阅读规划、任务、交接、ADR及docs/STOCK_LEARNING.md，检查feature/stock-learning-center实际Git状态、提交与测试记录。EDU-01源码及桌面/390px手机浏览器已验收。检查现有静态代理与匿名窗口，准备只更新前端资源的具体候选镜像、SPA /learn验收及回滚方案；只有在明确获准发布后更新目标服务，保护原API/数据库/scheduler/monitor及停牌配置。不自动合并、push、采购或续期开公网；如本轮用户已追加授权，以实际授权范围继续。
+```
+
+## 2026-10-13 学习页优化、实际发布及交付
+
+用户明确要求更新前端、验证 `/learn`、检查优化并合并推送；本节替代上一节待授权发布说明。版本仍v0.1.0首版后教育扩展，EDU-01/02完成，M6-04仍未完整验收，不自动开展新业务里程碑。
+
+- 在功能提交efbf3d1之上补充返回目录、清空词典搜索、六题完成提示，无依赖/API/数据库/采集变更，migration未执行且无需新增。
+- 实际只重建生产proxy，镜像 `stockinsight-production-proxy:learn-20261013`（1d0f94adc483）；本机入口 `https://localhost:18443/learn`，原邀请密码与CA卷保留，私有env仅更新镜像标签。旧m6-validated镜像保留，回滚命令见docs/DEPLOYMENT.md，未实际执行回滚演练。
+- API/DB/scheduler/monitor/backup容器ID和StartedAt对比均未改变。无运行中匿名代理，未开新公网窗口；下次主动 `./stockinsight.sh public` 使用新版镜像。本轮不声称已验证公网URL。
+- 实际测试：Node22 `npm test` 44 passed；`npm run typecheck`、只读 `npm run build-only` 通过；隔离行情503和实际生产两种 `browser-learning.mjs` 模式通过，包含390px、键盘、刷新、锚点、测验、搜索；生产模式额外验证真实图表与只读设置，无页面脚本错误。先验证TLS链/主机名再固定浏览器证书公钥，不全局忽略TLS。11项服务门禁最终通过，首次重建立即探测ConnectionResetError保留，不承诺零中断。
+- 学习页22.67KB/gzip10.56KB，既有详情604KB警告保留，后续按性能证据优化，不为警告增加依赖。本机无Buildx，使用现有legacy builder，未安装系统包。发现独立开发scheduler反复重启（生产scheduler正常running），本轮未诊断根因或更改开发服务。
+- 原技术风险：M6维护连接失败、真实异地备份、WSL长期恢复和TLS监控等仍待后续，不改判；本次无新业务已知Bug。无需购买服务器。
+- Git：开始工作区干净，fetch后main/origin/main均51a073c；完成实现与验证后按授权快进合并main并正常推送，实际结果在后续交付补记，不强推/删分支/tag/Release。
+
+下一次可直接复制：
+
+```text
+继续StockInsight。先阅读AGENTS、PROJECT_PLAN、TASKS、SESSION_HANDOFF、docs/DECISIONS及docs/STOCK_LEARNING.md，核对main/远端和实际服务。学习页已部署，本轮先根据真实使用反馈复核/完善学习体验；若无具体反馈，先只读诊断stockinsight-local-scheduler反复重启，报告原因与建议，不自动重启或修复。保护生产API/数据库/停牌调度/监控，不自行续期开公网、采购或启动新业务里程碑；新改动的部署与Git推送按当轮授权执行。
 ```
