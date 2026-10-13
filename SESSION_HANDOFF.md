@@ -313,6 +313,8 @@ Git继续feature/m6-production-deployment HEAD4496600，暂存为空，未commit
 - 原技术风险：M6维护连接失败、真实异地备份、WSL长期恢复和TLS监控等仍待后续，不改判；本次无新业务已知Bug。无需购买服务器。
 - Git：开始工作区干净，fetch后main/origin/main均51a073c；完成实现与验证后按授权快进合并main并正常推送，实际结果在后续交付补记，不强推/删分支/tag/Release。
 
+交付补记：本地main已快进合并至 `e78873a7d4d08098cf081e95eab3b009d6f1669a`，正常push成功，`git ls-remote origin refs/heads/main`实测一致；含学习中心efbf3d1与优化发布e78873a。工作区在合并后干净，功能分支保留。本补记作为单独文档提交继续按同次授权同步，最终文档提交SHA以Git日志为准。修改Markdown本地链接/围栏、diff及已跟踪文件实际生产密码/私钥扫描通过；临时Vite已停止，生产代理继续运行。
+
 下一次可直接复制：
 
 ```text
