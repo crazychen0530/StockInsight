@@ -2,6 +2,8 @@
 
 更新时间：2026-10-13，Asia/Shanghai。当前工作目录 `/home/crazychen/myprojects/StockInsight`。
 
+> 最新public修复（2026-10-14，优先于历史状态）：用户反馈根目录public失败。证据public-20261014-200710-f2d6e9ab显示原HTTPS11项通过、Tunnel registered=true，但公网首页curl6（DNS解析失败），进程按失败清理；后续宿主解析成功且旧URL530，未确定具体DNS根因。business_tunnel增加约120秒限时启动等待，只对DNS/连接/超时及暂未就绪状态重试，证书错误和非预期状态仍失败；所有19项门禁保留。终端增加安全错误说明及证据路径。36项deploy/tests、Ruff、bash语法/diff检查通过。实际60秒public演练证据public-20261014-201241-3fd4ab5b，11项本地与19项公网通过，随后自动退出清理；不声称手机或8小时稳定性已验收。没有Schema/migration、核心架构或生产配置变更，无需采购。当前feature/dev-scheduler-recovery，HEAD181096a；本轮修复未提交/合并/push，原Windows CA相关三文件未提交改动已保留。下一次可复制：按AGENTS读取当前交接，执行./stockinsight.sh public并确认终端打印公网地址及手机访问；若失败，读取其提示的state/gates并按stage/curl退出码诊断，保护原服务与数据，不关闭TLS。仅按用户后续授权决定合并和推送。
+
 > 最新状态：2026-10-13 已获授权更新前端并合并推送，学习页部署为 `stockinsight-production-proxy:learn-20261013`，实际入口 `https://localhost:18443/learn`（原邀请认证不变），生产浏览器验收通过。Git交付结果见文末最新记录。无运行中匿名代理，不自动开启公网窗口。原M6未验收事项保持。
 
 ## 1. 本轮授权与范围

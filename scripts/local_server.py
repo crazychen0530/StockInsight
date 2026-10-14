@@ -243,7 +243,7 @@ def public(seconds, local_only=False):
             child = subprocess.Popen(command, cwd=ROOT)
             if child.wait():
                 raise RuntimeError(
-                    "公网验证失败或窗口被中断，已关闭本轮入口，详情见脱敏证据。"
+                    f"公网验证失败或窗口被中断，已关闭本轮入口。脱敏证据：{output}"
                 )
         finally:
             if child is not None and child.poll() is None:

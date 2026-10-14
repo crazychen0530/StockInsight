@@ -33,6 +33,53 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
+class PublicProbeError(OSError):
+    def __init__(self, code):
+        self.curl_code = code
+        super().__init__(f"Public HTTPS probe failed (curl {code})")
+
+
+def wait_public_ready(probe, expected_status, alive, stopped, record, timeout=120):
+    """Allow bounded DNS/edge startup delays; never retry failed security gates."""
+    deadline = time.monotonic() + timeout
+    while True:
+        if stopped():
+            raise RuntimeError("Public startup cancelled")
+        if not alive():
+            raise RuntimeError("Tunnel exited during public startup")
+        try:
+            status = probe()[0]
+        except PublicProbeError as error:
+            record("curl_exit", error.curl_code)
+            if error.curl_code not in (6, 7, 28):
+                raise
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as error:
+            record("transport_error_type", type(error).__name__)
+            if isinstance(getattr(error, "reason", None), ssl.SSLCertVerificationError):
+                raise
+        else:
+            record("http_status", status)
+            if status == expected_status:
+                return
+            if status not in (502, 503, 504, 530):
+                raise RuntimeError("Unexpected public startup HTTP status")
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise RuntimeError("Public DNS/HTTPS startup timed out")
+        time.sleep(min(3, remaining))
+
+
+def failure_summary(state):
+    code = state.get("last_curl_exit")
+    explanations = {
+        6: "临时公网域名解析失败；请检查当前网络DNS，稍后重新运行。",
+        7: "无法连接公网HTTPS入口；请检查出站网络。",
+        28: "公网HTTPS探测超时；请检查网络连通性。",
+        60: "公网证书校验失败；保持TLS校验并检查本机信任与网络代理。",
+    }
+    return explanations.get(code, "公网启动或只读门禁失败，请查看脱敏state/gates。")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary", type=Path, required=True)
@@ -84,7 +131,7 @@ def main():
         temp.write_text(json.dumps(state, indent=2))
         temp.replace(args.output / "state.json")
 
-    def request(base, path, authenticated=False, method="GET", spoof=False):
+    def request(base, path, authenticated=False, method="GET", spoof=False, attempts=3):
         headers = {"Cache-Control": "no-cache"}
         if authenticated:
             headers["Authorization"] = auth
@@ -101,7 +148,7 @@ def main():
         context = local_tls if base == state["origin"] else public_tls
         state["last_probe_path"] = path
         save()
-        for attempt in range(3):
+        for attempt in range(attempts):
             try:
                 if args.anonymous and base != state["origin"]:
                     # Direct, bounded probe: inherited development proxies were intermittently
@@ -129,11 +176,13 @@ def main():
                             command, capture_output=True, timeout=25, check=False
                         )
                     except subprocess.TimeoutExpired:
-                        state["last_curl_exit"] = "subprocess_timeout"
-                        raise OSError("Bounded direct HTTPS probe timed out") from None
+                        state["last_curl_exit"] = 28
+                        raise PublicProbeError(28) from None
                     if result.returncode:
                         state["last_curl_exit"] = result.returncode
-                        raise OSError("Bounded direct HTTPS probe failed")
+                        raise PublicProbeError(result.returncode)
+                    state.pop("last_curl_exit", None)
+                    state.pop("last_transport_error_type", None)
                     head, separator, body = result.stdout.partition(b"\r\n\r\n")
                     if not separator:
                         raise OSError("Invalid HTTPS probe response")
@@ -158,7 +207,7 @@ def main():
             except OSError as error:
                 state["last_transport_error_type"] = type(error).__name__
                 save()
-                if attempt == 2:
+                if attempt == attempts - 1:
                     raise
                 time.sleep(1)
 
@@ -293,16 +342,24 @@ def main():
             reader.start()
             if not ready.wait(90) or not state["url"]:
                 raise RuntimeError("Tunnel did not register")
-            # Fail closed: any failed gate terminates this owned tunnel immediately.
-            for attempt in range(5):
-                try:
-                    if request(state["url"], "/")[0] == (
-                        200 if args.anonymous else 401
-                    ):
-                        break
-                except OSError:
-                    pass
-                time.sleep(2)
+            # Registration is not proof that the new hostname is DNS/HTTPS ready.
+            # Wait only for startup transport/edge failures, then run every gate below.
+            state["stage"] = "public_startup"
+
+            def record_startup(kind, value):
+                state["startup_last_result"] = {kind: value}
+                save()
+
+            print("隧道已注册，等待临时域名DNS与HTTPS就绪（最多约120秒）…", flush=True)
+            wait_public_ready(
+                lambda: request(state["url"], "/", attempts=1),
+                200 if args.anonymous else 401,
+                lambda: process.poll() is None,
+                lambda: (args.output / "STOP").exists(),
+                record_startup,
+            )
+            state["stage"] = "public_gates"
+            save()
             gates = []
 
             def retain():
@@ -406,6 +463,7 @@ def main():
                     retain()
                     assert status == 404, "Private/unknown route was accessible"
             state["gates_passed"] = True
+            state["stage"] = "serving"
             save()
             print(json.dumps(state), flush=True)
             print(
@@ -418,6 +476,7 @@ def main():
                 time.sleep(1)
     except (OSError, ValueError, AssertionError, RuntimeError) as error:
         state["failure_type"] = type(error).__name__
+        print(failure_summary(state), flush=True)
         raise
     finally:
         if process is not None and process.poll() is None:
