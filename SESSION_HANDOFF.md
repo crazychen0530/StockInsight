@@ -1,5 +1,7 @@
 # StockInsight 会话交接
 
+> 530门禁修复补记（2026-10-14，最新）：用户复测窗口public-20261014-201946-ddd499bd的首页200、/stocks530，failure_type=AssertionError、stage=public_gates；上一版只等待首页就绪，未覆盖后续GET，这是此前修复遗漏。现将所有只读GET门禁纳入每项60秒限时传输/边缘错误重试，最终仍须返回原预期状态；隐藏路径200、TLS错误和写方法门禁不放宽。每项尝试保存到state.read_gate_probes，失败终端显示路径及HTTP状态。原分支40项运维测试、隔离main39项及Ruff/diff通过；先后两轮真实公网19项门禁通过（public-20261014-202204-ad585058、最终版public-20261014-202322-91bc2895），不宣称实际捕获到530恢复或8小时稳定性验收。修复提交main为15b79ec；沿用用户此前对此修复提交/合并/推送的明确授权同步。原scheduler提交与Windows CA未提交改动仍保留，未改数据库/Schema/部署/依赖，无需买服务器。下一次可复制：运行./stockinsight.sh public，若再次失败，提供输出的证据路径，核对read_gate_probes和gates，不关闭TLS或将失败门禁改判通过。
+
 > 公网修复Git交付补记（2026-10-14，替代上文未授权/未提交状态）：用户明确授权本次修复提交、合并及推送。公网修复已从原开发分支提取为独立提交336028f，经feature/public-startup-fix快进合并main，并成功正常推送origin/main（0442fe4→336028f）。未将上一轮scheduler提交181096a或原Windows CA未提交文档纳入本次main交付；这些内容完整保留于原工作区。隔离main运维测试35 passed（原分支36项含上一轮scheduler测试）、Ruff和diff通过。无业务Schema/架构变化，无需买服务器；本补记随后按同次授权作为文档提交同步，最终SHA以Git日志为准。原项目目录仍在feature/dev-scheduler-recovery，main位于临时集成worktree。下一次可复制：按AGENTS读取最新交接，复核main/origin/main及原工作区未提交改动，再执行./stockinsight.sh public确认实际访问；若继续处理scheduler合并或Windows CA问题，另按当轮需求执行，不覆盖原改动。
 
 更新时间：2026-10-13，Asia/Shanghai。当前工作目录 `/home/crazychen/myprojects/StockInsight`。
