@@ -1,5 +1,7 @@
 # StockInsight 会话交接
 
+> 公网修复Git交付补记（2026-10-14，替代上文未授权/未提交状态）：用户明确授权本次修复提交、合并及推送。公网修复已从原开发分支提取为独立提交336028f，经feature/public-startup-fix快进合并main，并成功正常推送origin/main（0442fe4→336028f）。未将上一轮scheduler提交181096a或原Windows CA未提交文档纳入本次main交付；这些内容完整保留于原工作区。隔离main运维测试35 passed（原分支36项含上一轮scheduler测试）、Ruff和diff通过。无业务Schema/架构变化，无需买服务器；本补记随后按同次授权作为文档提交同步，最终SHA以Git日志为准。原项目目录仍在feature/dev-scheduler-recovery，main位于临时集成worktree。下一次可复制：按AGENTS读取最新交接，复核main/origin/main及原工作区未提交改动，再执行./stockinsight.sh public确认实际访问；若继续处理scheduler合并或Windows CA问题，另按当轮需求执行，不覆盖原改动。
+
 更新时间：2026-10-13，Asia/Shanghai。当前工作目录 `/home/crazychen/myprojects/StockInsight`。
 
 > 最新public修复（2026-10-14，优先于历史状态）：用户反馈根目录public失败。证据public-20261014-200710-f2d6e9ab显示原HTTPS11项通过、Tunnel registered=true，但公网首页curl6（DNS解析失败），进程按失败清理；后续宿主解析成功且旧URL530，未确定具体DNS根因。business_tunnel增加约120秒限时启动等待，只对DNS/连接/超时及暂未就绪状态重试，证书错误和非预期状态仍失败；所有19项门禁保留。终端增加安全错误说明及证据路径。36项deploy/tests、Ruff、bash语法/diff检查通过。实际60秒public演练证据public-20261014-201241-3fd4ab5b，11项本地与19项公网通过，随后自动退出清理；不声称手机或8小时稳定性已验收。没有Schema/migration、核心架构或生产配置变更，无需采购。当前feature/dev-scheduler-recovery，HEAD181096a；本轮修复未提交/合并/push，原Windows CA相关三文件未提交改动已保留。下一次可复制：按AGENTS读取当前交接，执行./stockinsight.sh public并确认终端打印公网地址及手机访问；若失败，读取其提示的state/gates并按stage/curl退出码诊断，保护原服务与数据，不关闭TLS。仅按用户后续授权决定合并和推送。
