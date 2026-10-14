@@ -127,3 +127,51 @@ def test_authenticated_tls_failure_is_not_retried(startup_clock):
     with pytest.raises(business_tunnel.urllib.error.URLError):
         wait_public_ready(probe, 401, lambda: True, lambda: False, lambda *v: None)
     assert startup_clock[0] == 0
+
+
+def test_later_read_gate_recovers_from_530_and_returns_full_response(startup_clock):
+    responses = iter(
+        [(530, b"edge error", {}), (200, b"stock page", {"Content-Type": "text/html"})]
+    )
+    records = []
+    result = wait_public_ready(
+        lambda: next(responses),
+        200,
+        lambda: True,
+        lambda: False,
+        lambda *v: records.append(v),
+        timeout=60,
+    )
+    assert result == (200, b"stock page", {"Content-Type": "text/html"})
+    assert records == [("http_status", 530), ("http_status", 200)]
+    assert startup_clock[0] == 3
+
+
+def test_persistent_530_never_becomes_passed_gate(startup_clock):
+    with pytest.raises(RuntimeError, match="timed out"):
+        wait_public_ready(
+            lambda: (530, b"unavailable", {}),
+            200,
+            lambda: True,
+            lambda: False,
+            lambda *v: None,
+            timeout=6,
+        )
+    assert startup_clock[0] == 6
+
+
+def test_http_diagnostic_includes_failing_route_and_status():
+    summary = failure_summary({"last_probe_path": "/stocks", "last_http_status": 530})
+    assert "/stocks" in summary
+    assert "530" in summary
+
+
+def test_hidden_route_530_can_recover_but_200_must_fail(startup_clock):
+    responses = iter([(530,), (404,)])
+    assert wait_public_ready(
+        lambda: next(responses), 404, lambda: True, lambda: False, lambda *v: None
+    ) == (404,)
+    with pytest.raises(RuntimeError, match="Unexpected"):
+        wait_public_ready(
+            lambda: (200,), 404, lambda: True, lambda: False, lambda *v: None
+        )

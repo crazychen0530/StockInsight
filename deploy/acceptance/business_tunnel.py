@@ -48,7 +48,8 @@ def wait_public_ready(probe, expected_status, alive, stopped, record, timeout=12
         if not alive():
             raise RuntimeError("Tunnel exited during public startup")
         try:
-            status = probe()[0]
+            response = probe()
+            status = response[0]
         except PublicProbeError as error:
             record("curl_exit", error.curl_code)
             if error.curl_code not in (6, 7, 28):
@@ -60,7 +61,7 @@ def wait_public_ready(probe, expected_status, alive, stopped, record, timeout=12
         else:
             record("http_status", status)
             if status == expected_status:
-                return
+                return response
             if status not in (502, 503, 504, 530):
                 raise RuntimeError("Unexpected public startup HTTP status")
         remaining = deadline - time.monotonic()
@@ -77,7 +78,14 @@ def failure_summary(state):
         28: "公网HTTPS探测超时；请检查网络连通性。",
         60: "公网证书校验失败；保持TLS校验并检查本机信任与网络代理。",
     }
-    return explanations.get(code, "公网启动或只读门禁失败，请查看脱敏state/gates。")
+    if code in explanations:
+        return explanations[code]
+    if state.get("last_http_status") is not None:
+        return (
+            f"公网探测失败：{state.get('last_probe_path', '/')} "
+            f"返回HTTP {state['last_http_status']}；请查看脱敏state/gates。"
+        )
+    return "公网启动或只读门禁失败，请查看脱敏state/gates。"
 
 
 def main():
@@ -187,11 +195,14 @@ def main():
                     if not separator:
                         raise OSError("Invalid HTTPS probe response")
                     first, _, header_lines = head.partition(b"\r\n")
-                    return (
+                    response = (
                         int(first.split()[1]),
                         body,
                         email.message_from_bytes(header_lines),
                     )
+                    state["last_http_status"] = response[0]
+                    save()
+                    return response
                 handlers = [NoRedirect(), urllib.request.HTTPSHandler(context=context)]
                 if base == state["origin"]:
                     handlers.append(urllib.request.ProxyHandler({}))
@@ -365,6 +376,32 @@ def main():
             def retain():
                 (args.output / "gates.json").write_text(json.dumps(gates, indent=2))
 
+            def read_gate(path, expected_status=200):
+                # A 200 on one edge request does not guarantee the next route is ready.
+                # Retry only transport/edge errors, never an unexpected application status.
+                probes = []
+                state.setdefault("read_gate_probes", []).append(
+                    {"path": path, "attempts": probes}
+                )
+
+                def record(kind, value):
+                    probes.append({kind: value})
+                    save()
+                    if kind != "http_status" or value != expected_status:
+                        print(
+                            f"只读探测 {path} 暂未就绪（{kind}={value}），限时重试…",
+                            flush=True,
+                        )
+
+                return wait_public_ready(
+                    lambda: request(state["url"], path, not args.anonymous, attempts=1),
+                    expected_status,
+                    lambda: process.poll() is None,
+                    lambda: (args.output / "STOP").exists(),
+                    record,
+                    timeout=60,
+                )
+
             if not args.anonymous:
                 for path in (
                     "/",
@@ -421,7 +458,7 @@ def main():
                 ("/docs", 404),
                 ("/openapi.json", 404),
             ):
-                status, body, headers = request(state["url"], path, not args.anonymous)
+                status, body, headers = read_gate(path, expected_status)
                 gates.append(
                     {
                         "path": path,
@@ -458,7 +495,7 @@ def main():
                 )
             if args.anonymous:
                 for path in ("/.env", "/api/admin", "/api/v1/unknown", "/redoc"):
-                    status = request(state["url"], path)[0]
+                    status = read_gate(path, 404)[0]
                     gates.append({"path": path, "status": status, "expected": 404})
                     retain()
                     assert status == 404, "Private/unknown route was accessible"
